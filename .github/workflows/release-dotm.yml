@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Existing tag to package and release, for example v0.6.1"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -11,15 +17,19 @@ permissions:
 jobs:
   release-dotm:
     runs-on: windows-latest
+    env:
+      RELEASE_TAG: ${{ github.event.inputs.release_tag || github.ref_name }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.release_tag || github.ref }}
 
       - name: Package DOTM and templates
         shell: pwsh
         run: |
-          $tag = "${{ github.ref_name }}"
+          $tag = "${{ env.RELEASE_TAG }}"
           $workspace = $env:GITHUB_WORKSPACE
           $dotmDir = Join-Path $workspace "dotm"
           $templateDir = Join-Path $workspace "template"
@@ -53,6 +63,7 @@ jobs:
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.RELEASE_TAG }}
           files: |
             dist/*.dotm
             template/master-template-cn.dotx
