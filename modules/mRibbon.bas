@@ -664,10 +664,6 @@ Public Sub Wrapper_ProtectFieldFormat()
     ' 只要原 Sub 内部没用到 control.ID 或 control.Tag，这样写就是安全的
     ProtectFieldFormat Nothing
 End Sub
-Public Sub Wrapper_AddMissingCaptionLabels(control As IRibbonControl)
-    AddMissingCaptionLabels
-End Sub
-
 
 Public Sub Wrapper_RenameCurrentDocument(control As IRibbonControl)
     RenameCurrentDocument
