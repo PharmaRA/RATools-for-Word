@@ -213,6 +213,7 @@
                     <box id="boxR2" boxStyle="horizontal">
                         <control idMso="CaptionInsert" showLabel="false"/> 
                         <control idMso="CrossReferenceInsert" showLabel="false"/>
+                        <button id="btnAddMissingCaptionLabels" label="恢复题注标签" imageMso="TableTestValidationRules" size="normal" description="扫描文档中的 SEQ 域并补齐缺失的题注标签，便于在交叉引用中使用" screentip="恢复缺失题注标签" showLabel="false" onAction="Wrapper_AddMissingCaptionLabels"/>
                         <control idMso="HyperlinkInsert" showLabel="false"/>
                     </box>
                     <box id="boxR3" boxStyle="horizontal">
