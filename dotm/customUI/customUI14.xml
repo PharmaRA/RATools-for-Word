@@ -256,7 +256,6 @@
 
                 <!-- == 其他 == -->
 				<group id="grpOther" label="其他">
-				    <!-- 打开文件夹按钮 -->
 					<button id="btnOpenFolder" 
                             label="打开所在文件夹" 
                             imageMso="Folder" 
@@ -281,14 +280,16 @@
                             screentip="扫描全文或选区内的引用域，自动添加 \* MERGEFORMAT 开关，防止更新域后格式丢失。" 
                             showLabel="false" 
                             onAction="ProtectFieldFormat" />
-					<button id="btnCheckForUpdates"
-                            label="检查更新"
-                            imageMso="Refresh"
-                            size="normal"
-                            description="检查 RATools 是否有可用的新版本"
-                            screentip="检查新版本"
+				</group>
+
+				<group id="grpAbout" label="关于">
+					<button id="btnAbout"
+                            imageMso="Info"
+                            size="large"
+                            description="显示 RATools 的版本信息、仓库入口和检查更新功能"
+                            screentip="关于RATools"
                             showLabel="false"
-                            onAction="Wrapper_CheckForUpdates" />
+                            onAction="Wrapper_ShowAbout" />
 				</group>
 				
             </tab>

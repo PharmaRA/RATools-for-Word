@@ -1,10 +1,24 @@
 Attribute VB_Name = "Mod_UpdateChecker"
 Option Explicit
 
-Private Const APP_VERSION As String = "v0.6.0"
+Private Const APP_VERSION As String = "v0.6.1"
 Private Const RELEASES_API_URL As String = "https://api.github.com/repos/PharmaRA/RATools-for-Word/releases/latest"
 Private Const GITHUB_RELEASE_URL_PREFIX As String = "https://github.com/PharmaRA/RATools-for-Word/releases/tag/"
 Private Const GITEE_RELEASE_URL_PREFIX As String = "https://gitee.com/PharmaRA/RATools-for-Word/releases/tag/"
+Private Const GITHUB_REPOSITORY_URL As String = "https://github.com/PharmaRA/RATools-for-Word"
+Private Const GITEE_REPOSITORY_URL As String = "https://gitee.com/PharmaRA/RATools-for-Word"
+
+Public Function GetAppVersion() As String
+    GetAppVersion = APP_VERSION
+End Function
+
+Public Sub OpenGitHubRepository()
+    OpenExternalPage GITHUB_REPOSITORY_URL
+End Sub
+
+Public Sub OpenGiteeRepository()
+    OpenExternalPage GITEE_REPOSITORY_URL
+End Sub
 
 Public Sub CheckForUpdatesManually()
     CheckForUpdatesCore
@@ -32,16 +46,12 @@ Private Sub CheckForUpdatesCore()
     compareResult = CompareVersions(APP_VERSION, latestVersion)
 
     If compareResult <= 0 Then
-        MsgBox "当前已是最新版本。", vbInformation, "检查更新"
+        MsgBox BuildCurrentLatestMessage(), vbInformation, BuildUpdateTitle()
         Exit Sub
     End If
 
-    userChoice = MsgBox("发现新版本：" & latestVersion & vbCrLf & _
-                        "当前版本：" & APP_VERSION & vbCrLf & vbCrLf & _
-                        "是：打开 GitHub Release" & vbCrLf & _
-                        "否：打开 Gitee Release" & vbCrLf & _
-                        "取消：关闭提示", _
-                        vbYesNoCancel + vbInformation, "发现新版本")
+    userChoice = MsgBox(BuildUpdatePrompt(latestVersion), _
+                        vbYesNoCancel + vbInformation, BuildNewVersionTitle())
 
     Select Case userChoice
         Case vbYes
@@ -52,11 +62,11 @@ Private Sub CheckForUpdatesCore()
     Exit Sub
 
 FetchFailed:
-    MsgBox "检查更新失败，请稍后重试。", vbExclamation, "检查更新"
+    MsgBox BuildUpdateFailedMessage(), vbExclamation, BuildUpdateTitle()
     Exit Sub
 
 ErrHandler:
-    MsgBox "检查更新失败，请稍后重试。", vbExclamation, "检查更新"
+    MsgBox BuildUpdateFailedMessage(), vbExclamation, BuildUpdateTitle()
 End Sub
 
 Private Function GetLatestReleaseJson(ByRef responseText As String) As Boolean
@@ -161,12 +171,47 @@ Private Function CompareVersions(ByVal currentVersion As String, ByVal latestVer
 End Function
 
 Private Sub OpenReleasePage(ByVal releaseUrl As String)
-    If Len(Trim$(releaseUrl)) = 0 Then Exit Sub
-    ActiveDocument.FollowHyperlink Address:=releaseUrl, NewWindow:=True
+    OpenExternalPage releaseUrl
 End Sub
 
 Private Function BuildReleaseUrl(ByVal releaseUrlPrefix As String, ByVal versionText As String) As String
     BuildReleaseUrl = releaseUrlPrefix & versionText
+End Function
+
+Private Sub OpenExternalPage(ByVal targetUrl As String)
+    If Len(Trim$(targetUrl)) = 0 Then Exit Sub
+    ActiveDocument.FollowHyperlink Address:=targetUrl, NewWindow:=True
+End Sub
+
+Private Function BuildUpdateTitle() As String
+    BuildUpdateTitle = FromCodePoints(Array(26816, 26597, 26356, 26032))
+End Function
+
+Private Function BuildNewVersionTitle() As String
+    BuildNewVersionTitle = FromCodePoints(Array(21457, 29616, 26032, 29256, 26412))
+End Function
+
+Private Function BuildCurrentLatestMessage() As String
+    BuildCurrentLatestMessage = FromCodePoints(Array(24403, 21069, 24050, 26159, 26368, 26032, 29256, 26412, 12290))
+End Function
+
+Private Function BuildUpdateFailedMessage() As String
+    BuildUpdateFailedMessage = FromCodePoints(Array(26816, 26597, 26356, 26032, 22833, 36133, 65292, 35831, 31245, 21518, 37325, 35797, 12290))
+End Function
+
+Private Function BuildUpdatePrompt(ByVal latestVersion As String) As String
+    BuildUpdatePrompt = FromCodePoints(Array(21457, 29616, 26032, 29256, 26412, 65306)) & latestVersion & vbCrLf & _
+                        FromCodePoints(Array(24403, 21069, 29256, 26412, 65306)) & APP_VERSION & vbCrLf & vbCrLf & _
+                        FromCodePoints(Array(26159, 65306, 25171, 24320)) & " GitHub Release" & vbCrLf & _
+                        FromCodePoints(Array(21542, 65306, 25171, 24320)) & " Gitee Release" & vbCrLf & _
+                        FromCodePoints(Array(21462, 28040, 65306, 20851, 38381, 25552, 31034))
+End Function
+
+Private Function FromCodePoints(ByVal values As Variant) As String
+    Dim i As Long
+    For i = LBound(values) To UBound(values)
+        FromCodePoints = FromCodePoints & ChrW$(CLng(values(i)))
+    Next i
 End Function
 
 

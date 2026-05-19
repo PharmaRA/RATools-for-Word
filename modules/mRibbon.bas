@@ -669,7 +669,7 @@ Public Sub Wrapper_RenameCurrentDocument(control As IRibbonControl)
     RenameCurrentDocument
 End Sub
 
-Public Sub Wrapper_CheckForUpdates(control As IRibbonControl)
-    CheckForUpdatesManually
+Public Sub Wrapper_ShowAbout(control As IRibbonControl)
+    frmAbout.Show
 End Sub
 

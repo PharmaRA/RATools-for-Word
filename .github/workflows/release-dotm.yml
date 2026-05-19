@@ -1,0 +1,59 @@
+name: Release DOTM
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release-dotm:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Package DOTM and templates
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $workspace = $env:GITHUB_WORKSPACE
+          $dotmDir = Join-Path $workspace "dotm"
+          $templateDir = Join-Path $workspace "template"
+          $distDir = Join-Path $workspace "dist"
+          $zipPath = Join-Path $distDir "RATools_$tag.zip"
+          $dotmPath = Join-Path $distDir "RATools_$tag.dotm"
+          $cnTemplate = Join-Path $templateDir "master-template-cn.dotx"
+          $enTemplate = Join-Path $templateDir "master-template-en.dotx"
+
+          if (-not (Test-Path -LiteralPath $dotmDir)) {
+            throw "Missing dotm directory: $dotmDir"
+          }
+
+          if (-not (Test-Path -LiteralPath $cnTemplate)) {
+            throw "Missing template file: $cnTemplate"
+          }
+
+          if (-not (Test-Path -LiteralPath $enTemplate)) {
+            throw "Missing template file: $enTemplate"
+          }
+
+          if (Test-Path -LiteralPath $distDir) {
+            Remove-Item -LiteralPath $distDir -Recurse -Force
+          }
+
+          New-Item -ItemType Directory -Path $distDir | Out-Null
+
+          Compress-Archive -Path (Join-Path $dotmDir "*") -DestinationPath $zipPath -CompressionLevel Optimal
+          Move-Item -LiteralPath $zipPath -Destination $dotmPath
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.dotm
+            template/master-template-cn.dotx
+            template/master-template-en.dotx
