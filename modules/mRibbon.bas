@@ -637,6 +637,11 @@ Public Function GetMyMacroRegistry() As Variant
                     "提取缩略语", _
                     "利用了Word内置的通配符功能提取全大写英文缩略语。")
                     
+    ' 第14个
+    items.Add Array("NormalizeScientificTerms", _
+                    "标准化科学术语下标", _
+                    "将STD10、Cmax、AUC0-t等常见科学术语中的数字或后缀设置为Word下标格式。")
+                    
     ' 如果以后要加新宏，直接复制粘贴即可，无需修改其他地方
     ' 如果需要control参数的宏，需要下面做一个Wrapper，见下面Wrapper包装器下的内容，同时需要在上面添加
     
