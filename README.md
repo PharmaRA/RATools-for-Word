@@ -24,11 +24,16 @@
 - `userforms/`：存放从 `vbaProject.bin` 导出的窗体文件（`.frm/.frx`），用于宏管理器等界面功能。
 - `template/`：存放可供插件加载的 Word 样式模板（`.dotx`），用于统一文档格式。
 
-为避免源码与实际插件内容不一致，开发时遵循以下约定：
+为避免源码与实际插件内容不一致，推荐使用“源码优先”的本地构建流程：
 
-- 所有功能修改优先在 Word 的 VBA 工程中完成。
-- 修改完成后，将最新 VBA 代码导出并同步到 `modules/`、`class_modules/`、`userforms/` 目录。
-- 发布前确认导出源码与 `dotm` 中的实际工程保持一致。
+- 日常开发优先直接修改 `modules/`、`class_modules/`、`userforms/` 中的源码文件。
+- 修改完成后运行 `powershell -ExecutionPolicy Bypass -File scripts\Build-RAToolsDotm.ps1`。
+- 构建脚本会以当前 `dotm/` 为模板基底，自动把源码导入 VBA 工程，清理作者、最后修改者、公司等文档元数据，保存新的 `.dotm`，同步回 `dotm/`，并生成 `dist/RATools_local.dotm`。
+- 如需在提交前自动同步，可运行 `powershell -ExecutionPolicy Bypass -File scripts\Install-RAToolsBuildHook.ps1` 安装本地 `pre-commit` hook。hook 会要求相关 VBA 源码先暂存，避免提交中的源码和 `dotm/` 不一致；卸载可运行同一脚本并加上 `-Uninstall`。
+
+原有流程仍然保留：如果你仍然在 Word 的 VBA 编辑器中修改主程序，可以保存 `.dotm` 后手动解包回 `dotm/`；远程发布工作流仍会基于 `dotm/` 打包发布。
+
+> 注意：本地源码导入依赖 Word COM 自动化，需要在 Word 信任中心启用“信任对 VBA 项目对象模型的访问”。
 
 ## ⚙️ 安装与配置
 
