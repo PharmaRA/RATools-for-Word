@@ -266,6 +266,77 @@ function Expand-RAToolsDotmToDirectory {
     return $targetFull
 }
 
+function Get-RAToolsLatestChangelogVersion {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$RepoRoot
+    )
+
+    $layout = Get-RAToolsProjectLayout -RepoRoot $RepoRoot
+    $changelogPath = Join-Path $layout.RepoRoot "CHANGELOG.md"
+
+    if (-not (Test-Path -LiteralPath $changelogPath -PathType Leaf)) {
+        throw "Missing changelog file: $changelogPath"
+    }
+
+    $changelogText = Get-Content -LiteralPath $changelogPath -Raw
+    $match = [Regex]::Match($changelogText, "(?m)^\s*#\s+(v\d+(?:\.\d+){1,3}(?:[-+][0-9A-Za-z.-]+)?)\s*$")
+
+    if (-not $match.Success) {
+        throw "Could not find a version heading like '# v0.6.4' in $changelogPath"
+    }
+
+    return $match.Groups[1].Value
+}
+
+function Set-RAToolsAppVersion {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$RepoRoot,
+
+        [Parameter(Mandatory)]
+        [string]$Version
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Version)) {
+        throw "App version cannot be empty."
+    }
+
+    $layout = Get-RAToolsProjectLayout -RepoRoot $RepoRoot
+    $modulePath = Join-Path $layout.ModulesDirectory "Mod_UpdateChecker.bas"
+
+    if (-not (Test-Path -LiteralPath $modulePath -PathType Leaf)) {
+        throw "Missing update checker module: $modulePath"
+    }
+
+    $moduleText = Get-Content -LiteralPath $modulePath -Raw
+    $versionPattern = "(?m)^(?<prefix>\s*Private\s+Const\s+APP_VERSION\s+As\s+String\s*=\s*)""(?<version>[^""]*)"""
+    $versionRegex = [Regex]::new($versionPattern)
+    $match = $versionRegex.Match($moduleText)
+
+    if (-not $match.Success) {
+        throw "Could not find APP_VERSION constant in $modulePath"
+    }
+
+    $updatedText = $versionRegex.Replace(
+        $moduleText,
+        {
+            param($currentMatch)
+            $currentMatch.Groups["prefix"].Value + """" + $Version + """"
+        },
+        1
+    )
+
+    if ($updatedText -ne $moduleText) {
+        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllText($modulePath, $updatedText, $utf8NoBom)
+    }
+
+    return $modulePath
+}
+
 function ConvertTo-RAToolsXmlText {
     [CmdletBinding()]
     param(
@@ -452,6 +523,8 @@ Export-ModuleMember -Function @(
     "Assert-RAToolsPathInsideRoot",
     "Get-RAToolsProjectLayout",
     "Get-RAToolsVbaSourceFiles",
+    "Get-RAToolsLatestChangelogVersion",
+    "Set-RAToolsAppVersion",
     "Test-RAToolsDotmDirectory",
     "New-RAToolsDotmFromDirectory",
     "Expand-RAToolsDotmToDirectory",

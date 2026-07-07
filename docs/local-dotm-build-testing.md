@@ -106,8 +106,11 @@ git status --short
 powershell -ExecutionPolicy Bypass -File scripts\Build-RAToolsDotm.ps1
 ```
 
+默认会读取 `CHANGELOG.md` 顶部版本来同步 `APP_VERSION`。如需临时覆盖，可使用 `-AppVersion vX.Y.Z`。
+
 这一步会：
 
+- 按 `CHANGELOG.md` 顶部版本同步 `modules\Mod_UpdateChecker.bas` 中的 `APP_VERSION`。
 - 从 `modules/`、`class_modules/`、`userforms/` 导入 VBA 源码。
 - 生成 `dist\RATools_local.dotm`。
 - 将生成后的 `.dotm` 解包并同步回 `dotm/`。
@@ -119,6 +122,8 @@ git status --short
 ```
 
 如果看到 `dotm/word/vbaProject.bin` 等文件变化，这是预期结果。
+
+如果看到 `modules/Mod_UpdateChecker.bas` 变化，通常是版本号被自动同步到了 `CHANGELOG.md` 顶部版本。
 
 ## 9. 可选：安装提交前自动构建 hook
 

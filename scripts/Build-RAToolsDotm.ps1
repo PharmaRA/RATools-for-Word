@@ -4,6 +4,7 @@
 param(
     [string]$RepoRoot,
     [string]$Version = "local",
+    [string]$AppVersion,
     [string]$OutputPath,
     [string]$BaseDotmPath,
     [switch]$NoSyncDotmDirectory,
@@ -114,6 +115,10 @@ function Get-SafeVersionName {
 $layout = Get-RAToolsProjectLayout -RepoRoot $RepoRoot
 [void](Test-RAToolsDotmDirectory -Path $layout.DotmDirectory -ThrowOnFailure)
 
+if (-not $SkipVbaImport -and [string]::IsNullOrWhiteSpace($AppVersion)) {
+    $AppVersion = Get-RAToolsLatestChangelogVersion -RepoRoot $layout.RepoRoot
+}
+
 $safeVersion = Get-SafeVersionName -Value $Version
 if ([string]::IsNullOrWhiteSpace($OutputPath)) {
     $OutputPath = Join-Path $layout.DistDirectory "RATools_$safeVersion.dotm"
@@ -150,6 +155,8 @@ try {
         Write-Host "Skipping Word VBA import; packaging current dotm content only"
     }
     else {
+        Write-Host "Syncing APP_VERSION to $AppVersion"
+        Set-RAToolsAppVersion -RepoRoot $layout.RepoRoot -Version $AppVersion | Out-Null
         Import-RAToolsVbaSourcesIntoDotm -DotmPath $workingPackagePath -SourceRepoRoot $layout.RepoRoot
     }
 

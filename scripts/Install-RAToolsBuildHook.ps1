@@ -64,7 +64,8 @@ $hookLines = @(
     '  exit 1',
     'fi',
     "",
-    'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$repo_root/scripts/Build-RAToolsDotm.ps1" -Version local',
+    'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$repo_root/scripts/Build-RAToolsDotm.ps1"',
+    'git add "$repo_root/modules/Mod_UpdateChecker.bas"',
     'git add "$repo_root/dotm"'
 )
 $hookContent = ($hookLines -join "`n") + "`n"

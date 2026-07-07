@@ -188,6 +188,54 @@ Run-Test "Assert-RAToolsPathInsideRoot rejects paths outside safe root" {
     }
 }
 
+Run-Test "Get-RAToolsLatestChangelogVersion reads the first changelog heading" {
+    $root = New-TestRepo
+
+    try {
+        Set-Content -LiteralPath (Join-Path $root "CHANGELOG.md") -Value @"
+# v9.8.7
+
+- New release.
+
+# v1.0.0
+
+- Older release.
+"@
+
+        $version = Get-RAToolsLatestChangelogVersion -RepoRoot $root
+
+        Assert-Equal "v9.8.7" $version "Latest changelog version should come from the first version heading."
+    }
+    finally {
+        Remove-Item -LiteralPath $root -Recurse -Force
+    }
+}
+
+Run-Test "Set-RAToolsAppVersion updates Mod_UpdateChecker APP_VERSION" {
+    $root = New-TestRepo
+    $modulePath = Join-Path $root "modules\Mod_UpdateChecker.bas"
+
+    try {
+        Set-Content -LiteralPath $modulePath -Value @"
+Attribute VB_Name = "Mod_UpdateChecker"
+Option Explicit
+
+Private Const APP_VERSION As String = "v0.1.0"
+Private Const GITHUB_REPOSITORY_URL As String = "https://github.com/PharmaRA/RATools-for-Word"
+"@
+
+        Set-RAToolsAppVersion -RepoRoot $root -Version "v9.8.7" | Out-Null
+
+        $updatedText = Get-Content -LiteralPath $modulePath -Raw
+        Assert-True ($updatedText.Contains('Private Const APP_VERSION As String = "v9.8.7"')) "APP_VERSION should be updated."
+        Assert-True (-not $updatedText.Contains('Private Const APP_VERSION As String = "v0.1.0"')) "Old APP_VERSION should be removed."
+        Assert-True ($updatedText.Contains('GITHUB_REPOSITORY_URL')) "Other module constants should be preserved."
+    }
+    finally {
+        Remove-Item -LiteralPath $root -Recurse -Force
+    }
+}
+
 Run-Test "Clear-RAToolsPackageMetadata removes personal document properties" {
     $root = New-TestRepo
     $outputPath = Join-Path $root "dist\RATools_private.dotm"
