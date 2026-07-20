@@ -46,7 +46,25 @@ Public Function NormalizeScientificTermsInRange(ByVal targetRange As Range) As L
     formattedCount = formattedCount + ApplyTermPattern(targetRange, sourceText, _
         "(^|[^A-Za-z0-9_])(STD[0-9]+)(?=[^A-Za-z0-9_]|$)", 3)
     formattedCount = formattedCount + ApplyTermPattern(targetRange, sourceText, _
-        "(^|[^A-Za-z0-9_])([CT](max|min))(?=[^A-Za-z0-9_]|$)", 1)
+        "(^|[^A-Za-z0-9_])(C(max|min)(,ss)?)(?=[^A-Za-z0-9_]|$)(?!,ss[A-Za-z0-9_])", 1)
+    formattedCount = formattedCount + ApplyTermPattern(targetRange, sourceText, _
+        "(^|[^A-Za-z0-9_])(T(max|min))(?=[^A-Za-z0-9_]|$)(?!,ss)", 1)
+
+    ' Pharmacology and toxicology potency/effect endpoints.
+    formattedCount = formattedCount + ApplyTermPattern(targetRange, sourceText, _
+        "(^|[^A-Za-z0-9_])((IC|EC|ED|ID|LD|LC|CC|TC|TD|GI)[0-9]+)(?=[^A-Za-z0-9_]|$)", 2)
+    formattedCount = formattedCount + ApplyTermPattern(targetRange, sourceText, _
+        "(^|[^A-Za-z0-9_])(MIC[0-9]+)(?=[^A-Za-z0-9_]|$)", 3)
+    formattedCount = formattedCount + ApplyTermPattern(targetRange, sourceText, _
+        "(^|[^A-Za-z0-9_])([EIB](max|min|0))(?=[^A-Za-z0-9_]|$)", 1)
+
+    ' Receptor binding and rate constants.
+    formattedCount = formattedCount + ApplyTermPattern(targetRange, sourceText, _
+        "(^|[^A-Za-z0-9_])(K(d|i|a))(?=[^A-Za-z0-9_]|$)", 1)
+    formattedCount = formattedCount + ApplyTermPattern(targetRange, sourceText, _
+        "(^|[^A-Za-z0-9_])(pK(a|d|i))(?=[^A-Za-z0-9_]|$)", 2)
+    formattedCount = formattedCount + ApplyTermPattern(targetRange, sourceText, _
+        "(^|[^A-Za-z0-9_])(k(on|off|el|a|e|[0-9]+))(?=[^A-Za-z0-9_]|$)", 1)
 
     formattedCount = formattedCount + ApplyTermPattern(targetRange, sourceText, _
         "(^|[^A-Za-z0-9_])(AUC0-t)(?=[^A-Za-z0-9_]|$)", 3)
@@ -55,7 +73,7 @@ Public Function NormalizeScientificTermsInRange(ByVal targetRange As Range) As L
     formattedCount = formattedCount + ApplyTermPattern(targetRange, sourceText, _
         "(^|[^A-Za-z0-9_])(AUC0-last)(?=[^A-Za-z0-9_]|$)", 3)
     formattedCount = formattedCount + ApplyTermPattern(targetRange, sourceText, _
-        "(^|[^A-Za-z0-9_])(AUC0-24h)(?=[^A-Za-z0-9_]|$)", 3)
+        "(^|[^A-Za-z0-9_])(AUC0-[0-9]+h)(?=[^A-Za-z0-9_]|$)", 3)
     formattedCount = formattedCount + ApplyTermPattern(targetRange, sourceText, _
         "(^|[^A-Za-z0-9_])(AUC0-" & ChrW$(&H221E) & ")(?=[^A-Za-z0-9_]|$)", 3)
     formattedCount = formattedCount + ApplyTermPattern(targetRange, sourceText, _
@@ -67,15 +85,21 @@ Public Function NormalizeScientificTermsInRange(ByVal targetRange As Range) As L
     formattedCount = formattedCount + ApplyTermPattern(targetRange, sourceText, _
         "(^|[^A-Za-z0-9_])(AUClast)(?=[^A-Za-z0-9_]|$)", 3)
     formattedCount = formattedCount + ApplyTermPattern(targetRange, sourceText, _
+        "(^|[^A-Za-z0-9_])(AUMC(last|inf|tau))(?=[^A-Za-z0-9_]|$)", 4)
+    formattedCount = formattedCount + ApplyTermPattern(targetRange, sourceText, _
+        "(^|[^A-Za-z0-9_])(MRT(last|inf|tau))(?=[^A-Za-z0-9_]|$)", 3)
+    formattedCount = formattedCount + ApplyTermPattern(targetRange, sourceText, _
         "(^|[^A-Za-z0-9_])(t1/2)(?=[^A-Za-z0-9_]|$)", 1)
     formattedCount = formattedCount + ApplyTermPattern(targetRange, sourceText, _
         "(^|[^A-Za-z0-9_])(C(0|t))(?=[^A-Za-z0-9_]|$)", 1)
     formattedCount = formattedCount + ApplyTermPattern(targetRange, sourceText, _
         "(^|[^A-Za-z0-9_])(C(ss|avg|ave|trough))(?=[^A-Za-z0-9_]|$)", 1)
     formattedCount = formattedCount + ApplyTermPattern(targetRange, sourceText, _
-        "(^|[^A-Za-z0-9_])(V[dz])(?=[^A-Za-z0-9_]|$)", 1)
+        "(^|[^A-Za-z0-9_])(V(d|z|ss|c|p|[1-3]))(?=[^A-Za-z0-9_]|$)", 1)
     formattedCount = formattedCount + ApplyTermPattern(targetRange, sourceText, _
-        "(^|[^A-Za-z0-9_])(CLz)(?=[^A-Za-z0-9_]|$)", 2)
+        "(^|[^A-Za-z0-9_])(CL(z|r|h|nr|int))(?=[^A-Za-z0-9_]|$)", 2)
+    formattedCount = formattedCount + ApplyTermPattern(targetRange, sourceText, _
+        "(^|[^A-Za-z0-9_])(t(max|min|lag))(?=[^A-Za-z0-9_]|$)", 1)
 
     NormalizeScientificTermsInRange = formattedCount
 End Function

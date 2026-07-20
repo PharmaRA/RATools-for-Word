@@ -99,14 +99,20 @@ try {
     $aucTau = "AUC0-$tau"
     $text = "STD10 Cmax Cmin Tmax Tmin AUC0-t AUC0-inf AUCtau AUClast t1/2 " +
         "AUC0-last AUC0-24h $aucInfinity $aucTau AUC0-tau " +
-        "C0 Ct Css Cavg Cave Ctrough Vd Vz/F Vd/F CLz/F CL/F MYSTD20 Cmaxed"
+        "C0 Ct Css Cavg Cave Ctrough Vd Vz/F Vd/F CLz/F CL/F " +
+        "Cmax,ss Cmin,ss IC50 EC50 ED50 ID50 LD50 LC50 CC50 TC50 TD50 GI50 MIC50 " +
+        "Emax Emin E0 Imax Imin I0 Bmax Bmin B0 Kd Ki Ka pKd pKi pKa " +
+        "kon koff kel ka ke k10 k12 k21 k01 AUC0-12h " +
+        "AUMClast AUMCinf AUMCtau MRTlast MRTinf MRTtau " +
+        "Vss Vc Vp V1 V2 V3 CLr CLh CLnr CLint tmax tmin tlag " +
+        "MYSTD20 Cmaxed Cmax,ssed Tmax,ss CD50 EC50like XIC50Y"
     Write-Step "Writing full-document test text"
     $doc.Range().Text = $text
 
     Write-Step "Running NormalizeScientificTermsInRange"
     $fullRange = $doc.Range()
     $count = $word.Run("NormalizeScientificTermsInRange", [ref]$fullRange)
-    Assert-Equal 25 $count "Unexpected formatted term count."
+    Assert-Equal 82 $count "Unexpected formatted term count."
 
     Assert-TermFormatting $doc $text "STD10" 3
     Assert-TermFormatting $doc $text "Cmax" 1
@@ -130,6 +136,45 @@ try {
     Assert-TermFormatting $doc $text "Cave" 1
     Assert-TermFormatting $doc $text "Ctrough" 1
     Assert-TermFormatting $doc $text "Vd" 1
+    Assert-TermFormatting $doc $text "Cmax,ss" 1
+    Assert-TermFormatting $doc $text "Cmin,ss" 1
+
+    foreach ($term in @("IC50", "EC50", "ED50", "ID50", "LD50", "LC50", "CC50", "TC50", "TD50", "GI50")) {
+        Assert-TermFormatting $doc $text $term 2
+    }
+    Assert-TermFormatting $doc $text "MIC50" 3
+
+    foreach ($term in @("Emax", "Emin", "E0", "Imax", "Imin", "I0", "Bmax", "Bmin", "B0")) {
+        Assert-TermFormatting $doc $text $term 1
+    }
+
+    foreach ($term in @("Kd", "Ki", "Ka")) {
+        Assert-TermFormatting $doc $text $term 1
+    }
+    foreach ($term in @("pKd", "pKi", "pKa")) {
+        Assert-TermFormatting $doc $text $term 2
+    }
+    foreach ($term in @("kon", "koff", "kel", "ka", "ke", "k10", "k12", "k21", "k01")) {
+        Assert-TermFormatting $doc $text $term 1
+    }
+
+    Assert-TermFormatting $doc $text "AUC0-12h" 3
+    foreach ($term in @("AUMClast", "AUMCinf", "AUMCtau")) {
+        Assert-TermFormatting $doc $text $term 4
+    }
+    foreach ($term in @("MRTlast", "MRTinf", "MRTtau")) {
+        Assert-TermFormatting $doc $text $term 3
+    }
+
+    foreach ($term in @("Vss", "Vc", "Vp", "V1", "V2", "V3")) {
+        Assert-TermFormatting $doc $text $term 1
+    }
+    foreach ($term in @("CLr", "CLh", "CLnr", "CLint")) {
+        Assert-TermFormatting $doc $text $term 2
+    }
+    foreach ($term in @("tmax", "tmin", "tlag")) {
+        Assert-TermFormatting $doc $text $term 1
+    }
 
     $vzStart = $text.IndexOf("Vz/F")
     Assert-Subscript $doc $vzStart ($vzStart + 1) $false "Vz/F V should not be subscript."
@@ -154,6 +199,11 @@ try {
 
     $cmaxedStart = $text.IndexOf("Cmaxed")
     Assert-Subscript $doc ($cmaxedStart + 1) ($cmaxedStart + 4) $false "Cmaxed should not format the max substring."
+
+    foreach ($term in @("Cmax,ssed", "Tmax,ss", "CD50", "EC50like", "XIC50Y")) {
+        $nonTermStart = $text.IndexOf($term)
+        Assert-Subscript $doc $nonTermStart ($nonTermStart + $term.Length) $false "$term should remain unchanged."
+    }
 
     $selectionText = "STD10 Cmax"
     Write-Step "Writing selection test text"

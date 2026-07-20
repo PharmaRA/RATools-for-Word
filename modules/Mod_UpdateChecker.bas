@@ -1,7 +1,7 @@
 Attribute VB_Name = "Mod_UpdateChecker"
 Option Explicit
 
-Private Const APP_VERSION As String = "v0.6.4"
+Private Const APP_VERSION As String = "v0.6.5"
 Private Const RELEASES_API_URL As String = "https://api.github.com/repos/PharmaRA/RATools-for-Word/releases/latest"
 Private Const GITHUB_RELEASE_URL_PREFIX As String = "https://github.com/PharmaRA/RATools-for-Word/releases/tag/"
 Private Const GITEE_RELEASE_URL_PREFIX As String = "https://gitee.com/PharmaRA/RATools-for-Word/releases/tag/"

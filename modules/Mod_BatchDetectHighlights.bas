@@ -18,6 +18,7 @@ Sub BatchDetectHighlights()
     Dim fDialog As FileDialog
     Dim folderPath As String
     Dim startTime As Double
+    Dim firstHighlight As Range
     
     ' 初始化 FSO
     Set fso = CreateObject("Scripting.FileSystemObject")
@@ -42,8 +43,13 @@ Sub BatchDetectHighlights()
                 Exit Sub
             End If
             
-            If CheckForHighlight(ActiveDocument) Then
-                MsgBox "当前文档【包含】突出显示颜色。", vbInformation
+            If FindFirstHighlight(ActiveDocument, firstHighlight) Then
+                If MsgBox("当前文档【包含】突出显示颜色。是否跳转到第一处？", _
+                          vbQuestion + vbYesNo, "检测到高亮内容") = vbYes Then
+                    ActiveDocument.Activate
+                    firstHighlight.Select
+                    ActiveWindow.ScrollIntoView firstHighlight, True
+                End If
             Else
                 MsgBox "当前文档【不包含】突出显示颜色。", vbInformation
             End If
@@ -107,13 +113,15 @@ Sub BatchDetectHighlights()
     
     ' 插入表格头
     Dim tbl As Table
-    Set tbl = reportDoc.Tables.Add(Range:=reportDoc.Characters.Last, NumRows:=1, NumColumns:=2)
+    Set tbl = reportDoc.Tables.Add(Range:=reportDoc.Characters.Last, NumRows:=1, NumColumns:=3)
     tbl.Borders.Enable = True
     tbl.Cell(1, 1).Range.Text = "文件路径"
     tbl.Cell(1, 2).Range.Text = "检测结果"
+    tbl.Cell(1, 3).Range.Text = "定位"
     
     ' 循环处理文件
     Dim hasHighlight As Boolean
+    Dim buttonRange As Range
     
     For Each filePath In targetFiles
         ' 容错处理：如果文件无法打开（如损坏或正在使用），跳过并记录
@@ -128,6 +136,7 @@ Sub BatchDetectHighlights()
             tbl.Cell(tbl.Rows.count, 1).Range.Text = filePath
             tbl.Cell(tbl.Rows.count, 2).Range.Text = "无法打开文件"
             tbl.Cell(tbl.Rows.count, 2).Range.Font.Color = wdColorGray50
+            tbl.Cell(tbl.Rows.count, 3).Range.Text = "--"
             Err.Clear
         Else
             ' 检测
@@ -145,12 +154,20 @@ Sub BatchDetectHighlights()
                 tbl.Cell(tbl.Rows.count, 2).Range.Text = "包含高亮"
                 tbl.Cell(tbl.Rows.count, 2).Range.Font.Color = wdColorRed
                 tbl.Cell(tbl.Rows.count, 2).Range.Font.Bold = True
+                tbl.Cell(tbl.Rows.count, 3).Range.Text = ""
+                Set buttonRange = tbl.Cell(tbl.Rows.count, 3).Range.Duplicate
+                buttonRange.MoveEnd Unit:=wdCharacter, count:=-1
+                reportDoc.Fields.Add Range:=buttonRange, _
+                                     Type:=wdFieldMacroButton, _
+                                     Text:="JumpToHighlightFromReport 双击跳转", _
+                                     PreserveFormatting:=False
             Else
                 ' 无高亮：仅显示纯文本路径
                 tbl.Cell(tbl.Rows.count, 1).Range.Text = filePath
                 
                 tbl.Cell(tbl.Rows.count, 2).Range.Text = "无"
                 tbl.Cell(tbl.Rows.count, 2).Range.Font.Color = wdColorGreen
+                tbl.Cell(tbl.Rows.count, 3).Range.Text = "--"
             End If
             
             doc.Close SaveChanges:=wdDoNotSaveChanges
@@ -164,6 +181,56 @@ Sub BatchDetectHighlights()
     tbl.AutoFitBehavior (wdAutoFitWindow)
     
     MsgBox "检测完成！共扫描 " & targetFiles.count & " 个文件。" & vbCrLf & "耗时 " & Format(Timer - startTime, "0.00") & " 秒。", vbInformation
+End Sub
+
+' 从批量检测报告的当前行读取文件路径，打开文档并定位到第一处高亮。
+Sub JumpToHighlightFromReport()
+    Dim reportCell As Cell
+    Dim filePath As String
+    Dim targetDoc As Document
+    Dim openDoc As Document
+    Dim firstHighlight As Range
+
+    On Error GoTo JumpError
+
+    If Not Selection.Information(wdWithInTable) Then
+        MsgBox "请在检测报告中双击“跳转”按钮。", vbExclamation
+        Exit Sub
+    End If
+
+    Set reportCell = Selection.Rows(1).Cells(1)
+    filePath = reportCell.Range.Text
+    filePath = Replace(filePath, Chr(13), "")
+    filePath = Replace(filePath, Chr(7), "")
+    filePath = Trim(filePath)
+
+    If Len(filePath) = 0 Or Dir(filePath) = "" Then
+        MsgBox "未找到对应文件：" & vbCrLf & filePath, vbExclamation
+        Exit Sub
+    End If
+
+    For Each openDoc In Documents
+        If StrComp(openDoc.FullName, filePath, vbTextCompare) = 0 Then
+            Set targetDoc = openDoc
+            Exit For
+        End If
+    Next openDoc
+
+    If targetDoc Is Nothing Then
+        Set targetDoc = Documents.Open(fileName:=filePath, AddToRecentFiles:=False)
+    End If
+
+    targetDoc.Activate
+    If FindFirstHighlight(targetDoc, firstHighlight) Then
+        firstHighlight.Select
+        ActiveWindow.ScrollIntoView firstHighlight, True
+    Else
+        MsgBox "文档中已找不到高亮内容，可能在生成报告后被修改。", vbInformation
+    End If
+    Exit Sub
+
+JumpError:
+    MsgBox "跳转失败：" & Err.Description, vbExclamation
 End Sub
 
 ' ==========================================
@@ -198,27 +265,44 @@ End Sub
 ' 辅助函数：检测单个文档是否包含高亮
 ' ==========================================
 Function CheckForHighlight(doc As Document) As Boolean
-    Dim rng As Range
-    
-    CheckForHighlight = False
-    
-    ' 遍历文档的所有“故事类型”（StoryRanges）
-    ' 这包括正文、页眉、页脚、文本框、脚注、尾注、批注等
-    For Each rng In doc.StoryRanges
-        Do
+    Dim firstHighlight As Range
 
-            ' 1. wdNoHighlight (0) = 无高亮
-            ' 2. wdUndefined (9999999) = 混合状态（说明部分有高亮，部分没有）-> 判定为包含
-            ' 3. 其他颜色值 (如 wdYellow) = 全区域都是该颜色 -> 判定为包含
-            
-            If rng.HighlightColorIndex <> wdNoHighlight Then
-                CheckForHighlight = True
+    CheckForHighlight = FindFirstHighlight(doc, firstHighlight)
+End Function
+
+' 查找第一处真实高亮。不能直接检查整个故事范围的 HighlightColorIndex，
+' 因为复杂或混合格式范围可能返回 wdUndefined，并不代表一定存在高亮。
+Function FindFirstHighlight(doc As Document, ByRef foundRange As Range) As Boolean
+    Dim rootStoryRange As Range
+    Dim storyRange As Range
+    Dim searchRange As Range
+
+    Set foundRange = Nothing
+    FindFirstHighlight = False
+
+    For Each rootStoryRange In doc.StoryRanges
+        Set storyRange = rootStoryRange
+        Do
+            Set searchRange = storyRange.Duplicate
+
+            With searchRange.Find
+                .ClearFormatting
+                .Replacement.ClearFormatting
+                .Text = ""
+                .Forward = True
+                .Wrap = wdFindStop
+                .Format = True
+                .Highlight = True
+            End With
+
+            If searchRange.Find.Execute Then
+                Set foundRange = searchRange.Duplicate
+                FindFirstHighlight = True
                 Exit Function
             End If
-            
-            ' 如果当前区域有链接的部分（例如长文本框或多个页眉），继续检测下一部分
-            Set rng = rng.NextStoryRange
-        Loop While Not rng Is Nothing
-    Next rng
+
+            Set storyRange = storyRange.NextStoryRange
+        Loop While Not storyRange Is Nothing
+    Next rootStoryRange
 End Function
 
