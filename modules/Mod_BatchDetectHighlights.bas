@@ -19,6 +19,7 @@ Sub BatchDetectHighlights()
     Dim folderPath As String
     Dim startTime As Double
     Dim firstHighlight As Range
+    Dim detectionError As String
     
     ' 初始化 FSO
     Set fso = CreateObject("Scripting.FileSystemObject")
@@ -43,13 +44,15 @@ Sub BatchDetectHighlights()
                 Exit Sub
             End If
             
-            If FindFirstHighlight(ActiveDocument, firstHighlight) Then
+            If TryFindFirstHighlight(ActiveDocument, firstHighlight, detectionError) Then
                 If MsgBox("当前文档【包含】突出显示颜色。是否跳转到第一处？", _
                           vbQuestion + vbYesNo, "检测到高亮内容") = vbYes Then
                     ActiveDocument.Activate
                     firstHighlight.Select
                     ActiveWindow.ScrollIntoView firstHighlight, True
                 End If
+            ElseIf Len(detectionError) > 0 Then
+                MsgBox "检测失败：" & detectionError, vbExclamation
             Else
                 MsgBox "当前文档【不包含】突出显示颜色。", vbInformation
             End If
@@ -113,39 +116,56 @@ Sub BatchDetectHighlights()
     
     ' 插入表格头
     Dim tbl As Table
-    Set tbl = reportDoc.Tables.Add(Range:=reportDoc.Characters.Last, NumRows:=1, NumColumns:=3)
+    Set tbl = reportDoc.Tables.Add(Range:=reportDoc.Characters.Last, NumRows:=1, NumColumns:=4)
     tbl.Borders.Enable = True
     tbl.Cell(1, 1).Range.Text = "文件路径"
     tbl.Cell(1, 2).Range.Text = "检测结果"
-    tbl.Cell(1, 3).Range.Text = "定位"
+    tbl.Cell(1, 3).Range.Text = "命中内容"
+    tbl.Cell(1, 4).Range.Text = "定位"
     
     ' 循环处理文件
     Dim hasHighlight As Boolean
     Dim buttonRange As Range
+    Dim openError As String
     
     For Each filePath In targetFiles
-        ' 容错处理：如果文件无法打开（如损坏或正在使用），跳过并记录
+        ' 每个文件必须重置状态，避免错误时沿用上一文件的检测结果。
+        Set doc = Nothing
+        Set firstHighlight = Nothing
+        hasHighlight = False
+        openError = ""
+        detectionError = ""
+
+        ' 仅在打开文件时忽略错误，后续检测和报告逻辑不使用 Resume Next。
         On Error Resume Next
-        
-        ' Visible:=False 彻底静默打开，不再闪烁
+        Err.Clear
         Set doc = Documents.Open(fileName:=filePath, Visible:=False, ReadOnly:=True, AddToRecentFiles:=False)
-        
-        If Err.Number <> 0 Then
-            tbl.Rows.Add
-            ' 错误时也显示完整路径，方便排查
+        If Err.Number <> 0 Then openError = Err.Description
+        Err.Clear
+        On Error GoTo 0
+
+        tbl.Rows.Add
+
+        If doc Is Nothing Or Len(openError) > 0 Then
             tbl.Cell(tbl.Rows.count, 1).Range.Text = filePath
             tbl.Cell(tbl.Rows.count, 2).Range.Text = "无法打开文件"
             tbl.Cell(tbl.Rows.count, 2).Range.Font.Color = wdColorGray50
-            tbl.Cell(tbl.Rows.count, 3).Range.Text = "--"
-            Err.Clear
+            If Len(openError) > 0 Then
+                tbl.Cell(tbl.Rows.count, 3).Range.Text = openError
+            Else
+                tbl.Cell(tbl.Rows.count, 3).Range.Text = "未知错误"
+            End If
+            tbl.Cell(tbl.Rows.count, 4).Range.Text = "--"
         Else
-            ' 检测
-            hasHighlight = CheckForHighlight(doc)
-            
-            ' 写入报告表格
-            tbl.Rows.Add
-            
-            If hasHighlight Then
+            hasHighlight = TryFindFirstHighlight(doc, firstHighlight, detectionError)
+
+            If Len(detectionError) > 0 Then
+                tbl.Cell(tbl.Rows.count, 1).Range.Text = filePath
+                tbl.Cell(tbl.Rows.count, 2).Range.Text = "检测失败"
+                tbl.Cell(tbl.Rows.count, 2).Range.Font.Color = wdColorGray50
+                tbl.Cell(tbl.Rows.count, 3).Range.Text = detectionError
+                tbl.Cell(tbl.Rows.count, 4).Range.Text = "--"
+            ElseIf hasHighlight Then
                 ' 有高亮：添加超链接并显示红色结果
                 reportDoc.Hyperlinks.Add Anchor:=tbl.Cell(tbl.Rows.count, 1).Range, _
                                          Address:=filePath, _
@@ -154,8 +174,9 @@ Sub BatchDetectHighlights()
                 tbl.Cell(tbl.Rows.count, 2).Range.Text = "包含高亮"
                 tbl.Cell(tbl.Rows.count, 2).Range.Font.Color = wdColorRed
                 tbl.Cell(tbl.Rows.count, 2).Range.Font.Bold = True
-                tbl.Cell(tbl.Rows.count, 3).Range.Text = ""
-                Set buttonRange = tbl.Cell(tbl.Rows.count, 3).Range.Duplicate
+                tbl.Cell(tbl.Rows.count, 3).Range.Text = GetHighlightSummary(firstHighlight)
+                tbl.Cell(tbl.Rows.count, 4).Range.Text = ""
+                Set buttonRange = tbl.Cell(tbl.Rows.count, 4).Range.Duplicate
                 buttonRange.MoveEnd Unit:=wdCharacter, count:=-1
                 reportDoc.Fields.Add Range:=buttonRange, _
                                      Type:=wdFieldMacroButton, _
@@ -168,11 +189,15 @@ Sub BatchDetectHighlights()
                 tbl.Cell(tbl.Rows.count, 2).Range.Text = "无"
                 tbl.Cell(tbl.Rows.count, 2).Range.Font.Color = wdColorGreen
                 tbl.Cell(tbl.Rows.count, 3).Range.Text = "--"
+                tbl.Cell(tbl.Rows.count, 4).Range.Text = "--"
             End If
-            
-            doc.Close SaveChanges:=wdDoNotSaveChanges
         End If
-        On Error GoTo 0
+
+        If Not doc Is Nothing Then
+            On Error Resume Next
+            doc.Close SaveChanges:=wdDoNotSaveChanges
+            On Error GoTo 0
+        End If
     Next filePath
     
     ' 清理与结束
@@ -190,6 +215,7 @@ Sub JumpToHighlightFromReport()
     Dim targetDoc As Document
     Dim openDoc As Document
     Dim firstHighlight As Range
+    Dim detectionError As String
 
     On Error GoTo JumpError
 
@@ -221,9 +247,11 @@ Sub JumpToHighlightFromReport()
     End If
 
     targetDoc.Activate
-    If FindFirstHighlight(targetDoc, firstHighlight) Then
+    If TryFindFirstHighlight(targetDoc, firstHighlight, detectionError) Then
         firstHighlight.Select
         ActiveWindow.ScrollIntoView firstHighlight, True
+    ElseIf Len(detectionError) > 0 Then
+        MsgBox "检测失败：" & detectionError, vbExclamation
     Else
         MsgBox "文档中已找不到高亮内容，可能在生成报告后被修改。", vbInformation
     End If
@@ -266,16 +294,37 @@ End Sub
 ' ==========================================
 Function CheckForHighlight(doc As Document) As Boolean
     Dim firstHighlight As Range
+    Dim detectionError As String
 
-    CheckForHighlight = FindFirstHighlight(doc, firstHighlight)
+    CheckForHighlight = TryFindFirstHighlight(doc, firstHighlight, detectionError)
 End Function
 
-' 查找第一处真实高亮。不能直接检查整个故事范围的 HighlightColorIndex，
-' 因为复杂或混合格式范围可能返回 wdUndefined，并不代表一定存在高亮。
+' 安全调用检测函数，并将检测异常与“没有高亮”区分开。
+Function TryFindFirstHighlight(doc As Document, _
+                               ByRef foundRange As Range, _
+                               ByRef errorMessage As String) As Boolean
+    On Error GoTo FindError
+
+    Set foundRange = Nothing
+    errorMessage = ""
+    TryFindFirstHighlight = FindFirstHighlight(doc, foundRange)
+    Exit Function
+
+FindError:
+    Set foundRange = Nothing
+    errorMessage = Err.Description
+    TryFindFirstHighlight = False
+End Function
+
+' 查找第一处含有可见内容的真实高亮。
+' 纯空白、段落/单元格结束标记和隐藏文字不会被视为高亮内容。
 Function FindFirstHighlight(doc As Document, ByRef foundRange As Range) As Boolean
     Dim rootStoryRange As Range
     Dim storyRange As Range
     Dim searchRange As Range
+    Dim storyEnd As Long
+    Dim scanStart As Long
+    Dim nextStart As Long
 
     Set foundRange = Nothing
     FindFirstHighlight = False
@@ -283,26 +332,118 @@ Function FindFirstHighlight(doc As Document, ByRef foundRange As Range) As Boole
     For Each rootStoryRange In doc.StoryRanges
         Set storyRange = rootStoryRange
         Do
-            Set searchRange = storyRange.Duplicate
+            storyEnd = storyRange.End
+            scanStart = storyRange.Start
 
-            With searchRange.Find
-                .ClearFormatting
-                .Replacement.ClearFormatting
-                .Text = ""
-                .Forward = True
-                .Wrap = wdFindStop
-                .Format = True
-                .Highlight = True
-            End With
+            Do While scanStart < storyEnd
+                Set searchRange = storyRange.Duplicate
+                searchRange.SetRange Start:=scanStart, End:=storyEnd
 
-            If searchRange.Find.Execute Then
-                Set foundRange = searchRange.Duplicate
-                FindFirstHighlight = True
-                Exit Function
-            End If
+                With searchRange.Find
+                    .ClearFormatting
+                    .Replacement.ClearFormatting
+                    ' 逐字符查找，避免空文本格式查找在整段均为高亮时漏报。
+                    .Text = "?"
+                    .Forward = True
+                    .Wrap = wdFindStop
+                    .Format = True
+                    .MatchWildcards = True
+                    .Highlight = True
+                End With
+
+                If Not searchRange.Find.Execute Then Exit Do
+
+                If IsVisibleHighlightCharacter(searchRange) Then
+                    Set foundRange = ExpandVisibleHighlightRange(storyRange, searchRange)
+                    FindFirstHighlight = True
+                    Exit Function
+                End If
+
+                ' 当前命中只有不可见字符时，越过它继续查找本故事范围。
+                nextStart = searchRange.End
+                If nextStart <= scanStart Then nextStart = scanStart + 1
+                If nextStart >= storyEnd Then Exit Do
+                scanStart = nextStart
+            Loop
 
             Set storyRange = storyRange.NextStoryRange
         Loop While Not storyRange Is Nothing
     Next rootStoryRange
+End Function
+
+' 从首个可见高亮字符开始，扩展到相邻的可见高亮字符，便于跳转和生成摘要。
+Private Function ExpandVisibleHighlightRange(ByVal storyRange As Range, _
+                                             ByVal firstCharacter As Range) As Range
+    Dim characterRange As Range
+    Dim visibleEnd As Long
+
+    Set ExpandVisibleHighlightRange = firstCharacter.Duplicate
+    visibleEnd = firstCharacter.End
+
+    Do While visibleEnd < storyRange.End
+        Set characterRange = storyRange.Duplicate
+        characterRange.SetRange Start:=visibleEnd, End:=visibleEnd + 1
+        If Not IsVisibleHighlightCharacter(characterRange) Then Exit Do
+        visibleEnd = characterRange.End
+    Loop
+
+    ExpandVisibleHighlightRange.End = visibleEnd
+End Function
+
+' 判断字符是否是用户可见的高亮内容，而不是隐藏文字或格式控制字符。
+Private Function IsVisibleHighlightCharacter(ByVal characterRange As Range) As Boolean
+    Dim characterText As String
+    Dim characterCode As Long
+
+    If characterRange.Font.Hidden = True Then Exit Function
+    If characterRange.HighlightColorIndex = wdNoHighlight Then Exit Function
+
+    characterText = characterRange.Text
+    If Len(characterText) = 0 Then Exit Function
+
+    characterCode = AscW(Left$(characterText, 1))
+    If characterCode < 0 Then characterCode = characterCode + 65536
+
+    Select Case characterCode
+        Case 0 To 32, 160, &H200B, &H200C, &H200D, &H2060, &HFEFF
+            Exit Function
+    End Select
+
+    IsVisibleHighlightCharacter = True
+End Function
+
+' 生成报告中的故事范围类型和命中文本摘要。
+Private Function GetHighlightSummary(ByVal highlightRange As Range) As String
+    Dim summaryText As String
+
+    If highlightRange Is Nothing Then
+        GetHighlightSummary = "--"
+        Exit Function
+    End If
+
+    summaryText = highlightRange.Text
+    summaryText = Replace(summaryText, vbCr, " ")
+    summaryText = Replace(summaryText, vbLf, " ")
+    summaryText = Replace(summaryText, vbTab, " ")
+    summaryText = Replace(summaryText, Chr$(7), " ")
+    summaryText = Trim$(summaryText)
+    If Len(summaryText) > 40 Then summaryText = Left$(summaryText, 40) & "..."
+
+    GetHighlightSummary = GetStoryTypeName(highlightRange.StoryType) & "：" & summaryText
+End Function
+
+Private Function GetStoryTypeName(ByVal storyType As WdStoryType) As String
+    Select Case storyType
+        Case wdMainTextStory: GetStoryTypeName = "正文"
+        Case wdFootnotesStory: GetStoryTypeName = "脚注"
+        Case wdEndnotesStory: GetStoryTypeName = "尾注"
+        Case wdCommentsStory: GetStoryTypeName = "批注"
+        Case wdTextFrameStory: GetStoryTypeName = "文本框"
+        Case wdEvenPagesHeaderStory, wdPrimaryHeaderStory, wdFirstPageHeaderStory
+            GetStoryTypeName = "页眉"
+        Case wdEvenPagesFooterStory, wdPrimaryFooterStory, wdFirstPageFooterStory
+            GetStoryTypeName = "页脚"
+        Case Else: GetStoryTypeName = "其他区域"
+    End Select
 End Function
 
