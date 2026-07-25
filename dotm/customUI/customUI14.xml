@@ -253,6 +253,14 @@
                 <!-- == 常用宏 == -->
 				<group id="grpMyMacro" label="宏列表">
 					<button id="btnShowMacros" imageMso="MacroPlay" size="large" showLabel="false" onAction="ShowMacroListWindow" />
+					<button id="btnQuickToolbar"
+							label="快捷悬浮窗"
+							image="Logo"
+							size="large"
+							description="显示或隐藏常用功能快捷悬浮窗"
+							screentip="快捷悬浮窗"
+							showLabel="false"
+							onAction="ToggleQuickToolbar" />
 				</group>
 
                 <!-- == 其他 == -->

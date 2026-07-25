@@ -233,7 +233,7 @@ Private Function StyleExists(doc As Document, sName As String) As Boolean
 End Function
 
 '=====================  应 用 样 式  =====================
-Private Sub ApplyStyle(ByVal uiTagName As String)
+Public Sub ApplyRAToolsStyle(ByVal uiTagName As String)
     Dim realStyleName As String
     
     ' 获取实际样式名（自动处理中英文映射）
@@ -251,7 +251,7 @@ End Sub
 '=====================  段 落 样 式  =====================
 Public Sub btnStyle_Click(ByVal control As IRibbonControl)
     On Error GoTo ErrH
-    ApplyStyle control.Tag
+    ApplyRAToolsStyle control.Tag
     Exit Sub
 ErrH:
     HandleStyleErr
@@ -553,7 +553,7 @@ End Sub
 ' 1. Ribbon 回调：点击按钮弹出窗体
 ' 在 Ribbon XML 中，将按钮的 onAction 指向这个 Sub
 Public Sub ShowMacroListWindow(control As IRibbonControl)
-    frmMacroList.Show
+    frmMacroList.Show vbModeless
 End Sub
 
 
