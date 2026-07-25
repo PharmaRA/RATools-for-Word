@@ -1,7 +1,7 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} frmQuickToolbar
    Caption         =   "RATools 快捷工具栏"
-   ClientHeight    =   5480
+   ClientHeight    =   7000
    ClientLeft      =   108
    ClientTop       =   456
    ClientWidth     =   2800
@@ -18,11 +18,17 @@ Option Explicit
 
 Private Const SETTINGS_APP As String = "RATools"
 Private Const SETTINGS_SECTION As String = "QuickToolbar"
+Private Const TOOLBAR_WIDTH As Single = 135
+Private Const TOOLBAR_HEIGHT As Single = 370
+Private Const BUTTON_LEFT As Single = 43
+Private Const BUTTON_WIDTH As Single = 48
+Private Const BUTTON_HEIGHT As Single = 34
+Private Const BUTTON_STEP As Single = 40
 
 Private Sub UserForm_Initialize()
     Me.Caption = "RATools 快捷工具栏"
-    Me.Width = 150
-    Me.Height = 300
+    Me.Width = TOOLBAR_WIDTH
+    Me.Height = TOOLBAR_HEIGHT
     Me.BackColor = RGB(245, 245, 245)
 
     ConfigureButton Me.btnHeading1, "标题 1", "应用“标题1-F”样式", 0
@@ -31,8 +37,8 @@ Private Sub UserForm_Initialize()
     ConfigureButton Me.btnBody, "正文", "应用“正文-F”样式", 3
     ConfigureButton Me.btnTextBlue, "设为蓝色", "将选中文字设置为标准蓝色", 4
     ConfigureButton Me.btnPageBreakBefore, "段前分页", "切换选中段落的段前分页属性", 5
-    ConfigureButton Me.btnAutoFitTable, "表格适应", "将光标所在表格按窗口宽度自动调整", 6
-    ConfigureButton Me.btnNormalizeTerms, "术语下标", "标准化常见科学术语中的下标格式", 7
+    ConfigureButton Me.btnAutoFitTable, "表格适应", "将光标所在表格按窗口宽度自动调整", 6, "TableAutoFitWindow"
+    ConfigureButton Me.btnNormalizeTerms, "术语下标", "标准化常见科学术语中的下标格式", 7, "Subscript"
 
     RestoreToolbarPosition
 End Sub
@@ -40,19 +46,60 @@ End Sub
 Private Sub ConfigureButton(ByVal buttonItem As MSForms.CommandButton, _
                             ByVal captionText As String, _
                             ByVal tipText As String, _
-                            ByVal rowIndex As Long)
+                            ByVal rowIndex As Long, _
+                            Optional ByVal imageMsoId As String = "")
     With buttonItem
         .Caption = captionText
-        .ControlTipText = tipText
-        .Left = 8
-        .Top = 8 + rowIndex * 33
-        .Width = 124
-        .Height = 27
+        .ControlTipText = captionText & "：" & tipText
+        .Tag = captionText
+        .Left = BUTTON_LEFT
+        .Top = 8 + rowIndex * BUTTON_STEP
+        .Width = BUTTON_WIDTH
+        .Height = BUTTON_HEIGHT
+        .PicturePosition = fmPicturePositionCenter
         .TabIndex = rowIndex
+        .TabStop = False
+        .TakeFocusOnClick = False
         .Font.Name = "微软雅黑"
         .Font.Size = 9
     End With
+
+    If Len(imageMsoId) > 0 Then
+        If ApplyOfficeIcon(buttonItem, imageMsoId) Then Exit Sub
+    ElseIf HasButtonPicture(buttonItem) Then
+        buttonItem.Caption = vbNullString
+        Exit Sub
+    End If
+
+    ' 如果当前 Office 版本没有对应图标，保留文字作为可用的降级显示。
+    buttonItem.Caption = captionText
 End Sub
+
+Private Function ApplyOfficeIcon(ByVal buttonItem As MSForms.CommandButton, _
+                                 ByVal imageMsoId As String) As Boolean
+    On Error GoTo ErrH
+
+    Set buttonItem.Picture = Application.CommandBars.GetImageMso(imageMsoId, 32, 32)
+    buttonItem.PicturePosition = fmPicturePositionCenter
+    buttonItem.Caption = vbNullString
+    ApplyOfficeIcon = True
+    Exit Function
+
+ErrH:
+    ApplyOfficeIcon = False
+End Function
+
+Private Function HasButtonPicture(ByVal buttonItem As MSForms.CommandButton) As Boolean
+    Dim pictureItem As Object
+
+    On Error GoTo ErrH
+    Set pictureItem = buttonItem.Picture
+    HasButtonPicture = Not (pictureItem Is Nothing)
+    Exit Function
+
+ErrH:
+    HasButtonPicture = False
+End Function
 
 Private Sub btnHeading1_Click()
     RunQuickToolbarAction "style_heading1"
