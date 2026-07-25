@@ -43,7 +43,7 @@ $ribbonPath = Join-Path $repoRoot "dotm\customUI\customUI14.xml"
 Assert-True (Test-Path -LiteralPath $formPath) "Quick toolbar form source should exist."
 Assert-True (Test-Path -LiteralPath $frxPath) "Quick toolbar form binary resource should exist."
 Assert-True (Test-Path -LiteralPath $modulePath) "Quick toolbar module should exist."
-Assert-True ((Get-Item -LiteralPath $frxPath).Length -gt 10000) "Quick toolbar FRX should contain embedded icon pictures."
+Assert-True ((Get-Item -LiteralPath $frxPath).Length -gt 15000) "Quick toolbar FRX should contain eight embedded icon pictures."
 
 $formText = Read-VbaSource -Path $formPath
 $moduleText = Read-VbaSource -Path $modulePath
@@ -51,17 +51,22 @@ $ribbonText = Get-Content -LiteralPath $ribbonPath -Raw
 
 Assert-Contains $formText 'OleObjectBlob   =   "frmQuickToolbar.frx":0000' "Form should reference its .frx resource."
 Assert-Contains $formText "ShowModal       =   0" "Quick toolbar should be modeless."
-Assert-Contains $formText "ClientHeight    =   7000" "Quick toolbar should use a tall vertical client area."
-Assert-Contains $formText "ClientWidth     =   2800" "Quick toolbar should use a narrow vertical client area."
-Assert-Contains $formText 'Me.Caption = "RATools 快捷工具栏"' "Quick toolbar title should be stored in the VBA ANSI code page."
-Assert-Contains $formText '.Top = 8 + rowIndex * BUTTON_STEP' "Quick toolbar buttons should be arranged in one vertical column."
-Assert-Contains $formText 'Private Const BUTTON_WIDTH As Single = 48' "Icon buttons should use a compact width."
-Assert-Contains $formText 'Private Const BUTTON_HEIGHT As Single = 34' "Icon buttons should use a compact height."
-Assert-Contains $formText 'Private Function ApplyOfficeIcon' "Office icon fallback should be available."
+Assert-Contains $formText "ClientHeight    =   4700" "Quick toolbar should use a compact vertical client area."
+Assert-Contains $formText "ClientWidth     =   1600" "Quick toolbar should use a compact narrow client area."
+Assert-Contains $formText 'Me.Caption = "RATools"' "Quick toolbar should use a short title."
+Assert-Contains $formText '.Left = (Me.InsideWidth - .Width) / 2' "Quick toolbar icons should be centered from the live client width."
+Assert-Contains $formText '.Top = BUTTON_TOP + rowIndex * BUTTON_STEP' "Quick toolbar icons should be arranged in one vertical column."
+Assert-Contains $formText 'Private Const BUTTON_WIDTH As Single = 28' "Icon tiles should use a compact width."
+Assert-Contains $formText 'Private Const BUTTON_HEIGHT As Single = 25' "Icon tiles should use a compact height."
+Assert-Contains $formText 'Private Const BUTTON_STEP As Single = 27' "Icon tiles should use a small vertical gap."
+Assert-Contains $formText 'ByVal buttonItem As MSForms.Label' "Quick toolbar controls should use flat label tiles instead of raised command buttons."
+Assert-Contains $formText '.BorderStyle = fmBorderStyleSingle' "Icon tiles should use a thin flat border."
 Assert-Contains $formText '.PicturePosition = fmPicturePositionCenter' "Icons should be centered in their buttons."
+Assert-Contains $formText '图标直接复用 Ribbon 资源' "Quick toolbar should document reuse of the Ribbon icon sources."
+Assert-Contains $formText '0, "H1"' "Heading 1 should use the existing H1 Ribbon icon."
+Assert-Contains $formText '6, "imageMso:TableAutoFitWindow"' "Table auto-fit should use the existing Ribbon imageMso icon."
+Assert-Contains $formText '7, "idMso:Subscript"' "Terms should use the existing Ribbon subscript icon."
 Assert-Contains $formText 'ConfigureButton Me.btnAutoFitTable, "表格适应"' "Auto-fit icon button should remain wired."
-Assert-Contains $formText '"TableAutoFitWindow"' "Auto-fit should use the Word built-in icon."
-Assert-Contains $formText '"Subscript"' "Scientific terms should use the Word built-in subscript icon."
 Assert-Contains $moduleText "Public Sub ToggleQuickToolbar" "Ribbon toggle callback should exist."
 Assert-Contains $moduleText "Public Sub RunQuickToolbarAction" "Action dispatcher should exist."
 Assert-Contains $moduleText 'Private Const QUICK_TOOLBAR_TITLE As String = "RATools 快捷工具栏"' "Quick toolbar messages should keep a readable Chinese title."
@@ -145,7 +150,9 @@ End Function
 
 Public Function GetQuickToolbarFormSizeForTest() As String
     Load frmQuickToolbar
-    GetQuickToolbarFormSizeForTest = CStr(frmQuickToolbar.Width) & "|" & CStr(frmQuickToolbar.Height)
+    GetQuickToolbarFormSizeForTest = CStr(frmQuickToolbar.Width) & "|" & _
+        CStr(frmQuickToolbar.Height) & "|" & CStr(frmQuickToolbar.InsideWidth) & "|" & _
+        CStr(frmQuickToolbar.InsideHeight)
 End Function
 
 Public Function GetQuickToolbarControlStateForTest(ByVal controlName As String) As String
@@ -162,19 +169,26 @@ Public Function GetQuickToolbarControlStateForTest(ByVal controlName As String) 
     GetQuickToolbarControlStateForTest = toolbarControl.Caption & "|" & _
         CStr(toolbarControl.Left) & "|" & CStr(toolbarControl.Top) & "|" & _
         CStr(toolbarControl.Width) & "|" & CStr(toolbarControl.Height) & "|" & _
-        toolbarControl.ControlTipText & "|" & CStr(hasPicture)
+        toolbarControl.ControlTipText & "|" & CStr(hasPicture) & "|" & _
+        TypeName(toolbarControl) & "|" & toolbarControl.Tag
 End Function
 '@)
 
     $buttonCount = [int]$word.Run("GetQuickToolbarButtonCount")
-    Assert-True ($buttonCount -eq 8) "Quick toolbar should contain eight design-time buttons; got $buttonCount."
+    Assert-True ($buttonCount -eq 8) "Quick toolbar should contain eight design-time icon controls; got $buttonCount."
 
     $toolbarCaption = [string]$word.Run("GetQuickToolbarCaptionForTest")
-    Assert-True ($toolbarCaption -eq "RATools 快捷工具栏") "Quick toolbar title should render as readable Chinese; got $toolbarCaption."
+    Assert-True ($toolbarCaption -eq "RATools") "Quick toolbar should render the short title; got $toolbarCaption."
 
     $formSize = ([string]$word.Run("GetQuickToolbarFormSizeForTest")).Split("|")
-    Assert-True ($formSize.Count -eq 2) "Quick toolbar form size should be returned for verification."
-    Assert-True ([double]$formSize[0] -lt [double]$formSize[1]) "Quick toolbar should be narrower than it is tall."
+    Assert-True ($formSize.Count -eq 4) "Quick toolbar form and client sizes should be returned for verification."
+    $formWidth = [double]$formSize[0]
+    $formHeight = [double]$formSize[1]
+    $insideWidth = [double]$formSize[2]
+    $insideHeight = [double]$formSize[3]
+    Assert-True ($formWidth -le 105) "Quick toolbar should remain compact even with the Windows title-bar minimum width; got $formWidth."
+    Assert-True ($formHeight -le 260) "Quick toolbar should use a compact height; got $formHeight."
+    Assert-True ($formWidth -lt $formHeight) "Quick toolbar should be narrower than it is tall."
 
     $expectedButtons = [ordered]@{
         btnHeading1      = "标题 1"
@@ -186,25 +200,45 @@ End Function
         btnAutoFitTable  = "表格适应"
         btnNormalizeTerms = "术语下标"
     }
+    $expectedIconSources = [ordered]@{
+        btnHeading1      = "H1"
+        btnHeading2      = "H2"
+        btnHeading3      = "H3"
+        btnBody          = "BodyText"
+        btnTextBlue      = "SetTextBlue"
+        btnPageBreakBefore = "PageBreakBefore"
+        btnAutoFitTable  = "imageMso:TableAutoFitWindow"
+        btnNormalizeTerms = "idMso:Subscript"
+    }
 
-    $expectedLeft = $null
     $previousTop = -1.0
+    $previousBottom = -1.0
     foreach ($buttonEntry in $expectedButtons.GetEnumerator()) {
         $controlName = [string]$buttonEntry.Key
-        $state = ([string]$word.Run("GetQuickToolbarControlStateForTest", [ref]$controlName)).Split("|", 7)
-        Assert-True ($state.Count -eq 7) "Could not inspect runtime state for $controlName."
+        $state = ([string]$word.Run("GetQuickToolbarControlStateForTest", [ref]$controlName)).Split("|", 9)
+        Assert-True ($state.Count -eq 9) "Could not inspect runtime state for $controlName."
         Assert-True ([string]::IsNullOrEmpty($state[0])) "$controlName should use an icon instead of visible button text; got $($state[0])"
         Assert-True ($state[6] -eq "True") "$controlName should expose a picture icon at runtime."
+        Assert-True ($state[7] -eq "Label") "$controlName should render as a flat label tile; got $($state[7])."
+        Assert-True ($state[8] -eq [string]$expectedIconSources[$controlName]) "$controlName should reuse the matching Ribbon icon source; got $($state[8])."
 
         $left = [double]$state[1]
         $top = [double]$state[2]
-        if ($null -eq $expectedLeft) {
-            $expectedLeft = $left
-        }
-        Assert-True ([Math]::Abs($left - $expectedLeft) -lt 0.1) "$controlName should align with the other buttons in one column."
+        $width = [double]$state[3]
+        $height = [double]$state[4]
+        $controlCenter = $left + ($width / 2.0)
+        $clientCenter = $insideWidth / 2.0
+        Assert-True ([Math]::Abs($controlCenter - $clientCenter) -lt 0.15) "$controlName should be exactly centered in the live client width."
+        Assert-True ($width -le 30) "$controlName should use a compact width; got $width."
+        Assert-True ($height -le 27) "$controlName should use a compact height; got $height."
         Assert-True ($top -gt $previousTop) "$controlName should appear below the previous button."
+        if ($previousBottom -ge 0) {
+            Assert-True (($top - $previousBottom) -le 3.0) "$controlName should use only a small vertical gap."
+        }
+        Assert-True (($top + $height) -le ($insideHeight + 0.5)) "$controlName should fit completely inside the compact form."
         Assert-True ($state[5].StartsWith([string]$buttonEntry.Value)) "$controlName should have a readable named tooltip."
         $previousTop = $top
+        $previousBottom = $top + $height
     }
 
     [void]$word.Run("ReleaseQuickToolbarForTest")
@@ -214,6 +248,9 @@ End Function
     foreach ($buttonEntry in $expectedButtons.GetEnumerator()) {
         $designerControl = $toolbarComponent.Designer.Controls.Item([string]$buttonEntry.Key)
         Assert-True ($designerControl.Caption -eq [string]$buttonEntry.Value) "Design-time caption should be readable for $($buttonEntry.Key)."
+        Assert-True ($designerControl.Tag -eq [string]$expectedIconSources[[string]$buttonEntry.Key]) "Design-time icon source should match Ribbon mapping for $($buttonEntry.Key)."
+        Assert-True ([double]$designerControl.Width -le 30) "$($buttonEntry.Key) should use a compact design-time width."
+        Assert-True ([double]$designerControl.Height -le 27) "$($buttonEntry.Key) should use a compact design-time height."
         if ($null -eq $expectedDesignerLeft) {
             $expectedDesignerLeft = [double]$designerControl.Left
         }
@@ -279,14 +316,20 @@ End Function
         Assert-True ($artifactButtonCount -eq 8) "Built dotm toolbar should contain eight buttons; got $artifactButtonCount."
 
         $artifactCode = $toolbarComponent.CodeModule.Lines(1, $toolbarComponent.CodeModule.CountOfLines)
-        Assert-Contains $artifactCode 'Me.Caption = "RATools 快捷工具栏"' "Built dotm should preserve the readable Chinese toolbar title."
+        Assert-Contains $artifactCode 'Me.Caption = "RATools"' "Built dotm should preserve the compact toolbar title."
         Assert-Contains $artifactCode 'ConfigureButton Me.btnNormalizeTerms, "术语下标"' "Built dotm should preserve the terms button wiring."
-        Assert-Contains $artifactCode 'Private Function ApplyOfficeIcon' "Built dotm should preserve the Office icon fallback."
+        Assert-Contains $artifactCode '.Left = (Me.InsideWidth - .Width) / 2' "Built dotm should preserve exact dynamic centering."
+        Assert-Contains $artifactCode 'ByVal buttonItem As MSForms.Label' "Built dotm should preserve flat icon tiles."
+        Assert-Contains $artifactCode 'imageMso:TableAutoFitWindow' "Built dotm should preserve the Ribbon auto-fit icon mapping."
+        Assert-Contains $artifactCode 'idMso:Subscript' "Built dotm should preserve the Ribbon subscript icon mapping."
         $expectedArtifactLeft = $null
         $previousArtifactTop = -1.0
         foreach ($buttonEntry in $expectedButtons.GetEnumerator()) {
             $artifactControl = $toolbarComponent.Designer.Controls.Item([string]$buttonEntry.Key)
             Assert-True ($artifactControl.Caption -eq [string]$buttonEntry.Value) "Built dotm caption should be readable for $($buttonEntry.Key)."
+            Assert-True ($artifactControl.Tag -eq [string]$expectedIconSources[[string]$buttonEntry.Key]) "Built dotm icon source should match Ribbon mapping for $($buttonEntry.Key)."
+            Assert-True ([double]$artifactControl.Width -le 30) "Built dotm should preserve the compact width for $($buttonEntry.Key)."
+            Assert-True ([double]$artifactControl.Height -le 27) "Built dotm should preserve the compact height for $($buttonEntry.Key)."
             if ($null -eq $expectedArtifactLeft) {
                 $expectedArtifactLeft = [double]$artifactControl.Left
             }
