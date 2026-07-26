@@ -14,6 +14,7 @@ Sub BatchAcceptAndClean()
     Dim fileItem As Variant
     Dim i As Long
     Dim processedCount As Integer
+    Dim failedCount As Integer
     
     ' 1. 模式选择
     strMode = InputBox("请输入模式编号：" & vbCrLf & vbCrLf & _
@@ -30,6 +31,7 @@ Sub BatchAcceptAndClean()
     
     On Error GoTo ErrorHandler
     processedCount = 0
+    failedCount = 0
     
     Select Case strMode
         Case "1"
@@ -47,8 +49,11 @@ Sub BatchAcceptAndClean()
                 .Filters.Add "Word文档", "*.doc; *.docx; *.docm", 1
                 If .Show = -1 Then
                     For Each fileItem In .SelectedItems
-                        Call ProcessFile(CStr(fileItem))
-                        processedCount = processedCount + 1
+                        If ProcessFile(CStr(fileItem)) Then
+                            processedCount = processedCount + 1
+                        Else
+                            failedCount = failedCount + 1
+                        End If
                     Next
                 End If
             End With
@@ -64,8 +69,11 @@ Sub BatchAcceptAndClean()
                     If fileCollection.count > 0 Then
                         For i = 1 To fileCollection.count
                             Application.StatusBar = "正在处理 [" & i & "/" & fileCollection.count & "]"
-                            Call ProcessFile(fileCollection(i))
-                            processedCount = processedCount + 1
+                            If ProcessFile(fileCollection(i)) Then
+                                processedCount = processedCount + 1
+                            Else
+                                failedCount = failedCount + 1
+                            End If
                         Next
                     Else
                         MsgBox "未找到Word文档", vbExclamation
@@ -81,7 +89,10 @@ ExitHandler:
     Application.ScreenUpdating = True
     Application.DisplayAlerts = wdAlertsAll
     Application.StatusBar = False
-    If processedCount > 0 And strMode <> "1" Then
+    If failedCount > 0 And strMode <> "1" Then
+        MsgBox "处理完成：成功 " & processedCount & " 个，失败 " & failedCount & _
+               " 个（无法打开，请检查文件是否被占用或有密码）。", vbExclamation
+    ElseIf processedCount > 0 And strMode <> "1" Then
         MsgBox "处理完成！共处理 " & processedCount & " 个文件。", vbInformation
     End If
     Exit Sub
@@ -92,7 +103,7 @@ ErrorHandler:
 End Sub
 
 ' === 模块：处理单个文件 (后台模式 Visible=False) ===
-Sub ProcessFile(filePath As String)
+Function ProcessFile(filePath As String) As Boolean
     Dim doc As Document
     On Error Resume Next
     
@@ -103,11 +114,13 @@ Sub ProcessFile(filePath As String)
         Call DeepCleanDocument(doc)
         doc.Save
         doc.Close
+        ProcessFile = True
     Else
         Debug.Print "打开失败: " & filePath
+        ProcessFile = False
     End If
     On Error GoTo 0
-End Sub
+End Function
 
 ' === 模块：清理逻辑 ===
 Sub DeepCleanDocument(doc As Document)
