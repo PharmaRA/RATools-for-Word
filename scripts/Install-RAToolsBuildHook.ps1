@@ -13,6 +13,17 @@ if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
     $RepoRoot = (Resolve-Path (Join-Path $scriptRoot "..")).Path
 }
 
+Import-Module (Join-Path $scriptRoot "RATools.Build.psm1") -Force
+
+# VBA 源码目录清单与构建模块联动（消除硬编码重复）
+$layout = Get-RAToolsProjectLayout -RepoRoot $RepoRoot
+$sourceDirNames = @(
+    (Split-Path -Leaf $layout.ModulesDirectory),
+    (Split-Path -Leaf $layout.ClassModulesDirectory),
+    (Split-Path -Leaf $layout.UserFormsDirectory)
+)
+$sourceDirsSh = $sourceDirNames -join " "
+
 $gitDir = (& git -C $RepoRoot rev-parse --git-dir) 2>$null
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($gitDir)) {
     throw "Could not find a git repository at $RepoRoot."
@@ -52,12 +63,12 @@ $hookLines = @(
     '  exit 1',
     'fi',
     "",
-    'if ! git diff --quiet -- modules class_modules userforms; then',
+    "if ! git diff --quiet -- $sourceDirsSh; then",
     '  echo "Unstaged VBA source changes found. Stage source files before committing so dotm matches the commit." >&2',
     '  exit 1',
     'fi',
     "",
-    'untracked_sources="$(git ls-files --others --exclude-standard -- modules class_modules userforms)"',
+    "untracked_sources=`"`$(git ls-files --others --exclude-standard -- $sourceDirsSh)`"",
     'if [ -n "$untracked_sources" ]; then',
     '  echo "Untracked VBA source files found. Stage or remove them before committing:" >&2',
     '  echo "$untracked_sources" >&2',
