@@ -26,6 +26,32 @@ jobs:
         with:
           ref: ${{ github.event.inputs.release_tag || github.ref }}
 
+      - name: Run non-COM tests
+        shell: pwsh
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File tests\Run-AllTests.ps1 -SkipCom
+          if ($LASTEXITCODE -ne 0) { throw "Tests failed" }
+
+      - name: Verify tag matches source versions
+        shell: pwsh
+        run: |
+          $tag = "${{ env.RELEASE_TAG }}"
+          Import-Module (Join-Path $env:GITHUB_WORKSPACE "scripts\RATools.Build.psm1") -Force
+          $changelogVersion = Get-RAToolsLatestChangelogVersion -RepoRoot $env:GITHUB_WORKSPACE
+
+          if ($tag -ne $changelogVersion) {
+            throw "Tag <$tag> does not match top changelog version <$changelogVersion>. Update CHANGELOG.md or re-tag."
+          }
+
+          $updateChecker = Get-Content -LiteralPath (Join-Path $env:GITHUB_WORKSPACE "modules\Mod_UpdateChecker.bas") -Raw
+          $match = [Regex]::Match($updateChecker, 'Private\s+Const\s+APP_VERSION\s+As\s+String\s*=\s*"([^"]+)"')
+          if (-not $match.Success) {
+            throw "APP_VERSION constant not found in Mod_UpdateChecker.bas"
+          }
+          if ($match.Groups[1].Value -ne $tag) {
+            throw "Tag <$tag> does not match APP_VERSION <$($match.Groups[1].Value)>. Run local build before tagging so dotm/ and sources are in sync."
+          }
+
       - name: Package DOTM and templates
         shell: pwsh
         run: |
