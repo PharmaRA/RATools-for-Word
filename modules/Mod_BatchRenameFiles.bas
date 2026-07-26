@@ -71,22 +71,10 @@ Sub BatchRenameFiles()
     ' 3. 初始化正则对象
     
     ' (A) 清理非法字符正则：仅保留 a-z, 0-9, -, _, 汉字
-    Set regExClean = CreateObject("VBScript.RegExp")
-    With regExClean
-        .Global = True
-        .IgnoreCase = True
-        .Pattern = "[^a-z0-9\-\_" & ChrW(&H4E00) & "-" & ChrW(&H9FA5) & "]"
-    End With
+    CreateRenameRegexes regExSpace, regExClean
     
     ' (B) 空格处理正则：匹配 "字母或数字 + 空格 + 字母或数字" 的情况
     ' 用于将单词间的空格转为中划线
-    Set regExSpace = CreateObject("VBScript.RegExp")
-    With regExSpace
-        .Global = True
-        .IgnoreCase = True
-        ' Lookahead断言：匹配一个字符和空格，且后面紧跟着另一个字符
-        .Pattern = "([a-z0-9])\s+(?=[a-z0-9])"
-    End With
     
     renamedCount = 0
     copyCount = 0
@@ -106,22 +94,8 @@ Sub BatchRenameFiles()
         ' --- 核心处理逻辑开始 ---
         
         ' 步骤 1：转换为小写
-        baseName = LCase(baseName)
         extName = LCase(extName)
-        
-        ' 步骤 2：处理空格
-        ' 情况A：字母/数字 之间的空格 -> 替换为中划线 (例如: "file 01" -> "file-01")
-        baseName = regExSpace.Replace(baseName, "$1-")
-        
-        ' 情况B：剩余的所有空格（包括汉字与字母间、汉字间） -> 直接删除 (例如: "测试 file" -> "测试file")
-        baseName = Replace(baseName, " ", "")
-        
-        ' 步骤 3：清理非法字符（替换为中划线）
-        cleanName = regExClean.Replace(baseName, "-")
-        
-        ' --- 核心处理逻辑结束 ---
-        
-        If Len(cleanName) = 0 Then cleanName = "renamed-file"
+        cleanName = CleanFileBaseName(baseName, regExSpace, regExClean)
         
         newFileName = cleanName & extName
         
@@ -197,3 +171,38 @@ Private Sub RecursiveGetFiles(ByVal oFolder As Object, ByRef colFiles As Collect
     On Error GoTo 0
 End Sub
 
+' 文件名清洗规则（纯函数，供测试直接调用）：
+' 1) 全小写 2) 字母/数字间空格 -> 中划线 3) 其余空格删除
+' 4) 非法字符（保留 a-z 0-9 - _ 汉字）-> 中划线 5) 空结果回退 renamed-file
+Public Function CleanFileBaseName(ByVal baseName As String, _
+                                  ByVal regExSpace As Object, _
+                                  ByVal regExClean As Object) As String
+    Dim cleaned As String
+
+    cleaned = LCase(baseName)
+    cleaned = regExSpace.Replace(cleaned, "$1-")
+    cleaned = Replace(cleaned, " ", "")
+    cleaned = regExClean.Replace(cleaned, "-")
+
+    If Len(cleaned) = 0 Then cleaned = "renamed-file"
+    CleanFileBaseName = cleaned
+End Function
+
+' 构造清洗所需的两个正则（与 BatchRenameFiles 主流程同配置）
+Public Sub CreateRenameRegexes(ByRef regExSpace As Object, ByRef regExClean As Object)
+    ' (A) 清理非法字符：保留 a-z 0-9 - _ 汉字
+    Set regExClean = CreateObject("VBScript.RegExp")
+    With regExClean
+        .Global = True
+        .IgnoreCase = True
+        .Pattern = "[^a-z0-9\-\_" & ChrW(&H4E00) & "-" & ChrW(&H9FA5) & "]"
+    End With
+
+    ' (B) 空格连接：字母/数字间空格 -> 中划线（Lookahead 保留后字符）
+    Set regExSpace = CreateObject("VBScript.RegExp")
+    With regExSpace
+        .Global = True
+        .IgnoreCase = True
+        .Pattern = "([a-z0-9])\s+(?=[a-z0-9])"
+    End With
+End Sub
