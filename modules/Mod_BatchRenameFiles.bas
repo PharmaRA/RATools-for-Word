@@ -23,11 +23,11 @@ Sub BatchRenameFiles()
     Dim regExClean As Object
     Dim regExSpace As Object
     Dim fso As Object
-    Dim count As Integer
-    Dim copyCount As Integer
-    Dim i As Integer
+    Dim renamedCount As Long
+    Dim copyCount As Long
+    Dim i As Long
     Dim newPath As String
-    Dim dupCounter As Integer
+    Dim dupCounter As Long
     
     ' 1. 询问用户模式
     mode = MsgBox("请选择操作模式：" & vbCrLf & vbCrLf & _
@@ -94,7 +94,7 @@ Sub BatchRenameFiles()
         .Pattern = "([a-z0-9])\s+(?=[a-z0-9])"
     End With
     
-    count = 0
+    renamedCount = 0
     copyCount = 0
     Application.ScreenUpdating = False
     
@@ -147,7 +147,7 @@ Sub BatchRenameFiles()
             Name fullPath As newPath
             
             If Err.Number = 0 Then
-                count = count + 1
+                renamedCount = renamedCount + 1
             Else
                 Err.Clear
                 fso.CopyFile fullPath, newPath
@@ -164,7 +164,7 @@ Sub BatchRenameFiles()
     
     ' 5. 结果提示
     MsgBox "处理完成！" & vbCrLf & _
-           "直接重命名: " & count & " 个" & vbCrLf & _
+           "直接重命名: " & renamedCount & " 个" & vbCrLf & _
            "创建副本(原文件被占用): " & copyCount & " 个", _
            vbInformation, "批量修改文件名"
     

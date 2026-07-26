@@ -13,8 +13,8 @@ Sub BatchAcceptAndClean()
     Dim fileCollection As New Collection
     Dim fileItem As Variant
     Dim i As Long
-    Dim processedCount As Integer
-    Dim failedCount As Integer
+    Dim processedCount As Long
+    Dim failedCount As Long
     
     ' 1. 模式选择
     strMode = InputBox("请输入模式编号：" & vbCrLf & vbCrLf & _
@@ -103,7 +103,7 @@ ErrorHandler:
 End Sub
 
 ' === 模块：处理单个文件 (后台模式 Visible=False) ===
-Function ProcessFile(filePath As String) As Boolean
+Private Function ProcessFile(filePath As String) As Boolean
     Dim doc As Document
     On Error Resume Next
     
@@ -123,10 +123,10 @@ Function ProcessFile(filePath As String) As Boolean
 End Function
 
 ' === 模块：清理逻辑 ===
-Sub DeepCleanDocument(doc As Document)
+Private Sub DeepCleanDocument(doc As Document)
     Dim rng As Range
     Dim storyIndex As Variant
-    Dim commentRetry As Integer ' 批注删除重试计数器
+    Dim commentRetry As Long ' 批注删除重试计数器
     ' 仅遍历核心区域，跳过无效区域
     ' 1=MainText, 2=Footnotes, 3=Endnotes, 5=Comments(虽删但需查), 6-11=Headers/Footers
     Dim targetStories As Variant
@@ -178,7 +178,7 @@ Sub DeepCleanDocument(doc As Document)
 End Sub
 
 ' === 模块：清理单个 Range (按需执行) ===
-Sub CleanSingleRange(rng As Range)
+Private Sub CleanSingleRange(rng As Range)
     Dim shp As Shape
     Dim frm As Frame
     
@@ -209,7 +209,7 @@ Sub CleanSingleRange(rng As Range)
 End Sub
 
 ' === 模块：递归处理图形对象 ===
-Sub ProcessShapeRecursively(shp As Shape)
+Private Sub ProcessShapeRecursively(shp As Shape)
     Dim subShp As Shape
     
     On Error Resume Next
@@ -241,7 +241,7 @@ Sub ProcessShapeRecursively(shp As Shape)
 End Sub
 
 ' === 模块：文件递归搜索 ===
-Sub RecursiveFindFiles(ByVal sPath As String, ByRef fCollection As Collection)
+Private Sub RecursiveFindFiles(ByVal sPath As String, ByRef fCollection As Collection)
     Dim FSO As Object, Folder As Object, SubFolder As Object, File As Object
     Dim ext As String
     

@@ -264,7 +264,7 @@ End Sub
 ' ==========================================
 ' 辅助过程：递归扫描文件夹
 ' ==========================================
-Sub RecursiveScan(ByVal folderPath As String, ByRef fileCollection As Collection)
+Private Sub RecursiveScan(ByVal folderPath As String, ByRef fileCollection As Collection)
     Dim folder As Object
     Dim subFolder As Object
     Dim file As Object
@@ -292,13 +292,6 @@ End Sub
 ' ==========================================
 ' 辅助函数：检测单个文档是否包含高亮
 ' ==========================================
-Function CheckForHighlight(doc As Document) As Boolean
-    Dim firstHighlight As Range
-    Dim detectionError As String
-
-    CheckForHighlight = TryFindFirstHighlight(doc, firstHighlight, detectionError)
-End Function
-
 ' 安全调用检测函数，并将检测异常与“没有高亮”区分开。
 Function TryFindFirstHighlight(doc As Document, _
                                ByRef foundRange As Range, _

@@ -5,8 +5,8 @@ Sub BatchAutoFitTablesToWindow()
     ' 功能：将文档中所有表格批量设置为“根据窗口自动调整”
     '================================================
     Dim objTable As Table
-    Dim count As Integer
-    count = 0
+    Dim tableCount As Long
+    tableCount = 0
     
     ' 关闭屏幕更新，加快处理速度，防止屏幕闪烁
     Application.ScreenUpdating = False
@@ -17,7 +17,7 @@ Sub BatchAutoFitTablesToWindow()
         For Each objTable In ActiveDocument.Tables
             ' 应用“根据窗口自动调整”
             objTable.AutoFitBehavior (wdAutoFitWindow)
-            count = count + 1
+            tableCount = tableCount + 1
         Next objTable
     Else
         Application.ScreenUpdating = True
@@ -29,6 +29,6 @@ Sub BatchAutoFitTablesToWindow()
     Application.ScreenUpdating = True
     
     ' 弹出完成提示
-    MsgBox "处理完成！已成功调整 " & count & " 个表格。", vbInformation, "成功"
+    MsgBox "处理完成！已成功调整 " & tableCount & " 个表格。", vbInformation, "成功"
 
 End Sub

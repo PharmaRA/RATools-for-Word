@@ -9,7 +9,7 @@ Sub BatchSetMargins()
     Dim fd As FileDialog
     Dim selectedPath As String
     Dim startTime As Single
-    Dim i As Integer ' 用于循环计数
+    Dim i As Long ' 用于循环计数
     
     ' 询问用户想要执行的操作模式
     choice = InputBox("请输入数字选择模式：" & vbCrLf & vbCrLf & _
@@ -80,7 +80,7 @@ End Sub
 ' ==========================================
 ' 辅助过程：处理单个文件路径（打开-修改-保存-关闭）
 ' ==========================================
-Sub ProcessFile(filePath As String)
+Private Sub ProcessFile(filePath As String)
     Dim doc As Document
     Dim isOpened As Boolean
     
@@ -112,7 +112,7 @@ End Sub
 ' ==========================================
 ' 辅助过程：处理文档对象（检查保护 + 遍历节）
 ' ==========================================
-Sub ProcessSingleDoc(doc As Document, showMsg As Boolean)
+Private Sub ProcessSingleDoc(doc As Document, showMsg As Boolean)
     ' 检查文档是否受保护（只读）
     If doc.ProtectionType <> wdNoProtection Then
         If showMsg Then MsgBox "当前文档受保护（只读），无法修改边距。", vbCritical, "失败"
@@ -136,7 +136,7 @@ End Sub
 ' ==========================================
 ' 辅助过程：遍历文件夹
 ' ==========================================
-Sub ProcessFolder(folderPath As String)
+Private Sub ProcessFolder(folderPath As String)
     Dim fileCollection As New Collection
     Dim i As Long
 
@@ -158,7 +158,7 @@ Sub ProcessFolder(folderPath As String)
 End Sub
 
 ' 递归收集 Word 文档路径
-Sub CollectWordFiles(ByVal sPath As String, ByRef fCollection As Collection)
+Private Sub CollectWordFiles(ByVal sPath As String, ByRef fCollection As Collection)
     Dim FSO As Object, Folder As Object, SubFolder As Object, File As Object
     Dim ext As String
 
@@ -184,7 +184,7 @@ End Sub
 ' ==========================================
 ' 核心逻辑：安全设置边距（防 4608 错误版 + 遍历 Sections）
 ' ==========================================
-Function SetMarginsSafely(doc As Document) As Boolean
+Private Function SetMarginsSafely(doc As Document) As Boolean
     Dim targetPoints As Single
     Dim sec As Section
     Dim hasError As Boolean
@@ -234,7 +234,7 @@ Function SetMarginsSafely(doc As Document) As Boolean
     SetMarginsSafely = Not hasError
 End Function
 
-Sub LogAction(msg As String)
+Private Sub LogAction(msg As String)
     ' 简单的状态栏日志
     Application.StatusBar = msg
 End Sub

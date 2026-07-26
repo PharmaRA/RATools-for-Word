@@ -6,7 +6,7 @@ Sub SetHyperlinksAndFieldsToBlue()
     Dim hyperlink As hyperlink
     Dim field As field
     Dim storyRange As Range
-    Dim countChanged As Integer
+    Dim countChanged As Long
     
     Application.ScreenUpdating = False
     countChanged = 0
@@ -38,19 +38,19 @@ ErrH:
     MsgBox "设置蓝色失败：" & Err.Description, vbCritical
 End Sub
 
-Private Function ProcessFieldsExcludeCaptions(rng As Range) As Integer
+Private Function ProcessFieldsExcludeCaptions(rng As Range) As Long
     Dim field As field
-    Dim count As Integer
+    Dim fieldCount As Long
     Dim fieldCode As String
     
-    count = 0
+    fieldCount = 0
     
     ' 处理主范围
     For Each field In rng.Fields
         If IsProcessableField(field) Then
              If field.Result.Font.Color <> RGB(0, 0, 255) Then
                 field.Result.Font.Color = RGB(0, 0, 255)
-                count = count + 1
+                fieldCount = fieldCount + 1
             End If
         End If
     Next field
@@ -62,13 +62,13 @@ Private Function ProcessFieldsExcludeCaptions(rng As Range) As Integer
             If IsProcessableField(field) Then
                 If field.Result.Font.Color <> RGB(0, 0, 255) Then
                     field.Result.Font.Color = RGB(0, 0, 255)
-                    count = count + 1
+                    fieldCount = fieldCount + 1
                 End If
             End If
         Next field
     Loop
     
-    ProcessFieldsExcludeCaptions = count
+    ProcessFieldsExcludeCaptions = fieldCount
 End Function
 
 ' 辅助函数：判断是否为需要处理的域（排除页码和题注）

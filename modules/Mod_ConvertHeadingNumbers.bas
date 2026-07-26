@@ -6,10 +6,10 @@ Sub ConvertHeadingNumbers()
     Dim i As Long
     Dim doc As Document
     Dim para As Paragraph
-    Dim count As Integer
+    Dim convertedCount As Long
     
     Set doc = ActiveDocument
-    count = 0
+    convertedCount = 0
     
     ' 关闭屏幕更新以加快速度
     Application.ScreenUpdating = False
@@ -25,7 +25,7 @@ Sub ConvertHeadingNumbers()
             If para.Range.ListFormat.ListType <> wdListNoNumbering Then
                 ' 将编号转换为静态文本
                 para.Range.ListFormat.ConvertNumbersToText
-                count = count + 1
+                convertedCount = convertedCount + 1
             End If
         End If
     Next i
@@ -34,7 +34,7 @@ Sub ConvertHeadingNumbers()
     Application.ScreenUpdating = True
     
     ' 提示完成
-    MsgBox "修复版转换完成！共处理了 " & count & " 个标题。", vbInformation, "操作成功"
+    MsgBox "修复版转换完成！共处理了 " & convertedCount & " 个标题。", vbInformation, "操作成功"
     Exit Sub
 
 ErrH:
