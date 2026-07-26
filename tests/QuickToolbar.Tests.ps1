@@ -34,83 +34,57 @@ function Read-VbaSource {
     return $vbaEncoding.GetString([System.IO.File]::ReadAllBytes($Path))
 }
 
+# 按钮定义单一事实源：scripts/QuickToolbarButtons.psd1
+# 本测试的全部期望值（名称/提示/图标/布局/分发结果）由该文件推导，
+# 修改按钮后无需同步改测试。
+$buttonData = Import-PowerShellDataFile (Join-Path $repoRoot "scripts\QuickToolbarButtons.psd1")
+$layoutSpec = $buttonData.Layout
+
 function Get-ExpectedQuickToolbarLayout {
     param([int]$Index)
 
-    if ($Index -lt 4) {
-        $row = 0
-    }
-    elseif ($Index -lt 8) {
-        $row = 1
-    }
-    elseif ($Index -lt 12) {
-        $row = 2
-    }
-    elseif ($Index -lt 16) {
-        $row = 3
-    }
-    else {
-        $row = 4
-    }
-
-    if ($Index -lt 16) {
-        $column = $Index % 4
-        $columnCount = 4
-    }
-    else {
-        $column = $Index - 16
-        $columnCount = 3
-    }
-
+    $b = $buttonData.Buttons[$Index]
     return [pscustomobject]@{
-        Row = $row
-        Column = $column
-        ColumnCount = $columnCount
+        Row = [int]$b.Row
+        Column = [int]$b.Column
+        ColumnCount = [int]$b.ColumnCount
     }
 }
 
-$expectedItems = @(
-    [pscustomobject]@{ Name = "btnHeading1"; Caption = "编号标题 1"; Tip = "应用标题1-F样式"; Tag = "H1"; Action = "style_heading1" },
-    [pscustomobject]@{ Name = "btnHeading2"; Caption = "编号标题 2"; Tip = "应用标题2-F样式"; Tag = "H2"; Action = "style_heading2" },
-    [pscustomobject]@{ Name = "btnHeading3"; Caption = "编号标题 3"; Tip = "应用标题3-F样式"; Tag = "H3"; Action = "style_heading3" },
-    [pscustomobject]@{ Name = "btnHeading4"; Caption = "编号标题 4"; Tip = "应用标题4-F样式"; Tag = "H4"; Action = "style_heading4" },
-    [pscustomobject]@{ Name = "btnUnnumberedHeading1"; Caption = "无编号标题 1"; Tip = "应用无编号标题1-F样式"; Tag = "UNH1"; Action = "style_unnumbered_heading1" },
-    [pscustomobject]@{ Name = "btnUnnumberedHeading2"; Caption = "无编号标题 2"; Tip = "应用无编号标题2-F样式"; Tag = "UNH2"; Action = "style_unnumbered_heading2" },
-    [pscustomobject]@{ Name = "btnUnnumberedHeading3"; Caption = "无编号标题 3"; Tip = "应用无编号标题3-F样式"; Tag = "UNH3"; Action = "style_unnumbered_heading3" },
-    [pscustomobject]@{ Name = "btnUnnumberedHeading4"; Caption = "无编号标题 4"; Tip = "应用无编号标题4-F样式"; Tag = "UNH4"; Action = "style_unnumbered_heading4" },
-    [pscustomobject]@{ Name = "btnFormatPainter"; Caption = "格式刷"; Tip = "复制并应用所选内容的格式"; Tag = "idMso:FormatPainter"; Action = "format_painter" },
-    [pscustomobject]@{ Name = "btnParagraphSettings"; Caption = "段落设置"; Tip = "打开 Word 段落设置对话框"; Tag = "idMso:ParagraphDialog"; Action = "paragraph_settings" },
-    [pscustomobject]@{ Name = "btnPageBreakBefore"; Caption = "段前分页"; Tip = "切换选中段落的段前分页属性"; Tag = "PageBreakBefore"; Action = "page_break_before" },
-    [pscustomobject]@{ Name = "btnTableTitle"; Caption = "表标题"; Tip = "应用表标题-F样式"; Tag = "TableTitle"; Action = "style_table_title" },
-    [pscustomobject]@{ Name = "btnFigureTitle"; Caption = "图标题"; Tip = "应用图标题-F样式"; Tag = "FigureTitle"; Action = "style_figure_title" },
-    [pscustomobject]@{ Name = "btnAutoFitTable"; Caption = "根据窗口自动调整表格"; Tip = "将光标所在表格根据窗口宽度自动调整"; Tag = "imageMso:TableAutoFitWindow"; Action = "autofit_table" },
-    [pscustomobject]@{ Name = "btnInsertCrossReference"; Caption = "插入交叉引用"; Tip = "打开插入交叉引用对话框"; Tag = "idMso:CrossReferenceInsert"; Action = "insert_cross_reference" },
-    [pscustomobject]@{ Name = "btnUpdateFields"; Caption = "更新域"; Tip = "更新当前选区或光标所在位置的域"; Tag = "idMso:FieldsUpdate"; Action = "update_fields" },
-    [pscustomobject]@{ Name = "btnHyperlinksFieldsBlue"; Caption = "超链接和域批量设置为蓝色"; Tip = "运行超链接和域批量设置为蓝色宏"; Tag = "idMso:HyperlinkInsert"; Action = "hyperlinks_fields_blue" },
-    [pscustomobject]@{ Name = "btnAcceptRevisionsComments"; Caption = "接受修订并删除批注"; Tip = "运行接受修订并删除批注宏"; Tag = "idMso:ReviewAcceptChange"; Action = "accept_revisions_comments" },
-    [pscustomobject]@{ Name = "btnDetectHighlights"; Caption = "检测高亮内容"; Tip = "运行检测高亮内容宏"; Tag = "idMso:TextHighlightColorPicker"; Action = "detect_highlights" }
-)
+$expectedItems = @(foreach ($b in $buttonData.Buttons) {
+    $tag = switch ($b.Kind) {
+        "custom"    { $b.Icon }
+        "mso"       { "idMso:" + $b.Icon }
+        "mso-image" { "imageMso:" + $b.Icon }
+        default     { throw "Unknown button kind: $($b.Kind)" }
+    }
+    [pscustomobject]@{
+        Name = $b.Name
+        Caption = $b.Caption
+        Tip = $b.Tip
+        Tag = $tag
+        Action = $b.Action
+    }
+})
 
-$expectedDispatch = [ordered]@{
-    style_heading1            = "style:标题1-F"
-    style_heading2            = "style:标题2-F"
-    style_heading3            = "style:标题3-F"
-    style_heading4            = "style:标题4-F"
-    style_unnumbered_heading1 = "style:无编号标题1-F"
-    style_unnumbered_heading2 = "style:无编号标题2-F"
-    style_unnumbered_heading3 = "style:无编号标题3-F"
-    style_unnumbered_heading4 = "style:无编号标题4-F"
-    format_painter            = "mso:FormatPainter"
-    paragraph_settings        = "mso:ParagraphDialog"
-    page_break_before         = "page_break_before"
-    style_table_title         = "style:表标题-F"
-    style_figure_title        = "style:图标题-F"
-    autofit_table             = "autofit_table"
-    insert_cross_reference    = "mso:CrossReferenceInsert"
-    update_fields             = "mso:FieldsUpdate"
-    hyperlinks_fields_blue    = "hyperlinks_fields_blue"
-    accept_revisions_comments = "accept_revisions_comments"
-    detect_highlights         = "detect_highlights"
+$expectedDispatch = [ordered]@{}
+foreach ($b in $buttonData.Buttons) {
+    $expectedDispatch[$b.Action] = $b.Dispatch
+}
+
+# 由 psd1 布局参数推导按钮期望坐标（与窗体 GetButtonLeft/GetButtonTop 同公式）
+function Get-ExpectedButtonGeometry {
+    param([pscustomobject]$Layout, [double]$ClientWidth)
+
+    $w = [double]$layoutSpec.ButtonWidth
+    $gap = [double]$layoutSpec.ColumnGap
+    $rowWidth = ($Layout.ColumnCount * $w) + (($Layout.ColumnCount - 1) * $gap)
+    $left = (($ClientWidth - $rowWidth) / 2) + ($Layout.Column * ($w + $gap))
+    $top = [double]$layoutSpec.ButtonTop + ($Layout.Row * [double]$layoutSpec.RowStep)
+    foreach ($gapRow in $layoutSpec.GroupGapRows) {
+        if ($Layout.Row -ge $gapRow) { $top += [double]$layoutSpec.GroupGap }
+    }
+    return [pscustomobject]@{ Left = $left; Top = $top }
 }
 
 Write-Output "Running QuickToolbar source checks"
@@ -161,12 +135,12 @@ finally {
 Assert-Contains $formText 'OleObjectBlob   =   "frmQuickToolbar.frx":0000' "Form should reference its FRX resource."
 Assert-Contains $formText "ShowModal       =   0" "Quick toolbar should be modeless."
 Assert-Contains $formText 'Me.Caption = "RATools"' "Quick toolbar should use a short readable title."
-Assert-Contains $formText "Private Const TOOLBAR_WIDTH As Single = 134" "Toolbar should fit its four-column grid."
-Assert-Contains $formText "Private Const TOOLBAR_HEIGHT As Single = 168" "Toolbar should fit its compact five-row grid."
-Assert-Contains $formText "Private Const BUTTON_WIDTH As Single = 26" "Toolbar should use compact icon tiles."
-Assert-Contains $formText "Private Const BUTTON_HEIGHT As Single = 24" "Toolbar should use compact icon tiles."
-Assert-Contains $formText "Private Const BUTTON_ROW_STEP As Single = 25" "Toolbar should use compact row spacing."
-Assert-Contains $formText "Private Const BUTTON_COLUMN_GAP As Single = 3" "Toolbar should use compact column spacing."
+Assert-Contains $formText "Private Const TOOLBAR_WIDTH As Single = $($layoutSpec.ToolbarWidth)" "Toolbar width should match QuickToolbarButtons.psd1."
+Assert-Contains $formText "Private Const TOOLBAR_HEIGHT As Single = $($layoutSpec.ToolbarHeight)" "Toolbar height should match QuickToolbarButtons.psd1."
+Assert-Contains $formText "Private Const BUTTON_WIDTH As Single = $($layoutSpec.ButtonWidth)" "Button width should match QuickToolbarButtons.psd1."
+Assert-Contains $formText "Private Const BUTTON_HEIGHT As Single = $($layoutSpec.ButtonHeight)" "Button height should match QuickToolbarButtons.psd1."
+Assert-Contains $formText "Private Const BUTTON_ROW_STEP As Single = $($layoutSpec.RowStep)" "Row step should match QuickToolbarButtons.psd1."
+Assert-Contains $formText "Private Const BUTTON_COLUMN_GAP As Single = $($layoutSpec.ColumnGap)" "Column gap should match QuickToolbarButtons.psd1."
 Assert-Contains $formText "If rowIndex >= 2 Then" "Toolbar should separate the heading and command groups."
 Assert-Contains $formText "If rowIndex >= 4 Then" "Toolbar should separate the command and macro groups."
 Assert-Contains $formText "GetButtonLeft = (Me.InsideWidth - rowWidth) / 2" "Each button row should be centered from the live client width."
@@ -174,8 +148,10 @@ Assert-Contains $formText "ByVal buttonItem As MSForms.Label" "Toolbar controls 
 Assert-Contains $formText ".PicturePosition = fmPicturePositionCenter" "Toolbar icons should be centered inside each tile."
 Assert-Contains $moduleText "Public Sub ToggleQuickToolbar" "Ribbon toggle callback should exist."
 Assert-Contains $moduleText "Public Sub RunQuickToolbarAction" "Action dispatcher should exist."
-Assert-Contains $moduleText "TryRunExpandedQuickToolbarAction(actionKey)" "Dispatcher should delegate the expanded button set."
-Assert-Contains $actionModuleText "Public Function TryRunExpandedQuickToolbarAction" "Expanded action dispatcher should exist."
+foreach ($b in $buttonData.Buttons) {
+    Assert-Contains $moduleText ('"' + $b.Action + '"') "Unified dispatcher should handle $($b.Action)."
+}
+Assert-Contains $actionModuleText "Public Sub ExecuteQuickToolbarMso" "Mso executor should exist."
 Assert-Contains $actionModuleText 'Application.CommandBars.ExecuteMso commandId' "Built-in Word commands should use ExecuteMso."
 Assert-Contains $ribbonText 'onAction="ToggleQuickToolbar"' "Ribbon should expose the quick toolbar callback."
 $quickToolbarRibbonButton = [regex]::Match($ribbonText, '(?s)<button\s+id="btnQuickToolbar".*?/>').Value
@@ -193,7 +169,6 @@ for ($i = 0; $i -lt $expectedItems.Count; $i++) {
     Assert-Contains $formText $expectedConfigure "Missing grid layout wiring for $($item.Name)."
     Assert-Contains $formText ("Private Sub " + $item.Name + "_Click()") "Missing click handler for $($item.Name)."
     Assert-Contains $formText ('RunQuickToolbarAction "' + $item.Action + '"') "Wrong action wiring for $($item.Name)."
-    Assert-Contains $syncScriptText ('Name = "' + $item.Name + '"') "Generator should define $($item.Name)."
 }
 
 Write-Output "Running QuickToolbar Word COM source-import smoke"
@@ -310,8 +285,8 @@ End Function
     $formHeight = [double]$formSize[1]
     $insideWidth = [double]$formSize[2]
     $insideHeight = [double]$formSize[3]
-    Assert-True ([Math]::Abs($formWidth - 134) -lt 0.5) "Toolbar runtime width should be 134pt; got $formWidth."
-    Assert-True ([Math]::Abs($formHeight - 168) -lt 0.5) "Toolbar runtime height should be 168pt; got $formHeight."
+    Assert-True ([Math]::Abs($formWidth - $layoutSpec.ToolbarWidth) -lt 0.5) "Toolbar runtime width should be $($layoutSpec.ToolbarWidth)pt; got $formWidth."
+    Assert-True ([Math]::Abs($formHeight - $layoutSpec.ToolbarHeight) -lt 0.5) "Toolbar runtime height should be $($layoutSpec.ToolbarHeight)pt; got $formHeight."
     Assert-True ($formHeight -lt 200) "Toolbar should remain a compact five-row grid."
 
     for ($i = 0; $i -lt $expectedItems.Count; $i++) {
@@ -330,14 +305,12 @@ End Function
         $top = [double]$state[2]
         $width = [double]$state[3]
         $height = [double]$state[4]
-        Assert-True ([Math]::Abs($width - 26) -lt 0.1) "$controlName should be 26pt wide; got $width."
-        Assert-True ([Math]::Abs($height - 24) -lt 0.1) "$controlName should be 24pt high; got $height."
+        Assert-True ([Math]::Abs($width - $layoutSpec.ButtonWidth) -lt 0.1) "$controlName should be $($layoutSpec.ButtonWidth)pt wide; got $width."
+        Assert-True ([Math]::Abs($height - $layoutSpec.ButtonHeight) -lt 0.1) "$controlName should be $($layoutSpec.ButtonHeight)pt high; got $height."
 
-        $rowWidth = ($layout.ColumnCount * 26) + (($layout.ColumnCount - 1) * 3)
-        $expectedLeft = (($insideWidth - $rowWidth) / 2) + ($layout.Column * 29)
-        $expectedTop = 3 + ($layout.Row * 25)
-        if ($layout.Row -ge 2) { $expectedTop += 4 }
-        if ($layout.Row -ge 4) { $expectedTop += 4 }
+        $geometry = Get-ExpectedButtonGeometry -Layout $layout -ClientWidth $insideWidth
+        $expectedLeft = $geometry.Left
+        $expectedTop = $geometry.Top
         Assert-True ([Math]::Abs($left - $expectedLeft) -lt 0.15) "$controlName has an unexpected horizontal grid position: $left."
         Assert-True ([Math]::Abs($top - $expectedTop) -lt 0.15) "$controlName has an unexpected row position: $top."
         Assert-True ($left -ge -0.15) "$controlName should fit inside the left edge of the form."
@@ -352,11 +325,9 @@ End Function
         $item = $expectedItems[$i]
         $control = $toolbarComponent.Designer.Controls.Item([string]$item.Name)
         $layout = Get-ExpectedQuickToolbarLayout -Index $i
-        $rowWidth = ($layout.ColumnCount * 26) + (($layout.ColumnCount - 1) * 3)
-        $expectedDesignerLeft = ((134 - $rowWidth) / 2) + ($layout.Column * 29)
-        $expectedDesignerTop = 3 + ($layout.Row * 25)
-        if ($layout.Row -ge 2) { $expectedDesignerTop += 4 }
-        if ($layout.Row -ge 4) { $expectedDesignerTop += 4 }
+        $geometry = Get-ExpectedButtonGeometry -Layout $layout -ClientWidth $layoutSpec.ToolbarWidth
+        $expectedDesignerLeft = $geometry.Left
+        $expectedDesignerTop = $geometry.Top
         Assert-True ($control.Caption -eq $item.Caption) "Design-time caption should be readable for $($item.Name)."
         Assert-True ($control.ControlTipText -eq ($item.Caption + "：" + $item.Tip)) "Design-time tooltip should be readable for $($item.Name)."
         Assert-True ($control.Tag -eq $item.Tag) "Design-time icon mapping should match for $($item.Name)."
@@ -437,11 +408,9 @@ End Function
             $item = $expectedItems[$i]
             $control = $artifactToolbar.Designer.Controls.Item([string]$item.Name)
             $layout = Get-ExpectedQuickToolbarLayout -Index $i
-            $rowWidth = ($layout.ColumnCount * 26) + (($layout.ColumnCount - 1) * 3)
-            $expectedArtifactLeft = ((134 - $rowWidth) / 2) + ($layout.Column * 29)
-            $expectedArtifactTop = 3 + ($layout.Row * 25)
-            if ($layout.Row -ge 2) { $expectedArtifactTop += 4 }
-            if ($layout.Row -ge 4) { $expectedArtifactTop += 4 }
+            $geometry = Get-ExpectedButtonGeometry -Layout $layout -ClientWidth $layoutSpec.ToolbarWidth
+            $expectedArtifactLeft = $geometry.Left
+            $expectedArtifactTop = $geometry.Top
             Assert-True ($control.Caption -eq $item.Caption) "Built caption should be readable for $($item.Name)."
             Assert-True ($control.ControlTipText -eq ($item.Caption + "：" + $item.Tip)) "Built tooltip should be readable for $($item.Name)."
             Assert-True ($control.Tag -eq $item.Tag) "Built icon mapping should match for $($item.Name)."

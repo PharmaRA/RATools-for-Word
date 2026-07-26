@@ -1,45 +1,15 @@
 Attribute VB_Name = "Mod_QuickToolbarActions"
 Option Explicit
 
+' =============================================
+' 悬浮工具栏 MSO 命令执行
+' 分发表已于 v0.8 阶段6合并进 Mod_QuickToolbar.RunQuickToolbarAction，
+' 本模块只保留 ExecuteMso 包装与其测试模式。
+' =============================================
+
+' ====== TEST SUPPORT：测试模式状态（仅测试脚本切换） ======
 Private mQuickToolbarMsoTestMode As Boolean
 Private mLastQuickToolbarMso As String
-
-Public Function TryRunExpandedQuickToolbarAction(ByVal actionKey As String) As Boolean
-    Select Case LCase$(Trim$(actionKey))
-        Case "style_heading4"
-            ApplyRAToolsStyle NumberedHeadingStyle(4)
-        Case "style_unnumbered_heading1"
-            ApplyRAToolsStyle UnnumberedHeadingStyle(1)
-        Case "style_unnumbered_heading2"
-            ApplyRAToolsStyle UnnumberedHeadingStyle(2)
-        Case "style_unnumbered_heading3"
-            ApplyRAToolsStyle UnnumberedHeadingStyle(3)
-        Case "style_unnumbered_heading4"
-            ApplyRAToolsStyle UnnumberedHeadingStyle(4)
-        Case "format_painter"
-            ExecuteQuickToolbarMso "FormatPainter"
-        Case "paragraph_settings"
-            ExecuteQuickToolbarMso "ParagraphDialog"
-        Case "style_table_title"
-            ApplyRAToolsStyle TableTitleStyle()
-        Case "style_figure_title"
-            ApplyRAToolsStyle FigureTitleStyle()
-        Case "insert_cross_reference"
-            ExecuteQuickToolbarMso "CrossReferenceInsert"
-        Case "update_fields"
-            ExecuteQuickToolbarMso "FieldsUpdate"
-        Case "hyperlinks_fields_blue"
-            SetHyperlinksAndFieldsToBlue
-        Case "accept_revisions_comments"
-            BatchAcceptAndClean
-        Case "detect_highlights"
-            BatchDetectHighlights
-        Case Else
-            Exit Function
-    End Select
-
-    TryRunExpandedQuickToolbarAction = True
-End Function
 
 Public Sub SetQuickToolbarMsoTestMode(ByVal enabled As Boolean)
     mQuickToolbarMsoTestMode = enabled
@@ -50,11 +20,11 @@ Public Function GetLastQuickToolbarMsoForTest() As String
     GetLastQuickToolbarMsoForTest = mLastQuickToolbarMso
 End Function
 
-Private Sub ExecuteQuickToolbarMso(ByVal commandId As String)
+' 执行 Word 内置命令；测试模式下仅记录命令 ID 不实际执行
+Public Sub ExecuteQuickToolbarMso(ByVal commandId As String)
     If mQuickToolbarMsoTestMode Then
         mLastQuickToolbarMso = commandId
     Else
         Application.CommandBars.ExecuteMso commandId
     End If
 End Sub
-

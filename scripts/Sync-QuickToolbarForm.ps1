@@ -16,37 +16,21 @@ $frxPath = Join-Path $RepoRoot "userforms\frmQuickToolbar.frx"
 $imageRoot = Join-Path $RepoRoot "dotm\customUI\images"
 $workRoot = Join-Path ([IO.Path]::GetTempPath()) ("RATools_QuickToolbar_" + [guid]::NewGuid().ToString("N"))
 
-$toolbarItems = @(
-    @{ Name = "btnHeading1"; Caption = "编号标题 1"; Tip = "应用标题1-F样式"; Icon = "H1"; Kind = "custom"; Action = "style_heading1" },
-    @{ Name = "btnHeading2"; Caption = "编号标题 2"; Tip = "应用标题2-F样式"; Icon = "H2"; Kind = "custom"; Action = "style_heading2" },
-    @{ Name = "btnHeading3"; Caption = "编号标题 3"; Tip = "应用标题3-F样式"; Icon = "H3"; Kind = "custom"; Action = "style_heading3" },
-    @{ Name = "btnHeading4"; Caption = "编号标题 4"; Tip = "应用标题4-F样式"; Icon = "H4"; Kind = "custom"; Action = "style_heading4" },
-    @{ Name = "btnUnnumberedHeading1"; Caption = "无编号标题 1"; Tip = "应用无编号标题1-F样式"; Icon = "UNH1"; Kind = "custom"; Action = "style_unnumbered_heading1" },
-    @{ Name = "btnUnnumberedHeading2"; Caption = "无编号标题 2"; Tip = "应用无编号标题2-F样式"; Icon = "UNH2"; Kind = "custom"; Action = "style_unnumbered_heading2" },
-    @{ Name = "btnUnnumberedHeading3"; Caption = "无编号标题 3"; Tip = "应用无编号标题3-F样式"; Icon = "UNH3"; Kind = "custom"; Action = "style_unnumbered_heading3" },
-    @{ Name = "btnUnnumberedHeading4"; Caption = "无编号标题 4"; Tip = "应用无编号标题4-F样式"; Icon = "UNH4"; Kind = "custom"; Action = "style_unnumbered_heading4" },
-    @{ Name = "btnFormatPainter"; Caption = "格式刷"; Tip = "复制并应用所选内容的格式"; Icon = "FormatPainter"; Kind = "mso"; Action = "format_painter" },
-    @{ Name = "btnParagraphSettings"; Caption = "段落设置"; Tip = "打开 Word 段落设置对话框"; Icon = "ParagraphDialog"; Kind = "mso"; Action = "paragraph_settings" },
-    @{ Name = "btnPageBreakBefore"; Caption = "段前分页"; Tip = "切换选中段落的段前分页属性"; Icon = "PageBreakBefore"; Kind = "custom"; Action = "page_break_before" },
-    @{ Name = "btnTableTitle"; Caption = "表标题"; Tip = "应用表标题-F样式"; Icon = "TableTitle"; Kind = "custom"; Action = "style_table_title" },
-    @{ Name = "btnFigureTitle"; Caption = "图标题"; Tip = "应用图标题-F样式"; Icon = "FigureTitle"; Kind = "custom"; Action = "style_figure_title" },
-    @{ Name = "btnAutoFitTable"; Caption = "根据窗口自动调整表格"; Tip = "将光标所在表格根据窗口宽度自动调整"; Icon = "TableAutoFitWindow"; Kind = "mso-image"; Action = "autofit_table" },
-    @{ Name = "btnInsertCrossReference"; Caption = "插入交叉引用"; Tip = "打开插入交叉引用对话框"; Icon = "CrossReferenceInsert"; Kind = "mso"; Action = "insert_cross_reference" },
-    @{ Name = "btnUpdateFields"; Caption = "更新域"; Tip = "更新当前选区或光标所在位置的域"; Icon = "FieldsUpdate"; Kind = "mso"; Action = "update_fields" },
-    @{ Name = "btnHyperlinksFieldsBlue"; Caption = "超链接和域批量设置为蓝色"; Tip = "运行超链接和域批量设置为蓝色宏"; Icon = "HyperlinkInsert"; Kind = "mso"; Action = "hyperlinks_fields_blue" },
-    @{ Name = "btnAcceptRevisionsComments"; Caption = "接受修订并删除批注"; Tip = "运行接受修订并删除批注宏"; Icon = "ReviewAcceptChange"; Kind = "mso"; Action = "accept_revisions_comments" },
-    @{ Name = "btnDetectHighlights"; Caption = "检测高亮内容"; Tip = "运行检测高亮内容宏"; Icon = "TextHighlightColorPicker"; Kind = "mso"; Action = "detect_highlights" }
-)
+# 按钮与布局定义单一事实源：QuickToolbarButtons.psd1
+# （tests/QuickToolbar.Tests.ps1 从同一文件推导期望值）
+$buttonData = Import-PowerShellDataFile (Join-Path $PSScriptRoot "QuickToolbarButtons.psd1")
+$toolbarItems = $buttonData.Buttons
+$layoutSpec = $buttonData.Layout
 
-$toolbarWidth = 134
-$toolbarHeight = 168
-$buttonWidth = 26
-$buttonHeight = 24
-$buttonRowStep = 25
-$buttonColumnGap = 3
-$buttonTop = 3
-$groupGap = 4
-$pictureSize = 20
+$toolbarWidth = [int]$layoutSpec.ToolbarWidth
+$toolbarHeight = [int]$layoutSpec.ToolbarHeight
+$buttonWidth = [int]$layoutSpec.ButtonWidth
+$buttonHeight = [int]$layoutSpec.ButtonHeight
+$buttonRowStep = [int]$layoutSpec.RowStep
+$buttonColumnGap = [int]$layoutSpec.ColumnGap
+$buttonTop = [int]$layoutSpec.ButtonTop
+$groupGap = [int]$layoutSpec.GroupGap
+$pictureSize = [int]$layoutSpec.PictureSize
 
 function Release-ComObjectSafe {
     param($ComObject)
@@ -56,36 +40,14 @@ function Release-ComObjectSafe {
     }
 }
 
-function Get-ButtonRow {
-    param([int]$Index)
-
-    if ($Index -lt 4) { return 0 }
-    if ($Index -lt 8) { return 1 }
-    if ($Index -lt 12) { return 2 }
-    if ($Index -lt 16) { return 3 }
-    return 4
-}
-
-function Get-ButtonColumn {
-    param([int]$Index)
-
-    if ($Index -lt 16) { return $Index % 4 }
-    return $Index - 16
-}
-
-function Get-ButtonColumnCount {
-    param([int]$Index)
-
-    if ($Index -lt 16) { return 4 }
-    return 3
-}
-
+# 行/列/列数直接取自 psd1 按钮定义；Top/Left 由布局参数推导
 function Get-ButtonTop {
     param([int]$Row)
 
     $top = $buttonTop + ($Row * $buttonRowStep)
-    if ($Row -ge 2) { $top += $groupGap }
-    if ($Row -ge 4) { $top += $groupGap }
+    foreach ($gapRow in $layoutSpec.GroupGapRows) {
+        if ($Row -ge $gapRow) { $top += $groupGap }
+    }
     return $top
 }
 
@@ -129,10 +91,8 @@ function Convert-RibbonImageToBmp {
 
 function New-FormCode {
     $configureLines = for ($i = 0; $i -lt $toolbarItems.Count; $i++) {
-        $row = Get-ButtonRow -Index $i
-        $column = Get-ButtonColumn -Index $i
-        $columnCount = Get-ButtonColumnCount -Index $i
-        "    ConfigureButton Me.$($toolbarItems[$i].Name), $row, $column, $columnCount, $i"
+        $item = $toolbarItems[$i]
+        "    ConfigureButton Me.$($item.Name), $($item.Row), $($item.Column), $($item.ColumnCount), $i"
     }
 
     $handlerLines = foreach ($item in $toolbarItems) {
@@ -148,14 +108,14 @@ Option Explicit
 
 Private Const SETTINGS_APP As String = "RATools"
 Private Const SETTINGS_SECTION As String = "QuickToolbar"
-Private Const TOOLBAR_WIDTH As Single = 134
-Private Const TOOLBAR_HEIGHT As Single = 168
-Private Const BUTTON_TOP As Single = 3
-Private Const BUTTON_WIDTH As Single = 26
-Private Const BUTTON_HEIGHT As Single = 24
-Private Const BUTTON_ROW_STEP As Single = 25
-Private Const BUTTON_COLUMN_GAP As Single = 3
-Private Const BUTTON_GROUP_GAP As Single = 4
+Private Const TOOLBAR_WIDTH As Single = __TOOLBAR_WIDTH__
+Private Const TOOLBAR_HEIGHT As Single = __TOOLBAR_HEIGHT__
+Private Const BUTTON_TOP As Single = __BUTTON_TOP__
+Private Const BUTTON_WIDTH As Single = __BUTTON_WIDTH__
+Private Const BUTTON_HEIGHT As Single = __BUTTON_HEIGHT__
+Private Const BUTTON_ROW_STEP As Single = __BUTTON_ROW_STEP__
+Private Const BUTTON_COLUMN_GAP As Single = __BUTTON_COLUMN_GAP__
+Private Const BUTTON_GROUP_GAP As Single = __BUTTON_GROUP_GAP__
 
 Private Sub UserForm_Initialize()
     Me.Caption = "RATools"
@@ -204,8 +164,7 @@ End Function
 
 Private Function GetButtonTop(ByVal rowIndex As Long) As Single
     GetButtonTop = BUTTON_TOP + rowIndex * BUTTON_ROW_STEP
-    If rowIndex >= 2 Then GetButtonTop = GetButtonTop + BUTTON_GROUP_GAP
-    If rowIndex >= 4 Then GetButtonTop = GetButtonTop + BUTTON_GROUP_GAP
+__GROUP_GAP_LINES__
 End Function
 
 Private Function HasButtonPicture(ByVal buttonItem As MSForms.Label) As Boolean
@@ -264,10 +223,22 @@ Private Sub UserForm_Terminate()
 End Sub
 '@
 
+    $groupGapLines = ($layoutSpec.GroupGapRows | ForEach-Object {
+        "    If rowIndex >= $_ Then GetButtonTop = GetButtonTop + BUTTON_GROUP_GAP"
+    }) -join "`r`n"
+
     return $template.Replace("__CONFIGURE_LINES__", ($configureLines -join "`r`n")).Replace(
         "__HANDLERS__",
         ($handlerLines -join "`r`n")
-    )
+    ).Replace("__TOOLBAR_WIDTH__", [string]$toolbarWidth).Replace(
+        "__TOOLBAR_HEIGHT__", [string]$toolbarHeight
+    ).Replace("__BUTTON_TOP__", [string]$buttonTop).Replace(
+        "__BUTTON_WIDTH__", [string]$buttonWidth
+    ).Replace("__BUTTON_HEIGHT__", [string]$buttonHeight).Replace(
+        "__BUTTON_ROW_STEP__", [string]$buttonRowStep
+    ).Replace("__BUTTON_COLUMN_GAP__", [string]$buttonColumnGap).Replace(
+        "__BUTTON_GROUP_GAP__", [string]$groupGap
+    ).Replace("__GROUP_GAP_LINES__", $groupGapLines)
 }
 
 Add-Type -AssemblyName System.Drawing
@@ -347,15 +318,12 @@ End Function
 
     for ($i = 0; $i -lt $toolbarItems.Count; $i++) {
         $item = $toolbarItems[$i]
-        $row = Get-ButtonRow -Index $i
-        $column = Get-ButtonColumn -Index $i
-        $columnCount = Get-ButtonColumnCount -Index $i
         $control = $designer.Controls.Add("Forms.Label.1", $item.Name, $true)
         $control.Caption = $item.Caption
         $control.ControlTipText = $item.Caption + "：" + $item.Tip
         $control.Tag = if ($item.Kind -eq "mso-image") { "imageMso:" + $item.Icon } elseif ($item.Kind -eq "mso") { "idMso:" + $item.Icon } else { $item.Icon }
-        $control.Left = [single](Get-ButtonLeft -Column $column -ColumnCount $columnCount)
-        $control.Top = [single](Get-ButtonTop -Row $row)
+        $control.Left = [single](Get-ButtonLeft -Column $item.Column -ColumnCount $item.ColumnCount)
+        $control.Top = [single](Get-ButtonTop -Row $item.Row)
         $control.Width = [single]$buttonWidth
         $control.Height = [single]$buttonHeight
         $control.BackStyle = 1
