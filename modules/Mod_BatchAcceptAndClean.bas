@@ -7,122 +7,111 @@ Option Explicit
 ' =============================================
 
 ' === 主程序入口 ===
+Private Const DIALOG_TITLE As String = "批量接受修订并删除批注"
+
 Sub BatchAcceptAndClean()
     Dim strMode As String
     Dim folderPath As String
-    Dim fileCollection As New Collection
-    Dim fileItem As Variant
+    Dim fileList As Collection
     Dim i As Long
     Dim processedCount As Long
     Dim failedCount As Long
-    
-    ' 1. 模式选择
-    strMode = InputBox("请输入模式编号：" & vbCrLf & vbCrLf & _
-                       "1 - 【当前文档】处理当前打开的文档" & vbCrLf & _
-                       "2 - 【文件模式】选择单个或多个文件" & vbCrLf & _
-                       "3 - 【文件夹模式】递归处理文件夹", _
-                       "Word批量清理工具", "1")
-    
-    If StrPtr(strMode) = 0 Or strMode = "" Then Exit Sub
-    
-    ' 2. 性能设置
-    Application.ScreenUpdating = False
-    Application.DisplayAlerts = wdAlertsNone
-    
-    On Error GoTo ErrorHandler
-    processedCount = 0
-    failedCount = 0
-    
+
+    strMode = ChooseBatchMode(DIALOG_TITLE)
+    If strMode = "" Then Exit Sub
+
     Select Case strMode
-        Case "1"
-            If Documents.count > 0 Then
-                Call DeepCleanDocument(ActiveDocument)
-                processedCount = 1
-                MsgBox "当前文档处理完成！", vbInformation
+        Case BATCH_MODE_CURRENT
+            If Documents.count = 0 Then
+                MsgBox "没有打开的文档！", vbExclamation, DIALOG_TITLE
+                Exit Sub
             End If
-            
-        Case "2"
-            With Application.FileDialog(msoFileDialogFilePicker)
-                .Title = "选择Word文档"
-                .AllowMultiSelect = True
-                .Filters.Clear
-                .Filters.Add "Word文档", "*.doc; *.docx; *.docm", 1
-                If .Show = -1 Then
-                    For Each fileItem In .SelectedItems
-                        If ProcessFile(CStr(fileItem)) Then
-                            processedCount = processedCount + 1
-                        Else
-                            failedCount = failedCount + 1
-                        End If
-                    Next
-                End If
-            End With
-            
-        Case "3"
-            With Application.FileDialog(msoFileDialogFolderPicker)
-                .Title = "选择根文件夹"
-                If .Show = -1 Then
-                    folderPath = .SelectedItems(1)
-                    Application.StatusBar = "正在扫描文件..."
-                    Call RecursiveFindFiles(folderPath, fileCollection)
-                    
-                    If fileCollection.count > 0 Then
-                        For i = 1 To fileCollection.count
-                            Application.StatusBar = "正在处理 [" & i & "/" & fileCollection.count & "]"
-                            If ProcessFile(fileCollection(i)) Then
-                                processedCount = processedCount + 1
-                            Else
-                                failedCount = failedCount + 1
-                            End If
-                        Next
-                    Else
-                        MsgBox "未找到Word文档", vbExclamation
-                    End If
-                End If
-            End With
-            
+
+        Case BATCH_MODE_FILES
+            Set fileList = PickWordFiles("选择Word文档")
+            If fileList Is Nothing Then Exit Sub
+
+        Case BATCH_MODE_FOLDER
+            folderPath = PickFolder("选择根文件夹")
+            If folderPath = "" Then Exit Sub
+
+            Set fileList = New Collection
+            Application.StatusBar = "正在扫描文件..."
+            CollectWordFiles folderPath, fileList
+
+            If fileList.count = 0 Then
+                Application.StatusBar = False
+                MsgBox "未找到Word文档", vbExclamation, DIALOG_TITLE
+                Exit Sub
+            End If
+
         Case Else
-            MsgBox "无效输入", vbExclamation
+            MsgBox "无效输入，请输入 1、2 或 3。", vbExclamation, DIALOG_TITLE
+            Exit Sub
     End Select
 
-ExitHandler:
-    Application.ScreenUpdating = True
-    Application.DisplayAlerts = wdAlertsAll
-    Application.StatusBar = False
-    If failedCount > 0 And strMode <> "1" Then
+    BeginBatchUI suppressAlerts:=True
+    On Error GoTo ErrorHandler
+
+    If strMode = BATCH_MODE_CURRENT Then
+        Call DeepCleanDocument(ActiveDocument)
+        EndBatchUI
+        MsgBox "当前文档处理完成！", vbInformation, DIALOG_TITLE
+        Exit Sub
+    End If
+
+    processedCount = 0
+    failedCount = 0
+
+    For i = 1 To fileList.count
+        ShowBatchProgress i, fileList.count, CStr(fileList(i))
+        If ProcessFile(CStr(fileList(i))) Then
+            processedCount = processedCount + 1
+        Else
+            failedCount = failedCount + 1
+        End If
+    Next i
+
+    EndBatchUI
+    If failedCount > 0 Then
         MsgBox "处理完成：成功 " & processedCount & " 个，失败 " & failedCount & _
-               " 个（无法打开，请检查文件是否被占用或有密码）。", vbExclamation
-    ElseIf processedCount > 0 And strMode <> "1" Then
-        MsgBox "处理完成！共处理 " & processedCount & " 个文件。", vbInformation
+               " 个（无法打开，请检查文件是否被占用或有密码）。", vbExclamation, DIALOG_TITLE
+    ElseIf processedCount > 0 Then
+        MsgBox "处理完成！共处理 " & processedCount & " 个文件。", vbInformation, DIALOG_TITLE
     End If
     Exit Sub
 
 ErrorHandler:
-    MsgBox "错误: " & Err.Description, vbCritical
-    Resume ExitHandler
+    EndBatchUI
+    MsgBox "错误: " & Err.Description, vbCritical, DIALOG_TITLE
 End Sub
 
-' === 模块：处理单个文件 (后台模式 Visible=False) ===
+' === 处理单个文件（后台打开，成功返回 True） ===
 Private Function ProcessFile(filePath As String) As Boolean
     Dim doc As Document
-    On Error Resume Next
-    
-    ' 后台模式：Visible:=False 提升速度
-    Set doc = Documents.Open(fileName:=filePath, Visible:=False, AddToRecentFiles:=False)
-    
-    If Err.Number = 0 Then
-        Call DeepCleanDocument(doc)
-        doc.Save
-        doc.Close
-        ProcessFile = True
-    Else
+    Dim wasAlreadyOpen As Boolean
+
+    Set doc = SafeOpenDocument(filePath, False, wasAlreadyOpen)
+    If doc Is Nothing Then
         Debug.Print "打开失败: " & filePath
         ProcessFile = False
+        Exit Function
     End If
-    On Error GoTo 0
+
+    Call DeepCleanDocument(doc)
+
+    If wasAlreadyOpen Then
+        ' 用户自己打开的文档：清理后保存但保持打开状态
+        On Error Resume Next
+        doc.Save
+        On Error GoTo 0
+    Else
+        CloseDocumentQuietly doc, True
+    End If
+    ProcessFile = True
 End Function
 
-' === 模块：清理逻辑 ===
+' === 清理逻辑（行为敏感区，保持原实现） ===
 Private Sub DeepCleanDocument(doc As Document)
     Dim rng As Range
     Dim storyIndex As Variant
@@ -240,28 +229,4 @@ Private Sub ProcessShapeRecursively(shp As Shape)
     On Error GoTo 0
 End Sub
 
-' === 模块：文件递归搜索 ===
-Private Sub RecursiveFindFiles(ByVal sPath As String, ByRef fCollection As Collection)
-    Dim FSO As Object, Folder As Object, SubFolder As Object, File As Object
-    Dim ext As String
-    
-    Set FSO = CreateObject("Scripting.FileSystemObject")
-    On Error Resume Next
-    Set Folder = FSO.GetFolder(sPath)
-    If Err.Number <> 0 Then Exit Sub
-    
-    ' 遍历文件
-    For Each File In Folder.Files
-        ext = LCase(FSO.GetExtensionName(File.Name))
-        If (ext = "doc" Or ext = "docx" Or ext = "docm") Then
-            If Left(File.Name, 2) <> "~$" Then fCollection.Add File.Path
-        End If
-    Next
-    
-    ' 递归子文件夹
-    For Each SubFolder In Folder.SubFolders
-        RecursiveFindFiles SubFolder.Path, fCollection
-    Next
-    Set FSO = Nothing
-End Sub
 
