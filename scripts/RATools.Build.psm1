@@ -311,7 +311,10 @@ function Set-RAToolsAppVersion {
         throw "Missing update checker module: $modulePath"
     }
 
-    $moduleText = Get-Content -LiteralPath $modulePath -Raw
+    # VBA 源码为 GBK(936) 存盘（见 docs/vba-source-encoding.md）。
+    # 必须按同编码读写：此前按 UTF-8 无 BOM 写回，仅因该文件纯 ASCII 才未损坏。
+    $gbkEncoding = [System.Text.Encoding]::GetEncoding(936)
+    $moduleText = [System.IO.File]::ReadAllText($modulePath, $gbkEncoding)
     $versionPattern = "(?m)^(?<prefix>\s*Private\s+Const\s+APP_VERSION\s+As\s+String\s*=\s*)""(?<version>[^""]*)"""
     $versionRegex = [Regex]::new($versionPattern)
     $match = $versionRegex.Match($moduleText)
@@ -330,8 +333,7 @@ function Set-RAToolsAppVersion {
     )
 
     if ($updatedText -ne $moduleText) {
-        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-        [System.IO.File]::WriteAllText($modulePath, $updatedText, $utf8NoBom)
+        [System.IO.File]::WriteAllText($modulePath, $updatedText, $gbkEncoding)
     }
 
     return $modulePath
@@ -519,6 +521,58 @@ function Clear-RAToolsPackageMetadata {
     return $packageFull
 }
 
+function Start-RAToolsWordSession {
+    <#
+    .SYNOPSIS
+    启动用于自动化的 Word 实例（隐藏窗口、静默警告、放行宏）。
+
+    .DESCRIPTION
+    Build/Sync/COM 测试共用的会话样板。返回 Word Application COM 对象；
+    使用完毕必须调用 Stop-RAToolsWordSession 释放，否则残留 WINWORD 进程
+    会导致后续 VBComponents.Import 报"输入超出文件结尾"等假性错误。
+    #>
+    [CmdletBinding()]
+    param()
+
+    $word = New-Object -ComObject Word.Application
+    $word.Visible = $false
+    $word.DisplayAlerts = 0
+    # msoAutomationSecurityLow：允许打开含宏的模板
+    $word.AutomationSecurity = 1
+    return $word
+}
+
+function Stop-RAToolsWordSession {
+    <#
+    .SYNOPSIS
+    退出并释放 Start-RAToolsWordSession 启动的 Word 实例。
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [AllowNull()]
+        $Word
+    )
+
+    if ($null -eq $Word) {
+        return
+    }
+
+    try {
+        $Word.Quit()
+    }
+    catch {
+        Write-Warning "Word quit failed: $($_.Exception.Message)"
+    }
+
+    if ([Runtime.InteropServices.Marshal]::IsComObject($Word)) {
+        [void][Runtime.InteropServices.Marshal]::ReleaseComObject($Word)
+    }
+
+    [GC]::Collect()
+    [GC]::WaitForPendingFinalizers()
+}
+
 Export-ModuleMember -Function @(
     "Assert-RAToolsPathInsideRoot",
     "Get-RAToolsProjectLayout",
@@ -528,5 +582,7 @@ Export-ModuleMember -Function @(
     "Test-RAToolsDotmDirectory",
     "New-RAToolsDotmFromDirectory",
     "Expand-RAToolsDotmToDirectory",
-    "Clear-RAToolsPackageMetadata"
+    "Clear-RAToolsPackageMetadata",
+    "Start-RAToolsWordSession",
+    "Stop-RAToolsWordSession"
 )

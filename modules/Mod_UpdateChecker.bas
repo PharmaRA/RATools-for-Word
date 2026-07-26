@@ -1,7 +1,7 @@
 Attribute VB_Name = "Mod_UpdateChecker"
 Option Explicit
 
-Private Const APP_VERSION As String = "v0.7.1"
+Private Const APP_VERSION As String = "v0.8.0"
 Private Const RELEASES_API_URL As String = "https://api.github.com/repos/PharmaRA/RATools-for-Word/releases/latest"
 Private Const GITHUB_RELEASE_URL_PREFIX As String = "https://github.com/PharmaRA/RATools-for-Word/releases/tag/"
 Private Const GITEE_RELEASE_URL_PREFIX As String = "https://gitee.com/PharmaRA/RATools-for-Word/releases/tag/"
@@ -90,7 +90,7 @@ ErrHandler:
     GetLatestReleaseJson = False
 End Function
 
-Private Function ExtractJsonStringValue(ByVal jsonText As String, ByVal keyName As String) As String
+Public Function ExtractJsonStringValue(ByVal jsonText As String, ByVal keyName As String) As String
     Dim keyToken As String
     Dim keyPos As Long
     Dim colonPos As Long
@@ -126,7 +126,7 @@ Private Function FindJsonStringEnd(ByVal jsonText As String, ByVal startPos As L
     Next i
 End Function
 
-Private Function NormalizeVersion(ByVal versionText As String) As String
+Public Function NormalizeVersion(ByVal versionText As String) As String
     versionText = Trim$(versionText)
     If Len(versionText) > 0 Then
         If Left$(versionText, 1) = "v" Or Left$(versionText, 1) = "V" Then
@@ -151,7 +151,7 @@ Private Function GetVersionPart(ByVal versionText As String, ByVal index As Long
     End If
 End Function
 
-Private Function CompareVersions(ByVal currentVersion As String, ByVal latestVersion As String) As Long
+Public Function CompareVersions(ByVal currentVersion As String, ByVal latestVersion As String) As Long
     Dim i As Long
     Dim currentPart As Long
     Dim latestPart As Long

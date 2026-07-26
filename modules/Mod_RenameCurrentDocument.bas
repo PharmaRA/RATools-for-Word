@@ -1,4 +1,5 @@
 Attribute VB_Name = "Mod_RenameCurrentDocument"
+Option Explicit
 Sub RenameCurrentDocument()
     Dim strOldPath As String
     Dim strNewName As String

@@ -1,60 +1,52 @@
 Attribute VB_Name = "Mod_BatchConvertWordToPDF"
 Option Explicit
 
-' ==================== 常量定义 ====================
-Private Const MODE_CURRENT_DOC As String = "1"   ' 当前文档
-Private Const MODE_FILE_SELECT As String = "2"   ' 文件模式
-Private Const MODE_FOLDER As String = "3"        ' 文件夹模式
+' ==========================================
+' Word 批量转 PDF（含目录刷新与转换报告）
+' 模式选择/文件选择/遍历改用 Mod_Core_* 公共层；
+' 原 7 个模块级状态收敛为过程内会话上下文（ConvertSession）传参。
+' 注意：本宏刻意以可见窗口打开文档导出（修复页眉页脚边框线丢失），
+' 不使用公共层的后台打开函数。
+' ==========================================
+
+Private Const DIALOG_TITLE As String = "Word批量转PDF"
 Private Const LOG_SEPARATOR As String = "--------------------------------------------------"
 
-' ==================== 模块级变量 ====================
-Private m_fso As Object
-Private processLog As String
-Private successCount As Integer
-Private failCount As Integer
-Private totalFileCount As Integer
-Private processedFileCount As Integer
-Private updateType As Integer  ' 刷新方式（1=整个目录，2=仅页码）
+' 会话上下文：一次批量转换的全部状态
+Private Type ConvertSession
+    fso As Object
+    processLog As String
+    successCount As Long
+    failCount As Long
+    totalFileCount As Long
+    processedFileCount As Long
+    updateType As Long   ' 刷新方式（1=整个目录，2=仅页码）
+End Type
 
 ' ==================== 主入口 ====================
 Sub BatchConvertWordToPDF()
+    Dim session As ConvertSession
     Dim modeInput As String
     Dim folderPath As String
-    Dim i As Integer
+    Dim fileList As Collection
+    Dim i As Long
     Dim reportDoc As Document
-    Dim viewReport As Integer
-    Dim refreshAnswer As Integer
+    Dim viewReport As VbMsgBoxResult
+    Dim refreshAnswer As VbMsgBoxResult
 
     ' 检查Word版本
     If Val(Application.Version) < 12 Then
-        MsgBox "当前Word版本不支持PDF导出，请使用Word 2007及以上版本。", vbCritical
+        MsgBox "当前Word版本不支持PDF导出，请使用Word 2007及以上版本。", vbCritical, DIALOG_TITLE
         Exit Sub
     End If
 
-    ' 强制重置全局变量
-    processLog = ""
-    successCount = 0
-    failCount = 0
-    totalFileCount = 0
-    processedFileCount = 0
-    updateType = 2  ' 默认仅刷新页码
-
-    processLog = "【批量转PDF处理报告】" & vbCrLf & "时间：" & Now & vbCrLf & LOG_SEPARATOR & vbCrLf
-
-    Set m_fso = CreateObject("Scripting.FileSystemObject")
-
-    Application.ScreenUpdating = False
-    Application.DisplayAlerts = wdAlertsNone
-    On Error GoTo ErrorHandler
+    session.updateType = 2  ' 默认仅刷新页码
+    session.processLog = "【批量转PDF处理报告】" & vbCrLf & "时间：" & Now & vbCrLf & LOG_SEPARATOR & vbCrLf
+    Set session.fso = CreateObject("Scripting.FileSystemObject")
 
     ' 第一步：选择模式
-    modeInput = InputBox("请输入模式编号：" & vbCrLf & vbCrLf & _
-        "1 - 【当前文档】" & vbCrLf & _
-        "2 - 【文件模式】单个或多个文件" & vbCrLf & _
-        "3 - 【文件夹模式】文件夹中所有文档", _
-        "Word转PDF - 模式选择", "1")
-
-    If modeInput = "" Then GoTo Cleanup
+    modeInput = ChooseBatchMode(DIALOG_TITLE)
+    If modeInput = "" Then Exit Sub
 
     ' 第二步：选择刷新方式（是=刷新整个目录，否=仅刷新页码）
     refreshAnswer = MsgBox("是否刷新整个目录（标题+页码）？" & vbCrLf & vbCrLf & _
@@ -63,74 +55,79 @@ Sub BatchConvertWordToPDF()
         vbYesNo + vbDefaultButton2 + vbQuestion, "目录刷新方式")
 
     If refreshAnswer = vbYes Then
-        updateType = 1
+        session.updateType = 1
     Else
-        updateType = 2
+        session.updateType = 2
     End If
 
-    ' 记录到日志
-    processLog = processLog & "刷新方式：" & IIf(updateType = 1, "刷新整个目录", "仅刷新页码") & vbCrLf & LOG_SEPARATOR & vbCrLf
+    session.processLog = session.processLog & "刷新方式：" & _
+        IIf(session.updateType = 1, "刷新整个目录", "仅刷新页码") & vbCrLf & LOG_SEPARATOR & vbCrLf
 
+    ' 第三步：按模式收集文件
     Select Case modeInput
-    Case MODE_CURRENT_DOC
-        If Documents.count > 0 Then
-            ConvertActiveDocument
-        Else
-            MsgBox "当前没有打开的文档！", vbExclamation
-            GoTo Cleanup
+    Case BATCH_MODE_CURRENT
+        If Documents.count = 0 Then
+            MsgBox "当前没有打开的文档！", vbExclamation, DIALOG_TITLE
+            Exit Sub
         End If
 
-    Case MODE_FILE_SELECT
-        With Application.FileDialog(msoFileDialogFilePicker)
-            .Title = "请选择一个或多个Word文档"
-            .Filters.Clear
-            .Filters.Add "Word文档", "*.doc;*.docx;*.docm"
-            .AllowMultiSelect = True
-            If .Show <> -1 Then GoTo Cleanup
-            totalFileCount = .SelectedItems.count
-            processedFileCount = 0
-            For i = 1 To .SelectedItems.count
-                ConvertOneFile .SelectedItems(i)
-            Next i
-        End With
+    Case BATCH_MODE_FILES
+        Set fileList = PickWordFiles("请选择一个或多个Word文档")
+        If fileList Is Nothing Then Exit Sub
 
-    Case MODE_FOLDER
-        With Application.FileDialog(msoFileDialogFolderPicker)
-            .Title = "请选择包含Word文档的文件夹"
-            If .Show <> -1 Then GoTo Cleanup
-            folderPath = .SelectedItems(1)
-        End With
-        If folderPath <> "" Then
-            totalFileCount = CountAllWordFiles(folderPath)
-            processedFileCount = 0
-            ProcessFolderWithSubfolders folderPath
+    Case BATCH_MODE_FOLDER
+        folderPath = PickFolder("请选择包含Word文档的文件夹")
+        If folderPath = "" Then Exit Sub
+
+        Set fileList = New Collection
+        Application.StatusBar = "正在扫描文件..."
+        CollectWordFiles folderPath, fileList
+
+        If fileList.count = 0 Then
+            Application.StatusBar = False
+            MsgBox "所选文件夹（含子文件夹）中未找到 Word 文档。", vbExclamation, DIALOG_TITLE
+            Exit Sub
         End If
 
     Case Else
-        MsgBox "输入无效，请输入 1、2 或 3。", vbExclamation
-        GoTo Cleanup
+        MsgBox "输入无效，请输入 1、2 或 3。", vbExclamation, DIALOG_TITLE
+        Exit Sub
     End Select
+
+    BeginBatchUI suppressAlerts:=True
+    On Error GoTo ErrorHandler
+
+    ' 第四步：执行转换
+    If modeInput = BATCH_MODE_CURRENT Then
+        ConvertActiveDocument session
+    Else
+        session.totalFileCount = fileList.count
+        For i = 1 To fileList.count
+            ConvertOneFile session, CStr(fileList(i))
+        Next i
+    End If
 
     Application.ScreenUpdating = True
 
-    ' 结果反馈
-    If modeInput = MODE_CURRENT_DOC Then
-        If successCount > 0 Or failCount > 0 Then
-            MsgBox "当前文档处理完成！" & vbCrLf & _
-                IIf(failCount > 0, "注意：转换失败。", "转换成功，PDF已保存在同级目录下。"), vbInformation
+    ' 完成提示
+    If modeInput = BATCH_MODE_CURRENT Then
+        If session.successCount > 0 Or session.failCount > 0 Then
+            MsgBox "当前文档处理完成：" & vbCrLf & _
+                IIf(session.failCount > 0, "注意：转换失败。", "转换成功！PDF已保存在同级目录下。"), _
+                vbInformation, DIALOG_TITLE
         End If
     Else
         viewReport = MsgBox("处理完成！" & vbCrLf & _
-            "成功: " & successCount & " 个" & vbCrLf & _
-            "失败: " & failCount & " 个" & vbCrLf & vbCrLf & _
-            "是否生成并查看详细处理报告？", vbYesNo + vbQuestion, "批量转换完成")
+            "成功: " & session.successCount & " 个" & vbCrLf & _
+            "失败: " & session.failCount & " 个" & vbCrLf & vbCrLf & _
+            "是否生成并查看详细处理报告？", vbYesNo + vbQuestion, DIALOG_TITLE)
         If viewReport = vbYes Then
             Set reportDoc = Documents.Add
             With reportDoc.Content
-                .Text = processLog & vbCrLf & String(50, "=") & vbCrLf & _
+                .Text = session.processLog & vbCrLf & String(50, "=") & vbCrLf & _
                     "处理完成！" & vbCrLf & _
-                    "成功：" & successCount & " 个" & vbCrLf & _
-                    "失败：" & failCount & " 个"
+                    "成功：" & session.successCount & " 个" & vbCrLf & _
+                    "失败：" & session.failCount & " 个"
                 .Font.Name = "微软雅黑"
                 .Font.Size = 10
             End With
@@ -138,19 +135,17 @@ Sub BatchConvertWordToPDF()
     End If
 
 Cleanup:
-    Application.ScreenUpdating = True
-    Application.DisplayAlerts = wdAlertsAll
-    Application.StatusBar = False
-    Set m_fso = Nothing
+    EndBatchUI
+    Set session.fso = Nothing
     Exit Sub
 
 ErrorHandler:
-    MsgBox "发生意外错误: " & Err.Description, vbCritical
+    MsgBox "处理过程出错: " & Err.Description, vbCritical, DIALOG_TITLE
     Resume Cleanup
 End Sub
 
 ' ==================== 处理当前活动文档 ====================
-Sub ConvertActiveDocument()
+Private Sub ConvertActiveDocument(ByRef session As ConvertSession)
     Dim doc As Document
     Dim pdfFileName As String
 
@@ -158,64 +153,46 @@ Sub ConvertActiveDocument()
     On Error GoTo ActiveDocError
 
     If doc.Path = "" Then
-        MsgBox "请先保存当前文档，以便确定PDF输出位置。", vbExclamation
+        MsgBox "请先保存当前文档，以便确定PDF输出位置。", vbExclamation, DIALOG_TITLE
         Exit Sub
     End If
 
     Application.StatusBar = "正在处理: " & doc.Name
     DoEvents
 
-    Call RefreshTableOfContents(doc, updateType)
+    RefreshTableOfContents doc, session.updateType
 
-    pdfFileName = m_fso.BuildPath(doc.Path, m_fso.GetBaseName(doc.Name) & ".pdf")
+    pdfFileName = session.fso.BuildPath(doc.Path, session.fso.GetBaseName(doc.Name) & ".pdf")
 
-    Call SafeExportAsPDF(doc, pdfFileName)
+    SafeExportAsPDF doc, pdfFileName
 
-    successCount = successCount + 1
-    processLog = processLog & "[成功] " & doc.Name & " (当前文档)" & vbCrLf
+    session.successCount = session.successCount + 1
+    session.processLog = session.processLog & "[成功] " & doc.Name & " (当前文档)" & vbCrLf
     Exit Sub
 
 ActiveDocError:
     Application.ScreenUpdating = False
-    failCount = failCount + 1
-    processLog = processLog & "[失败] " & doc.Name & " - 原因: " & GetFriendlyErrorMessage(Err.Number, Err.Description) & vbCrLf
-    MsgBox "转换失败：" & GetFriendlyErrorMessage(Err.Number, Err.Description), vbCritical
-End Sub
-
-' ==================== 递归处理文件夹 ====================
-Sub ProcessFolderWithSubfolders(folderPath As String)
-    Dim mainFolder As Object
-    Dim subFolder As Object
-    Dim file As Object
-
-    Set mainFolder = m_fso.GetFolder(folderPath)
-
-    For Each file In mainFolder.Files
-        If IsWordDocument(file.Path) Then
-            ConvertOneFile file.Path
-        End If
-    Next
-
-    For Each subFolder In mainFolder.SubFolders
-        ProcessFolderWithSubfolders subFolder.Path
-    Next
-
-    Set mainFolder = Nothing
+    session.failCount = session.failCount + 1
+    session.processLog = session.processLog & "[失败] " & doc.Name & " - 原因: " & _
+        GetFriendlyErrorMessage(Err.Number, Err.Description) & vbCrLf
+    MsgBox "转换失败：" & GetFriendlyErrorMessage(Err.Number, Err.Description), vbCritical, DIALOG_TITLE
 End Sub
 
 ' ==================== 处理单个文件 ====================
-Sub ConvertOneFile(filePath As String)
+Private Sub ConvertOneFile(ByRef session As ConvertSession, ByVal filePath As String)
     Dim doc As Document
     Dim pdfFileName As String
     Dim fileName As String
 
-    fileName = m_fso.GetFileName(filePath)
+    fileName = session.fso.GetFileName(filePath)
 
     On Error GoTo FileError
 
-    processedFileCount = processedFileCount + 1
-    UpdateProgress processedFileCount, totalFileCount, fileName
+    session.processedFileCount = session.processedFileCount + 1
+    ShowBatchProgress session.processedFileCount, session.totalFileCount, fileName
+    DoEvents
 
+    ' 刻意以可见窗口打开：不可见窗口导出会丢失页眉/页脚中的边框线
     Set doc = Documents.Open(fileName:=filePath, Visible:=True, ReadOnly:=True, AddToRecentFiles:=False)
 
     doc.ActiveWindow.Visible = True
@@ -223,23 +200,24 @@ Sub ConvertOneFile(filePath As String)
         doc.ActiveWindow.View.Type = wdPrintView
     End If
 
-    Call RefreshTableOfContents(doc, updateType)
+    RefreshTableOfContents doc, session.updateType
 
-    pdfFileName = m_fso.BuildPath(m_fso.GetParentFolderName(filePath), _
-        m_fso.GetBaseName(filePath) & ".pdf")
+    pdfFileName = session.fso.BuildPath(session.fso.GetParentFolderName(filePath), _
+        session.fso.GetBaseName(filePath) & ".pdf")
 
-    Call SafeExportAsPDF(doc, pdfFileName)
+    SafeExportAsPDF doc, pdfFileName
 
     doc.Close SaveChanges:=wdDoNotSaveChanges
 
-    successCount = successCount + 1
-    processLog = processLog & "[成功] " & fileName & vbCrLf
+    session.successCount = session.successCount + 1
+    session.processLog = session.processLog & "[成功] " & fileName & vbCrLf
     GoTo Finally
 
 FileError:
     Application.ScreenUpdating = False
-    failCount = failCount + 1
-    processLog = processLog & "[失败] " & fileName & " - 原因: " & GetFriendlyErrorMessage(Err.Number, Err.Description) & vbCrLf
+    session.failCount = session.failCount + 1
+    session.processLog = session.processLog & "[失败] " & fileName & " - 原因: " & _
+        GetFriendlyErrorMessage(Err.Number, Err.Description) & vbCrLf
     If Not doc Is Nothing Then
         doc.Close SaveChanges:=wdDoNotSaveChanges
     End If
@@ -249,8 +227,8 @@ Finally:
     DoEvents
 End Sub
 
-' ==================== 公共函数：刷新目录 ====================
-Sub RefreshTableOfContents(doc As Document, uType As Integer)
+' ==================== 辅助函数：刷新目录 ====================
+Private Sub RefreshTableOfContents(doc As Document, ByVal uType As Long)
     Dim toc As TableOfContents
     Dim tof As TableOfFigures
 
@@ -279,14 +257,15 @@ Sub RefreshTableOfContents(doc As Document, uType As Integer)
     End If
 End Sub
 
-' ==================== 公共函数：安全导出PDF ====================
-Sub SafeExportAsPDF(doc As Document, pdfFileName As String)
+' ==================== 辅助函数：安全导出PDF ====================
+Private Sub SafeExportAsPDF(doc As Document, ByVal pdfFileName As String)
     If doc.ActiveWindow.View.Type <> wdPrintView Then
         doc.ActiveWindow.View.Type = wdPrintView
     End If
 
     doc.Repaginate
 
+    ' 导出期间必须开启屏幕刷新，否则部分版式元素（页眉页脚边框）会丢失
     Application.ScreenUpdating = True
     DoEvents
 
@@ -301,81 +280,30 @@ Sub SafeExportAsPDF(doc As Document, pdfFileName As String)
     Application.ScreenUpdating = False
 End Sub
 
-' ==================== 公共函数：更新进度显示 ====================
-Sub UpdateProgress(currentIndex As Integer, totalCount As Integer, fileName As String)
-    If totalCount > 0 Then
-        Application.StatusBar = "正在处理 (" & currentIndex & "/" & totalCount & "): " & fileName
-    Else
-        Application.StatusBar = "正在处理: " & fileName
-    End If
-    DoEvents
-End Sub
-
-' ==================== 公共函数：递归统计Word文件数 ====================
-Function CountAllWordFiles(folderPath As String) As Integer
-    Dim mainFolder As Object
-    Dim subFolder As Object
-    Dim file As Object
-    Dim cnt As Integer
-
-    cnt = 0
-    Set mainFolder = m_fso.GetFolder(folderPath)
-
-    For Each file In mainFolder.Files
-        If IsWordDocument(file.Path) Then
-            cnt = cnt + 1
-        End If
-    Next
-
-    For Each subFolder In mainFolder.SubFolders
-        cnt = cnt + CountAllWordFiles(subFolder.Path)
-    Next
-
-    CountAllWordFiles = cnt
-    Set mainFolder = Nothing
-End Function
-
-' ==================== 公共函数：检查是否为Word文档 ====================
-Function IsWordDocument(filePath As String) As Boolean
-    Dim ext As String
-    Dim fileName As String
-
-    ext = LCase(m_fso.GetExtensionName(filePath))
-    fileName = m_fso.GetFileName(filePath)
-
-    If (ext = "doc" Or ext = "docx" Or ext = "docm") And Left(fileName, 2) <> "~$" Then
-        IsWordDocument = True
-    Else
-        IsWordDocument = False
-    End If
-End Function
-
-' ==================== 公共函数：友好的错误提示 ====================
-Function GetFriendlyErrorMessage(errNumber As Long, errDesc As String) As String
+' ==================== 辅助函数：友好的错误提示 ====================
+Private Function GetFriendlyErrorMessage(ByVal errNumber As Long, ByVal errDesc As String) As String
     Select Case errNumber
     Case 5124
-        GetFriendlyErrorMessage = "文件被其他程序占用，无法打开"
+        GetFriendlyErrorMessage = "文件被锁定或被占用，无法打开"
     Case 5174
         GetFriendlyErrorMessage = "文件不存在或路径无效"
     Case 5152
-        GetFriendlyErrorMessage = "文件已损坏，无法打开"
+        GetFriendlyErrorMessage = "文件名损坏，无法打开"
     Case 6148
-        GetFriendlyErrorMessage = "文档结构异常，无法正常处理"
+        GetFriendlyErrorMessage = "文档结构异常，无法完成操作"
     Case Else
         Dim msg As String
         msg = errDesc
         If InStr(msg, "being used") > 0 Or InStr(msg, "locked") > 0 Then
-            GetFriendlyErrorMessage = "文件被其他程序占用，无法打开"
+            GetFriendlyErrorMessage = "文件被锁定或被占用，无法打开"
         ElseIf InStr(msg, "could not be opened") > 0 Then
             GetFriendlyErrorMessage = "文件不存在或无法打开"
         ElseIf InStr(msg, "password") > 0 Then
             GetFriendlyErrorMessage = "文档已加密，需要密码才能打开"
         ElseIf InStr(msg, "read-only") > 0 Then
-            GetFriendlyErrorMessage = "文档为只读状态，可能被其他程序占用"
+            GetFriendlyErrorMessage = "文档为只读状态，可能被保护或被占用"
         Else
             GetFriendlyErrorMessage = msg
         End If
     End Select
 End Function
-
-

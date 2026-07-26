@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # GitHub runner 无法稳定运行 Word COM 自动化，只跑纯脚本测试；
+      # COM 测试与成品手测属于本地发布前检查（见 docs/local-dotm-build-testing.md）。
+      - name: Run non-COM tests
+        shell: pwsh
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File tests\Run-AllTests.ps1 -SkipCom
+          if ($LASTEXITCODE -ne 0) { throw "Tests failed" }

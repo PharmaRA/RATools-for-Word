@@ -1,4 +1,5 @@
 Attribute VB_Name = "Mod_BatchRenameFiles"
+Option Explicit
 Sub BatchRenameFiles()
     ' ==============================================================================
     ' 功能：批量修改文件名
@@ -22,11 +23,11 @@ Sub BatchRenameFiles()
     Dim regExClean As Object
     Dim regExSpace As Object
     Dim fso As Object
-    Dim count As Integer
-    Dim copyCount As Integer
-    Dim i As Integer
+    Dim renamedCount As Long
+    Dim copyCount As Long
+    Dim i As Long
     Dim newPath As String
-    Dim dupCounter As Integer
+    Dim dupCounter As Long
     
     ' 1. 询问用户模式
     mode = MsgBox("请选择操作模式：" & vbCrLf & vbCrLf & _
@@ -42,15 +43,9 @@ Sub BatchRenameFiles()
     ' 2. 根据模式获取文件列表
     If mode = vbYes Then
         ' --- 文件夹模式 (递归) ---
-        Set fDialog = Application.FileDialog(msoFileDialogFolderPicker)
-        fDialog.Title = "请选择包含待处理文件的文件夹"
-        
-        If fDialog.Show = -1 Then
-            targetFolder = fDialog.SelectedItems(1)
-            RecursiveGetFiles fso.GetFolder(targetFolder), fileList
-        Else
-            Exit Sub
-        End If
+        targetFolder = PickFolder("请选择需要批量处理文件名的文件夹")
+        If targetFolder = "" Then Exit Sub
+        RecursiveGetFiles fso.GetFolder(targetFolder), fileList
     Else
         ' --- 文件多选模式 ---
         Set fDialog = Application.FileDialog(msoFileDialogFilePicker)
@@ -76,26 +71,15 @@ Sub BatchRenameFiles()
     ' 3. 初始化正则对象
     
     ' (A) 清理非法字符正则：仅保留 a-z, 0-9, -, _, 汉字
-    Set regExClean = CreateObject("VBScript.RegExp")
-    With regExClean
-        .Global = True
-        .IgnoreCase = True
-        .Pattern = "[^a-z0-9\-\_" & ChrW(&H4E00) & "-" & ChrW(&H9FA5) & "]"
-    End With
+    CreateRenameRegexes regExSpace, regExClean
     
     ' (B) 空格处理正则：匹配 "字母或数字 + 空格 + 字母或数字" 的情况
     ' 用于将单词间的空格转为中划线
-    Set regExSpace = CreateObject("VBScript.RegExp")
-    With regExSpace
-        .Global = True
-        .IgnoreCase = True
-        ' Lookahead断言：匹配一个字符和空格，且后面紧跟着另一个字符
-        .Pattern = "([a-z0-9])\s+(?=[a-z0-9])"
-    End With
     
-    count = 0
+    renamedCount = 0
     copyCount = 0
-    Application.ScreenUpdating = False
+    BeginBatchUI
+    On Error GoTo ErrH
     
     ' 4. 统一循环处理
     For Each vFile In fileList
@@ -110,22 +94,8 @@ Sub BatchRenameFiles()
         ' --- 核心处理逻辑开始 ---
         
         ' 步骤 1：转换为小写
-        baseName = LCase(baseName)
         extName = LCase(extName)
-        
-        ' 步骤 2：处理空格
-        ' 情况A：字母/数字 之间的空格 -> 替换为中划线 (例如: "file 01" -> "file-01")
-        baseName = regExSpace.Replace(baseName, "$1-")
-        
-        ' 情况B：剩余的所有空格（包括汉字与字母间、汉字间） -> 直接删除 (例如: "测试 file" -> "测试file")
-        baseName = Replace(baseName, " ", "")
-        
-        ' 步骤 3：清理非法字符（替换为中划线）
-        cleanName = regExClean.Replace(baseName, "-")
-        
-        ' --- 核心处理逻辑结束 ---
-        
-        If Len(cleanName) = 0 Then cleanName = "renamed-file"
+        cleanName = CleanFileBaseName(baseName, regExSpace, regExClean)
         
         newFileName = cleanName & extName
         
@@ -146,7 +116,7 @@ Sub BatchRenameFiles()
             Name fullPath As newPath
             
             If Err.Number = 0 Then
-                count = count + 1
+                renamedCount = renamedCount + 1
             Else
                 Err.Clear
                 fso.CopyFile fullPath, newPath
@@ -158,12 +128,12 @@ Sub BatchRenameFiles()
         End If
         
     Next vFile
-    
-    Application.ScreenUpdating = True
+
+    EndBatchUI
     
     ' 5. 结果提示
     MsgBox "处理完成！" & vbCrLf & _
-           "直接重命名: " & count & " 个" & vbCrLf & _
+           "直接重命名: " & renamedCount & " 个" & vbCrLf & _
            "创建副本(原文件被占用): " & copyCount & " 个", _
            vbInformation, "批量修改文件名"
     
@@ -172,7 +142,11 @@ Sub BatchRenameFiles()
     Set fso = Nothing
     Set fDialog = Nothing
     Set fileList = Nothing
+    Exit Sub
 
+ErrH:
+    EndBatchUI
+    MsgBox "批量重命名出错：" & Err.Description, vbCritical, "批量修改文件名"
 End Sub
 
 ' ==========================================
@@ -197,3 +171,38 @@ Private Sub RecursiveGetFiles(ByVal oFolder As Object, ByRef colFiles As Collect
     On Error GoTo 0
 End Sub
 
+' 文件名清洗规则（纯函数，供测试直接调用）：
+' 1) 全小写 2) 字母/数字间空格 -> 中划线 3) 其余空格删除
+' 4) 非法字符（保留 a-z 0-9 - _ 汉字）-> 中划线 5) 空结果回退 renamed-file
+Public Function CleanFileBaseName(ByVal baseName As String, _
+                                  ByVal regExSpace As Object, _
+                                  ByVal regExClean As Object) As String
+    Dim cleaned As String
+
+    cleaned = LCase(baseName)
+    cleaned = regExSpace.Replace(cleaned, "$1-")
+    cleaned = Replace(cleaned, " ", "")
+    cleaned = regExClean.Replace(cleaned, "-")
+
+    If Len(cleaned) = 0 Then cleaned = "renamed-file"
+    CleanFileBaseName = cleaned
+End Function
+
+' 构造清洗所需的两个正则（与 BatchRenameFiles 主流程同配置）
+Public Sub CreateRenameRegexes(ByRef regExSpace As Object, ByRef regExClean As Object)
+    ' (A) 清理非法字符：保留 a-z 0-9 - _ 汉字
+    Set regExClean = CreateObject("VBScript.RegExp")
+    With regExClean
+        .Global = True
+        .IgnoreCase = True
+        .Pattern = "[^a-z0-9\-\_" & ChrW(&H4E00) & "-" & ChrW(&H9FA5) & "]"
+    End With
+
+    ' (B) 空格连接：字母/数字间空格 -> 中划线（Lookahead 保留后字符）
+    Set regExSpace = CreateObject("VBScript.RegExp")
+    With regExSpace
+        .Global = True
+        .IgnoreCase = True
+        .Pattern = "([a-z0-9])\s+(?=[a-z0-9])"
+    End With
+End Sub

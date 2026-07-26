@@ -1,4 +1,6 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
+
+Import-Module (Join-Path $PSScriptRoot "..\scripts\RATools.Build.psm1") -Force
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 $modulePath = Join-Path $repoRoot "modules\Mod_NormalizeScientificTerms.bas"
@@ -77,10 +79,8 @@ $doc = $null
 
 try {
     Write-Step "Creating Word.Application"
-    $word = New-Object -ComObject Word.Application
-    $word.Visible = $false
-    $word.DisplayAlerts = 0
-    $word.AutomationSecurity = 1
+    $word = Start-RAToolsWordSession
+
 
     Write-Step "Creating document"
     $doc = $word.Documents.Add()
@@ -230,6 +230,6 @@ finally {
     }
     if ($word -ne $null) {
         Write-Step "Quitting Word"
-        $word.Quit() | Out-Null
     }
+    Stop-RAToolsWordSession -Word $word
 }

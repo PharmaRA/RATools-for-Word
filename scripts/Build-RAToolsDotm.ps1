@@ -53,10 +53,7 @@ function Import-RAToolsVbaSourcesIntoDotm {
 
     try {
         Write-Host "Starting Word automation"
-        $word = New-Object -ComObject Word.Application
-        $word.Visible = $false
-        $word.DisplayAlerts = 0
-        $word.AutomationSecurity = 1
+        $word = Start-RAToolsWordSession
 
         Write-Host "Opening dotm package: $DotmPath"
         $document = $word.Documents.Open($DotmPath, $false, $false, $false)
@@ -90,15 +87,10 @@ function Import-RAToolsVbaSourcesIntoDotm {
         if ($null -ne $document) {
             $document.Close($false) | Out-Null
         }
-        if ($null -ne $word) {
-            $word.Quit() | Out-Null
-        }
 
         Release-ComObjectSafe $components
         Release-ComObjectSafe $document
-        Release-ComObjectSafe $word
-        [GC]::Collect()
-        [GC]::WaitForPendingFinalizers()
+        Stop-RAToolsWordSession -Word $word
     }
 }
 

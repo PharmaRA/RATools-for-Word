@@ -1,4 +1,6 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
+
+Import-Module (Join-Path $PSScriptRoot "..\scripts\RATools.Build.psm1") -Force
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 $modulePath = Join-Path $repoRoot "modules\Mod_BatchDetectHighlights.bas"
@@ -15,10 +17,8 @@ $word = $null
 $doc = $null
 
 try {
-    $word = New-Object -ComObject Word.Application
-    $word.Visible = $false
-    $word.DisplayAlerts = 0
-    $word.AutomationSecurity = 1
+    $word = Start-RAToolsWordSession
+
 
     $doc = $word.Documents.Add()
     $component = $doc.VBProject.VBComponents.Import($modulePath)
@@ -142,7 +142,5 @@ finally {
     if ($null -ne $doc) {
         $doc.Close($false) | Out-Null
     }
-    if ($null -ne $word) {
-        $word.Quit() | Out-Null
-    }
+    Stop-RAToolsWordSession -Word $word
 }

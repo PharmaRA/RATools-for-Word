@@ -1,4 +1,5 @@
 Attribute VB_Name = "Mod_LinkToThePreviousSection"
+Option Explicit
 Sub LinkToThePreviousSection()
     ' ==========================================
     ' ºêÃû³Æ£ºLinkToThePreviousSection

@@ -31,7 +31,7 @@ Sub RemoveUnusedStyles()
         
         ' 检查样式名称是否以 "-F" 结尾
         ' UCase 确保不区分大小写（例如 -f 和 -F 都会被检测）
-        If UCase(Right(sty.NameLocal, 2)) = "-F" Then
+        If HasStyleSuffix(sty.NameLocal) Then
             
             ' 确保只删除非内置样式（安全起见）
             If sty.BuiltIn = False Then
