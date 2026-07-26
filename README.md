@@ -43,7 +43,7 @@
 
 ### 1. 下载与文件准备
 
-- 前往 [Releases](https://github.com/Fon509/RATools/releases) 下载最新的 `.dotm` 和 `.dotx` 文件。
+- 前往 [Releases](https://github.com/PharmaRA/RATools-for-Word/releases) 下载最新的 `.dotm` 和 `.dotx` 文件。
 - **创建目录**：建议在 D 盘根目录创建`RATools`文件夹，将 `.dotx` 和 `.dotm` 放入其中
 
 > **注意**：您也可以自定义文件路径，但后续步骤需对应修改路径配置。本文档以推荐路径 `D:\RATools` 为例。
@@ -192,4 +192,4 @@ RATools 支持扩展。如果你具备 VBA 开发能力，可以将自己的常�
 
 ## 📅 更新日志
 
-查看版本更新历史，请参阅 [CHANGELOG](https://github.com/Fon509/RATools-for-Word/blob/main/CHANGELOG.md)。
+查看版本更新历史，请参阅 [CHANGELOG](https://github.com/PharmaRA/RATools-for-Word/blob/main/CHANGELOG.md)。
