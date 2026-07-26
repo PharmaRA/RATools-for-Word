@@ -83,6 +83,7 @@ Public Sub RunQuickToolbarAction(ByVal actionKey As String)
         Case "normalize_terms"
             NormalizeScientificTerms
         Case Else
+            If TryRunExpandedQuickToolbarAction(actionKey) Then Exit Sub
             Err.Raise vbObjectError + 2048, "RunQuickToolbarAction", _
                       "未知的快捷操作：" & actionKey
     End Select
