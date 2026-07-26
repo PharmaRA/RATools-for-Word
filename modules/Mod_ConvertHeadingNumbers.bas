@@ -1,4 +1,5 @@
 Attribute VB_Name = "Mod_ConvertHeadingNumbers"
+Option Explicit
 Sub ConvertHeadingNumbers()
     On Error GoTo ErrH
     ' ÉùÃ÷±äÁ¿

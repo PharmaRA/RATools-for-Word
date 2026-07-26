@@ -1,4 +1,5 @@
 Attribute VB_Name = "Mod_ExtractAbbreviations"
+Option Explicit
 Sub ExtractAbbreviations()
     Dim docSource As Document
     Dim docTarget As Document

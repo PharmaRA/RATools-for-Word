@@ -1,4 +1,5 @@
 Attribute VB_Name = "Mod_BatchRenameFiles"
+Option Explicit
 Sub BatchRenameFiles()
     ' ==============================================================================
     ' 功能：批量修改文件名

@@ -1,4 +1,5 @@
 Attribute VB_Name = "Mod_BatchAutoFitTablesToWindow"
+Option Explicit
 Sub BatchAutoFitTablesToWindow()
     '================================================
     ' 功能：将文档中所有表格批量设置为“根据窗口自动调整”
