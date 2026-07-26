@@ -6,8 +6,7 @@ Option Explicit
 ' 功能：批量检测文档是否包含高亮（突出显示颜色）
 ' ==========================================
 
-' 定义全局 FSO 对象，避免重复创建
-Private fso As Object
+Private Const DIALOG_TITLE As String = "批量检测高亮内容"
 
 Sub BatchDetectHighlights()
     Dim userChoice As String
@@ -15,93 +14,62 @@ Sub BatchDetectHighlights()
     Dim doc As Document
     Dim targetFiles As Collection
     Dim filePath As Variant
-    Dim fDialog As FileDialog
     Dim folderPath As String
     Dim startTime As Double
     Dim firstHighlight As Range
     Dim detectionError As String
-    
-    ' 初始化 FSO
-    Set fso = CreateObject("Scripting.FileSystemObject")
-    
-    ' 1. 获取用户选择的模式 (默认值为 1)
-    userChoice = InputBox("请输入数字选择检测模式：" & vbCrLf & vbCrLf & _
-                          "1 - 检测【当前打开】的文件" & vbCrLf & _
-                          "2 - 选择【多个文件】进行批量检测" & vbCrLf & _
-                          "3 - 选择【文件夹】（包含子文件夹）检测所有 Word 文件", _
-                          "高亮检测工具", "1")
-    
-    If userChoice = "" Then Exit Sub ' 用户取消
-    
-    ' 初始化文件集合
+
+    userChoice = ChooseBatchMode(DIALOG_TITLE)
+    If userChoice = "" Then Exit Sub
+
     Set targetFiles = New Collection
-    
-    ' 2. 根据选择处理逻辑
+
     Select Case userChoice
-        Case "1" ' 当前文件
+        Case BATCH_MODE_CURRENT
             If Documents.count = 0 Then
-                MsgBox "当前没有打开的文档！", vbExclamation
+                MsgBox "当前没有打开的文档！", vbExclamation, DIALOG_TITLE
                 Exit Sub
             End If
-            
+
             If TryFindFirstHighlight(ActiveDocument, firstHighlight, detectionError) Then
-                If MsgBox("当前文档【包含】突出显示颜色。是否跳转到第一处？", _
-                          vbQuestion + vbYesNo, "检测到高亮内容") = vbYes Then
+                If MsgBox("当前文档：发现有突出显示颜色！是否跳转到第一处？", _
+                          vbQuestion + vbYesNo, DIALOG_TITLE) = vbYes Then
                     ActiveDocument.Activate
                     firstHighlight.Select
                     ActiveWindow.ScrollIntoView firstHighlight, True
                 End If
             ElseIf Len(detectionError) > 0 Then
-                MsgBox "检测失败：" & detectionError, vbExclamation
+                MsgBox "检测失败：" & detectionError, vbExclamation, DIALOG_TITLE
             Else
-                MsgBox "当前文档【不包含】突出显示颜色。", vbInformation
+                MsgBox "当前文档：不包含突出显示颜色。", vbInformation, DIALOG_TITLE
             End If
-            Exit Sub ' 模式1不需要生成报告，直接结束
-            
-        Case "2" ' 选择多个文件
-            Set fDialog = Application.FileDialog(msoFileDialogFilePicker)
-            With fDialog
-                .Title = "请选择要检测的 Word 文件"
-                .Filters.Clear
-                .Filters.Add "Word 文档", "*.docx; *.doc; *.docm"
-                .AllowMultiSelect = True
-                If .Show = -1 Then
-                    For Each filePath In .SelectedItems
-                        targetFiles.Add filePath
-                    Next filePath
-                Else
-                    Exit Sub
-                End If
-            End With
-            
-        Case "3" ' 选择文件夹（包含子文件夹）
-            Set fDialog = Application.FileDialog(msoFileDialogFolderPicker)
-            With fDialog
-                .Title = "请选择包含 Word 文件的文件夹"
-                If .Show = -1 Then
-                    folderPath = .SelectedItems(1)
-                    ' 调用递归函数扫描文件夹
-                    Call RecursiveScan(folderPath, targetFiles)
-                Else
-                    Exit Sub
-                End If
-            End With
-            
+            Exit Sub
+
+        Case BATCH_MODE_FILES
+            Set targetFiles = PickWordFiles("请选择要检测的 Word 文件")
+            If targetFiles Is Nothing Then Exit Sub
+
+        Case BATCH_MODE_FOLDER
+            folderPath = PickFolder("请选择包含 Word 文件的文件夹")
+            If folderPath = "" Then Exit Sub
+            Application.StatusBar = "正在扫描文件..."
+            CollectWordFiles folderPath, targetFiles
+
         Case Else
-            MsgBox "输入无效，请输入 1、2 或 3。", vbCritical
+            MsgBox "输入无效，请输入 1、2 或 3。", vbExclamation, DIALOG_TITLE
             Exit Sub
     End Select
-    
-    ' 3. 如果没有找到文件
+
     If targetFiles.count = 0 Then
-        MsgBox "未找到需要处理的文件。", vbExclamation
+        Application.StatusBar = False
+        MsgBox "未找到需要处理的文件！", vbExclamation, DIALOG_TITLE
         Exit Sub
     End If
-    
-    ' 4. 开始批量处理
-    Application.ScreenUpdating = False ' 关闭屏幕更新（防止界面刷新）
+
+    BeginBatchUI
+    On Error GoTo ErrH
     startTime = Timer
-    
+
     ' 创建报告文档
     Set reportDoc = Documents.Add
     With reportDoc.Content
@@ -113,8 +81,8 @@ Sub BatchDetectHighlights()
         .Font.Size = 14
         .InsertParagraphAfter
     End With
-    
-    ' 插入表格头
+
+    ' 创建表格表头
     Dim tbl As Table
     Set tbl = reportDoc.Tables.Add(Range:=reportDoc.Characters.Last, NumRows:=1, NumColumns:=4)
     tbl.Borders.Enable = True
@@ -122,27 +90,26 @@ Sub BatchDetectHighlights()
     tbl.Cell(1, 2).Range.Text = "检测结果"
     tbl.Cell(1, 3).Range.Text = "命中内容"
     tbl.Cell(1, 4).Range.Text = "定位"
-    
-    ' 循环处理文件
+
     Dim hasHighlight As Boolean
     Dim buttonRange As Range
     Dim openError As String
-    
+    Dim wasAlreadyOpen As Boolean
+    Dim fileIndex As Long
+
     For Each filePath In targetFiles
-        ' 每个文件必须重置状态，避免错误时沿用上一文件的检测结果。
+        ' 每个文件重置所有状态，避免检测异常时沿用上一文件的检测结果
         Set doc = Nothing
         Set firstHighlight = Nothing
         hasHighlight = False
         openError = ""
         detectionError = ""
+        wasAlreadyOpen = False
 
-        ' 仅在打开文件时忽略错误，后续检测和报告逻辑不使用 Resume Next。
-        On Error Resume Next
-        Err.Clear
-        Set doc = Documents.Open(fileName:=filePath, Visible:=False, ReadOnly:=True, AddToRecentFiles:=False)
-        If Err.Number <> 0 Then openError = Err.Description
-        Err.Clear
-        On Error GoTo 0
+        fileIndex = fileIndex + 1
+        ShowBatchProgress fileIndex, targetFiles.count, CStr(filePath)
+
+        Set doc = SafeOpenDocument(CStr(filePath), True, wasAlreadyOpen, openError)
 
         tbl.Rows.Add
 
@@ -166,11 +133,11 @@ Sub BatchDetectHighlights()
                 tbl.Cell(tbl.Rows.count, 3).Range.Text = detectionError
                 tbl.Cell(tbl.Rows.count, 4).Range.Text = "--"
             ElseIf hasHighlight Then
-                ' 有高亮：添加超链接并显示红色结果
+                ' 有高亮：附加超链接并提示颜色标记
                 reportDoc.Hyperlinks.Add Anchor:=tbl.Cell(tbl.Rows.count, 1).Range, _
                                          Address:=filePath, _
                                          TextToDisplay:=filePath
-                                         
+
                 tbl.Cell(tbl.Rows.count, 2).Range.Text = "包含高亮"
                 tbl.Cell(tbl.Rows.count, 2).Range.Font.Color = wdColorRed
                 tbl.Cell(tbl.Rows.count, 2).Range.Font.Bold = True
@@ -183,9 +150,9 @@ Sub BatchDetectHighlights()
                                      Text:="JumpToHighlightFromReport 双击跳转", _
                                      PreserveFormatting:=False
             Else
-                ' 无高亮：仅显示纯文本路径
+                ' 无高亮：仅显示文本路径
                 tbl.Cell(tbl.Rows.count, 1).Range.Text = filePath
-                
+
                 tbl.Cell(tbl.Rows.count, 2).Range.Text = "无"
                 tbl.Cell(tbl.Rows.count, 2).Range.Font.Color = wdColorGreen
                 tbl.Cell(tbl.Rows.count, 3).Range.Text = "--"
@@ -193,19 +160,20 @@ Sub BatchDetectHighlights()
             End If
         End If
 
-        If Not doc Is Nothing Then
-            On Error Resume Next
-            doc.Close SaveChanges:=wdDoNotSaveChanges
-            On Error GoTo 0
-        End If
+        ' 本过程打开的只读副本关闭；用户已打开的文档保持原状
+        If Not wasAlreadyOpen Then CloseDocumentQuietly doc, False
     Next filePath
-    
-    ' 清理与结束
-    Set fso = Nothing
-    Application.ScreenUpdating = True
-    tbl.AutoFitBehavior (wdAutoFitWindow)
-    
-    MsgBox "检测完成！共扫描 " & targetFiles.count & " 个文件。" & vbCrLf & "耗时 " & Format(Timer - startTime, "0.00") & " 秒。", vbInformation
+
+    EndBatchUI
+    tbl.AutoFitBehavior wdAutoFitWindow
+
+    MsgBox "检测完成！共扫描 " & targetFiles.count & " 个文件。" & vbCrLf & _
+           "耗时 " & Format(Timer - startTime, "0.00") & " 秒。", vbInformation, DIALOG_TITLE
+    Exit Sub
+
+ErrH:
+    EndBatchUI
+    MsgBox "检测过程出错：" & Err.Description, vbCritical, DIALOG_TITLE
 End Sub
 
 ' 从批量检测报告的当前行读取文件路径，打开文档并定位到第一处高亮。
@@ -259,34 +227,6 @@ Sub JumpToHighlightFromReport()
 
 JumpError:
     MsgBox "跳转失败：" & Err.Description, vbExclamation
-End Sub
-
-' ==========================================
-' 辅助过程：递归扫描文件夹
-' ==========================================
-Private Sub RecursiveScan(ByVal folderPath As String, ByRef fileCollection As Collection)
-    Dim folder As Object
-    Dim subFolder As Object
-    Dim file As Object
-    Dim ext As String
-    
-    On Error Resume Next ' 防止权限错误导致中断
-    Set folder = fso.GetFolder(folderPath)
-    
-    ' 遍历当前文件夹下的文件
-    For Each file In folder.Files
-        ext = LCase(fso.GetExtensionName(file.Path))
-        ' 检查扩展名，并排除临时文件（~$开头）
-        If (ext = "docx" Or ext = "doc" Or ext = "docm") And Left(file.Name, 2) <> "~$" Then
-            fileCollection.Add file.Path
-        End If
-    Next file
-    
-    ' 递归遍历子文件夹
-    For Each subFolder In folder.SubFolders
-        Call RecursiveScan(subFolder.Path, fileCollection)
-    Next subFolder
-    On Error GoTo 0
 End Sub
 
 ' ==========================================

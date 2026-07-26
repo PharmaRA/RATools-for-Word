@@ -24,10 +24,12 @@ End Sub
 ' 打开失败返回 Nothing，由调用方决定如何计数或提示。
 Public Function SafeOpenDocument(ByVal filePath As String, _
                                  ByVal openReadOnly As Boolean, _
-                                 ByRef wasAlreadyOpen As Boolean) As Document
+                                 ByRef wasAlreadyOpen As Boolean, _
+                                 Optional ByRef errorMessage As String) As Document
     Dim doc As Document
 
     wasAlreadyOpen = False
+    errorMessage = ""
 
     On Error Resume Next
     Set doc = Documents(filePath)
@@ -42,6 +44,7 @@ Public Function SafeOpenDocument(ByVal filePath As String, _
     On Error Resume Next
     Set doc = Documents.Open(fileName:=filePath, ReadOnly:=openReadOnly, _
                              Visible:=False, AddToRecentFiles:=False)
+    If Err.Number <> 0 Then errorMessage = Err.Description
     On Error GoTo 0
 
     Set SafeOpenDocument = doc
