@@ -119,9 +119,22 @@ $frxPath = Join-Path $repoRoot "userforms\frmQuickToolbar.frx"
 $modulePath = Join-Path $repoRoot "modules\Mod_QuickToolbar.bas"
 $actionModulePath = Join-Path $repoRoot "modules\Mod_QuickToolbarActions.bas"
 $syncScriptPath = Join-Path $repoRoot "scripts\Sync-QuickToolbarForm.ps1"
+$iconScriptPath = Join-Path $repoRoot "scripts\Generate-QuickToolbarIcon.ps1"
 $ribbonPath = Join-Path $repoRoot "dotm\customUI\customUI14.xml"
+$ribbonRelationshipsPath = Join-Path $repoRoot "dotm\customUI\_rels\customUI14.xml.rels"
+$quickToolbarIconPath = Join-Path $repoRoot "dotm\customUI\images\QuickToolbar.png"
 
-foreach ($requiredPath in @($formPath, $frxPath, $modulePath, $actionModulePath, $syncScriptPath, $ribbonPath)) {
+foreach ($requiredPath in @(
+    $formPath,
+    $frxPath,
+    $modulePath,
+    $actionModulePath,
+    $syncScriptPath,
+    $iconScriptPath,
+    $ribbonPath,
+    $ribbonRelationshipsPath,
+    $quickToolbarIconPath
+)) {
     Assert-True (Test-Path -LiteralPath $requiredPath -PathType Leaf) "Required quick toolbar file should exist: $requiredPath"
 }
 Assert-True ((Get-Item -LiteralPath $frxPath).Length -gt 25000) "Quick toolbar FRX should contain all 19 embedded icon pictures."
@@ -131,6 +144,18 @@ $moduleText = Read-VbaSource -Path $modulePath
 $actionModuleText = Read-VbaSource -Path $actionModulePath
 $syncScriptText = Get-Content -LiteralPath $syncScriptPath -Raw -Encoding UTF8
 $ribbonText = Get-Content -LiteralPath $ribbonPath -Raw
+$ribbonRelationshipsText = Get-Content -LiteralPath $ribbonRelationshipsPath -Raw
+
+Add-Type -AssemblyName System.Drawing
+$quickToolbarIcon = [Drawing.Bitmap]::FromFile($quickToolbarIconPath)
+try {
+    Assert-True ($quickToolbarIcon.Width -eq 48) "Quick toolbar Ribbon icon should be 48px wide."
+    Assert-True ($quickToolbarIcon.Height -eq 48) "Quick toolbar Ribbon icon should be 48px high."
+    Assert-True ($quickToolbarIcon.PixelFormat.ToString().Contains("Argb")) "Quick toolbar Ribbon icon should preserve transparency."
+}
+finally {
+    $quickToolbarIcon.Dispose()
+}
 
 Assert-Contains $formText 'OleObjectBlob   =   "frmQuickToolbar.frx":0000' "Form should reference its FRX resource."
 Assert-Contains $formText "ShowModal       =   0" "Quick toolbar should be modeless."
@@ -152,6 +177,13 @@ Assert-Contains $moduleText "TryRunExpandedQuickToolbarAction(actionKey)" "Dispa
 Assert-Contains $actionModuleText "Public Function TryRunExpandedQuickToolbarAction" "Expanded action dispatcher should exist."
 Assert-Contains $actionModuleText 'Application.CommandBars.ExecuteMso commandId' "Built-in Word commands should use ExecuteMso."
 Assert-Contains $ribbonText 'onAction="ToggleQuickToolbar"' "Ribbon should expose the quick toolbar callback."
+$quickToolbarRibbonButton = [regex]::Match($ribbonText, '(?s)<button\s+id="btnQuickToolbar".*?/>').Value
+$templateRibbonButton = [regex]::Match($ribbonText, '(?s)<button\s+id="btnLogo".*?/>').Value
+Assert-True (-not [string]::IsNullOrWhiteSpace($quickToolbarRibbonButton)) "Ribbon should define btnQuickToolbar."
+Assert-Contains $quickToolbarRibbonButton 'image="QuickToolbar"' "Quick toolbar Ribbon button should use its purpose-built icon."
+Assert-Contains $templateRibbonButton 'image="Logo"' "Template loader should continue using the RATools Logo."
+Assert-Contains $ribbonRelationshipsText 'Id="QuickToolbar"' "Ribbon relationships should register the quick toolbar icon."
+Assert-Contains $ribbonRelationshipsText 'Target="images/QuickToolbar.png"' "Ribbon relationship should target QuickToolbar.png."
 
 for ($i = 0; $i -lt $expectedItems.Count; $i++) {
     $item = $expectedItems[$i]
@@ -360,6 +392,24 @@ End Function
             }
             Assert-Contains $artifactRibbonText 'id="btnQuickToolbar"' "Built dotm Ribbon should contain btnQuickToolbar."
             Assert-Contains $artifactRibbonText 'onAction="ToggleQuickToolbar"' "Built dotm Ribbon should call ToggleQuickToolbar."
+            $artifactQuickToolbarButton = [regex]::Match($artifactRibbonText, '(?s)<button\s+id="btnQuickToolbar".*?/>').Value
+            Assert-Contains $artifactQuickToolbarButton 'image="QuickToolbar"' "Built quick toolbar button should use its purpose-built icon."
+
+            $iconEntry = $archive.GetEntry("customUI/images/QuickToolbar.png")
+            Assert-True ($null -ne $iconEntry) "Built dotm should contain QuickToolbar.png."
+            Assert-True ($iconEntry.Length -gt 500) "Built QuickToolbar.png should contain rendered icon data."
+
+            $relationshipsEntry = $archive.GetEntry("customUI/_rels/customUI14.xml.rels")
+            Assert-True ($null -ne $relationshipsEntry) "Built dotm should contain customUI relationships."
+            $reader = New-Object System.IO.StreamReader($relationshipsEntry.Open(), [System.Text.Encoding]::UTF8)
+            try {
+                $artifactRelationshipsText = $reader.ReadToEnd()
+            }
+            finally {
+                $reader.Dispose()
+            }
+            Assert-Contains $artifactRelationshipsText 'Id="QuickToolbar"' "Built relationships should register QuickToolbar."
+            Assert-Contains $artifactRelationshipsText 'Target="images/QuickToolbar.png"' "Built relationship should target QuickToolbar.png."
         }
         finally {
             $archive.Dispose()

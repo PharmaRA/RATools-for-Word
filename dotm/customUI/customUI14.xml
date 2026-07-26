@@ -255,7 +255,7 @@
 					<button id="btnShowMacros" imageMso="MacroPlay" size="large" showLabel="false" onAction="ShowMacroListWindow" />
 					<button id="btnQuickToolbar"
 							label="快捷悬浮窗"
-							image="Logo"
+							image="QuickToolbar"
 							size="large"
 							description="显示或隐藏常用功能快捷悬浮窗"
 							screentip="快捷悬浮窗"
