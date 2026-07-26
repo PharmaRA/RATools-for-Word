@@ -137,28 +137,48 @@ End Sub
 ' 辅助过程：遍历文件夹
 ' ==========================================
 Sub ProcessFolder(folderPath As String)
-    Dim fileName As String
-    Dim fullPath As String
-    
-    ' 确保路径以反斜杠结尾
-    If Right(folderPath, 1) <> "\" Then folderPath = folderPath & "\"
-    
-    ' 获取第一个文件
-    fileName = Dir(folderPath & "*.doc*")
-    
-    Do While fileName <> ""
-        ' 排除临时文件（以 ~$ 开头的文件）
-        If Left(fileName, 2) <> "~$" Then
-            fullPath = folderPath & fileName
-            ' 在状态栏显示进度
-            Application.StatusBar = "正在处理: " & fileName
-            ProcessFile fullPath
+    Dim fileCollection As New Collection
+    Dim i As Long
+
+    ' 递归收集 Word 文档（doc/docx/docm，排除 ~$ 临时文件），与其他批处理宏行为一致
+    CollectWordFiles folderPath, fileCollection
+
+    If fileCollection.count = 0 Then
+        Application.StatusBar = ""
+        MsgBox "所选文件夹（含子文件夹）中未找到 Word 文档。", vbExclamation
+        Exit Sub
+    End If
+
+    For i = 1 To fileCollection.count
+        Application.StatusBar = "正在处理 (" & i & "/" & fileCollection.count & "): " & fileCollection(i)
+        ProcessFile CStr(fileCollection(i))
+    Next i
+
+    Application.StatusBar = ""
+End Sub
+
+' 递归收集 Word 文档路径
+Sub CollectWordFiles(ByVal sPath As String, ByRef fCollection As Collection)
+    Dim FSO As Object, Folder As Object, SubFolder As Object, File As Object
+    Dim ext As String
+
+    Set FSO = CreateObject("Scripting.FileSystemObject")
+    On Error Resume Next
+    Set Folder = FSO.GetFolder(sPath)
+    If Err.Number <> 0 Then Exit Sub
+    On Error GoTo 0
+
+    For Each File In Folder.Files
+        ext = LCase(FSO.GetExtensionName(File.Name))
+        If (ext = "doc" Or ext = "docx" Or ext = "docm") Then
+            If Left(File.Name, 2) <> "~$" Then fCollection.Add File.Path
         End If
-        ' 获取下一个文件
-        fileName = Dir
-    Loop
-    
-    Application.StatusBar = "" ' 清除状态栏
+    Next
+
+    For Each SubFolder In Folder.SubFolders
+        CollectWordFiles SubFolder.Path, fCollection
+    Next
+    Set FSO = Nothing
 End Sub
 
 ' ==========================================
