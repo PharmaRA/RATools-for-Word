@@ -311,7 +311,10 @@ function Set-RAToolsAppVersion {
         throw "Missing update checker module: $modulePath"
     }
 
-    $moduleText = Get-Content -LiteralPath $modulePath -Raw
+    # VBA 源码为 GBK(936) 存盘（见 docs/vba-source-encoding.md）。
+    # 必须按同编码读写：此前按 UTF-8 无 BOM 写回，仅因该文件纯 ASCII 才未损坏。
+    $gbkEncoding = [System.Text.Encoding]::GetEncoding(936)
+    $moduleText = [System.IO.File]::ReadAllText($modulePath, $gbkEncoding)
     $versionPattern = "(?m)^(?<prefix>\s*Private\s+Const\s+APP_VERSION\s+As\s+String\s*=\s*)""(?<version>[^""]*)"""
     $versionRegex = [Regex]::new($versionPattern)
     $match = $versionRegex.Match($moduleText)
@@ -330,8 +333,7 @@ function Set-RAToolsAppVersion {
     )
 
     if ($updatedText -ne $moduleText) {
-        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-        [System.IO.File]::WriteAllText($modulePath, $updatedText, $utf8NoBom)
+        [System.IO.File]::WriteAllText($modulePath, $updatedText, $gbkEncoding)
     }
 
     return $modulePath

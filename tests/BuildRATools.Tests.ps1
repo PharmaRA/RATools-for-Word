@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 $modulePath = Join-Path $repoRoot "scripts\RATools.Build.psm1"
@@ -230,6 +230,40 @@ Private Const GITHUB_REPOSITORY_URL As String = "https://github.com/PharmaRA/RAT
         Assert-True ($updatedText.Contains('Private Const APP_VERSION As String = "v9.8.7"')) "APP_VERSION should be updated."
         Assert-True (-not $updatedText.Contains('Private Const APP_VERSION As String = "v0.1.0"')) "Old APP_VERSION should be removed."
         Assert-True ($updatedText.Contains('GITHUB_REPOSITORY_URL')) "Other module constants should be preserved."
+    }
+    finally {
+        Remove-Item -LiteralPath $root -Recurse -Force
+    }
+}
+
+Run-Test "Set-RAToolsAppVersion preserves GBK Chinese content" {
+    $root = New-TestRepo
+    $modulePath = Join-Path $root "modules\Mod_UpdateChecker.bas"
+    $gbk = [System.Text.Encoding]::GetEncoding(936)
+
+    try {
+        # 模拟真实场景：模块含 GBK 中文注释与字面量
+        $sourceWithChinese = @"
+Attribute VB_Name = "Mod_UpdateChecker"
+Option Explicit
+
+' 检查更新模块：版本常量由构建脚本自动同步
+Private Const APP_VERSION As String = "v0.1.0"
+Private Const PROMPT_TEXT As String = "发现新版本，是否前往下载？"
+"@
+        [System.IO.File]::WriteAllText($modulePath, $sourceWithChinese, $gbk)
+
+        Set-RAToolsAppVersion -RepoRoot $root -Version "v9.8.7" | Out-Null
+
+        $updatedText = [System.IO.File]::ReadAllText($modulePath, $gbk)
+        Assert-True ($updatedText.Contains('Private Const APP_VERSION As String = "v9.8.7"')) "APP_VERSION should be updated."
+        Assert-True ($updatedText.Contains("发现新版本，是否前往下载？")) "Chinese literal should survive the rewrite under GBK."
+        Assert-True ($updatedText.Contains("检查更新模块")) "Chinese comment should survive the rewrite under GBK."
+
+        # 字节级校验：写回后仍是 GBK（用 UTF-8 解码同一文件应产生替换字符）
+        $rawBytes = [System.IO.File]::ReadAllBytes($modulePath)
+        $utf8Decoded = [System.Text.Encoding]::UTF8.GetString($rawBytes)
+        Assert-True ($utf8Decoded.Contains([char]0xFFFD)) "File should be GBK on disk, not UTF-8."
     }
     finally {
         Remove-Item -LiteralPath $root -Recurse -Force

@@ -1,2 +1,16 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# VBA 源码 GBK 契约（见 docs/vba-source-encoding.md）：
+# - 显式声明为文本 + CRLF，避免 text=auto 对 GBK 字节序列的文本/二进制误判
+# - 内容编码为 GBK(936)，与 Word/VBE 在中文系统的导入导出约定一致
+*.bas text eol=crlf
+*.cls text eol=crlf
+*.frm text eol=crlf
+
+# 窗体资源与 Office 包为二进制
+*.frx binary
+*.dotm binary
+*.dotx binary
+*.bin binary
+*.png binary
