@@ -58,27 +58,3 @@ Private Sub ExecuteQuickToolbarMso(ByVal commandId As String)
     End If
 End Sub
 
-Private Function NumberedHeadingStyle(ByVal level As Long) As String
-    NumberedHeadingStyle = FromCodePoints(Array(26631, 39064)) & CStr(level) & "-F"
-End Function
-
-Private Function UnnumberedHeadingStyle(ByVal level As Long) As String
-    UnnumberedHeadingStyle = FromCodePoints(Array(26080, 32534, 21495, 26631, 39064)) & _
-                             CStr(level) & "-F"
-End Function
-
-Private Function TableTitleStyle() As String
-    TableTitleStyle = FromCodePoints(Array(34920, 26631, 39064)) & "-F"
-End Function
-
-Private Function FigureTitleStyle() As String
-    FigureTitleStyle = FromCodePoints(Array(22270, 26631, 39064)) & "-F"
-End Function
-
-Private Function FromCodePoints(ByVal values As Variant) As String
-    Dim i As Long
-
-    For i = LBound(values) To UBound(values)
-        FromCodePoints = FromCodePoints & ChrW$(CLng(values(i)))
-    Next i
-End Function

@@ -67,13 +67,13 @@ Public Sub RunQuickToolbarAction(ByVal actionKey As String)
 
     Select Case LCase$(Trim$(actionKey))
         Case "style_heading1"
-            ApplyRAToolsStyle "标题1-F"
+            ApplyRAToolsStyle NumberedHeadingStyle(1)
         Case "style_heading2"
-            ApplyRAToolsStyle "标题2-F"
+            ApplyRAToolsStyle NumberedHeadingStyle(2)
         Case "style_heading3"
-            ApplyRAToolsStyle "标题3-F"
+            ApplyRAToolsStyle NumberedHeadingStyle(3)
         Case "style_body"
-            ApplyRAToolsStyle "正文-F"
+            ApplyRAToolsStyle BodyTextStyle()
         Case "text_blue"
             SetTextBlue Nothing
         Case "page_break_before"

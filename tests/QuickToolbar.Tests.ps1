@@ -118,6 +118,7 @@ $formPath = Join-Path $repoRoot "userforms\frmQuickToolbar.frm"
 $frxPath = Join-Path $repoRoot "userforms\frmQuickToolbar.frx"
 $modulePath = Join-Path $repoRoot "modules\Mod_QuickToolbar.bas"
 $actionModulePath = Join-Path $repoRoot "modules\Mod_QuickToolbarActions.bas"
+$styleNamesModulePath = Join-Path $repoRoot "modules\Mod_StyleNames.bas"
 $syncScriptPath = Join-Path $repoRoot "scripts\Sync-QuickToolbarForm.ps1"
 $iconScriptPath = Join-Path $repoRoot "scripts\Generate-QuickToolbarIcon.ps1"
 $ribbonPath = Join-Path $repoRoot "dotm\customUI\customUI14.xml"
@@ -205,7 +206,7 @@ try {
     $word.AutomationSecurity = 1
     $doc = $word.Documents.Add()
 
-    foreach ($sourceFile in @($modulePath, $actionModulePath, $formPath)) {
+    foreach ($sourceFile in @($modulePath, $actionModulePath, $styleNamesModulePath, $formPath)) {
         try {
             [void]$doc.VBProject.VBComponents.Import($sourceFile)
         }

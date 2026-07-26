@@ -9,7 +9,6 @@ Private mAppEvents    As clsAppEvents  ' 事件监听对象
 Private Const FILE_PREFIX As String = "RAtools"
 Private Const FILE_NAME_CN As String = "master-template-cn.dotx"
 Private Const FILE_NAME_EN As String = "master-template-en.dotx"
-Private Const TARGET_SUFFIX As String = "-F"
 
 '=====================  Ribbon 必 要 回 调  =====================
 ' Ribbon 加载完成时触发
@@ -89,7 +88,7 @@ Public Function ImportStyles(Optional isSilent As Boolean = False) As Boolean
     For Each sty In sourceDoc.Styles
         sName = sty.NameLocal
         ' 仅匹配 -F 结尾 或 TOC/图表目录 相关
-        If (UCase(Right(sName, Len(TARGET_SUFFIX))) = UCase(TARGET_SUFFIX)) Or _
+        If (UCase(Right(sName, Len(STYLE_SUFFIX))) = UCase(STYLE_SUFFIX)) Or _
            (UCase(Left(sName, 3)) = "TOC") Or _
            (InStr(sName, "图表目录") > 0) Or _
            (InStr(sName, "Table of Figures") > 0) Then
@@ -143,103 +142,10 @@ End Function
 '=====================  智 能 样 式 映 射  =====================
 ' 作用：将 UI 传来的中文标签（如“标题1-F”）转换为文档中实际存在的样式名
 Private Function GetTargetStyleName(ByVal uiTagName As String) As String
-    Dim doc As Document
-    Set doc = ActiveDocument
-    
-    ' 1. 优先检查：如果文档中直接存在该中文样式，直接返回
-    ' 这样保证了中文模板加载时，速度最快且完全兼容
-    If StyleExists(doc, uiTagName) Then
-        GetTargetStyleName = uiTagName
-        Exit Function
-    End If
-    
-    ' 2. 映射检查：如果中文找不到，尝试查找对应的英文名称
-    ' 【注意】这里列出了常见的英文样式名，请确保与 master-template-en.dotx 中的实际名称一致
-    Dim mapName As String
-    mapName = ""
-    
-    Select Case uiTagName
-        ' --- 基础样式 ---
-        Case "正文-F":       mapName = "Body Text with Indentation-F"
-        Case "正文无缩进-F": mapName = "Body Text-F"
-        Case "正文无间距-F": mapName = "Body Text no Space-F"
-        Case "标题居中-F":   mapName = "Heading Center-F"
-        Case "标题左对齐-F": mapName = "THeading Left-F"
-        Case "目录标题-F":   mapName = "TOC Heading-F"
-        
-        ' --- 标题类 ---
-        Case "标题1-F": mapName = "Heading 1-F"
-        Case "标题2-F": mapName = "Heading 2-F"
-        Case "标题3-F": mapName = "Heading 3-F"
-        Case "标题4-F": mapName = "Heading 4-F"
-        Case "标题5-F": mapName = "Heading 5-F"
-        Case "标题6-F": mapName = "Heading 6-F"
-        Case "标题7-F": mapName = "Heading 7-F"
-        Case "标题8-F": mapName = "Heading 8-F"
-        Case "标题9-F": mapName = "Heading 9-F"
-        Case "无编号标题1-F": mapName = "UN Heading 1-F"
-        Case "无编号标题2-F": mapName = "UN Heading 2-F"
-        Case "无编号标题3-F": mapName = "UN Heading 3-F"
-        Case "无编号标题4-F": mapName = "UN Heading 4-F"
-        Case "无编号标题5-F": mapName = "UN Heading 5-F"
-        Case "无编号标题6-F": mapName = "UN Heading 6-F"
-        Case "无编号标题7-F": mapName = "UN Heading 7-F"
-        Case "无编号标题8-F": mapName = "UN Heading 8-F"
-        Case "无编号标题9-F": mapName = "UN Heading 9-F"
-        Case "附录标题-F": mapName = "Appendix Title-F"
-        
-        ' --- 表格类 ---
-        Case "表头左对齐-F": mapName = "Table Heading Left-F"
-        Case "表头居中-F":   mapName = "Table Heading Center-F"
-        Case "表头右对齐-F": mapName = "Table Heading Right-F"
-        Case "表格文本左对齐-F": mapName = "Table Cell Left-F"
-        Case "表格文本居中-F":   mapName = "Table Cell Center-F"
-        Case "表格文本右对齐-F": mapName = "Table Cell Right-F"
-        Case "表格文本无间距-F": mapName = "Table Cell no Space-F"
-        Case "表格编号列表-F": mapName = "Table List Number-F"
-        Case "表格项目符号列表-F": mapName = "Table List Bullet-F"
-        Case "表格注释-F":   mapName = "Table Note-F"
-        Case "表标题-F":     mapName = "Table Title-F"
-        
-        ' --- 图片类 ---
-        Case "图片-F":       mapName = "Figure-F"
-        Case "图标题-F":     mapName = "Figure Title-F"
-        
-        ' --- 列表类 ---
-        Case "编号列表-F":     mapName = "List Number-F"
-        Case "项目符号列表-F": mapName = "List Bullet-F"
-        Case "参考文献列表-F": mapName = "List Reference-F"
-        
-        ' --- 其他 ---
-        Case "页眉-F": mapName = "Header-F"
-        Case "页脚-F": mapName = "Footer-F"
-        Case "脚注-F": mapName = "Footnote-F"
-        Case "超链接-F": mapName = "Hyperlink-F"
-        Case "指导-F": mapName = "Instruction-F"
-        
-            
-    End Select
-    
-    ' 3. 如果找到了映射名，检查文档里是否存在这个英文样式
-    If mapName <> "" Then
-        If StyleExists(doc, mapName) Then
-            GetTargetStyleName = mapName
-            Exit Function
-        End If
-    End If
-    
-    ' 4. 如果都没找到，还是返回原始标签（让它在 ApplyStyle 里正常报错）
-    GetTargetStyleName = uiTagName
+    ' 中英映射与存在性探测统一由 Mod_StyleNames 提供
+    GetTargetStyleName = ResolveStyleName(ActiveDocument, uiTagName)
 End Function
 
-' 辅助函数：检查样式是否存在
-Private Function StyleExists(doc As Document, sName As String) As Boolean
-    On Error Resume Next
-    Dim s As Style
-    Set s = doc.Styles(sName)
-    StyleExists = (Err.Number = 0)
-    On Error GoTo 0
-End Function
 
 '=====================  应 用 样 式  =====================
 Public Sub ApplyRAToolsStyle(ByVal uiTagName As String)
