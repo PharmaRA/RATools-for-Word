@@ -1,6 +1,7 @@
 Attribute VB_Name = "Mod_HyperlinksToBlue"
 '=== 智能设置超链接和域为蓝色===
 Sub SetHyperlinksAndFieldsToBlue()
+    On Error GoTo ErrH
     Dim hyperlink As hyperlink
     Dim field As field
     Dim storyRange As Range
@@ -29,6 +30,11 @@ Sub SetHyperlinksAndFieldsToBlue()
     Else
         MsgBox "所有超链接和域已经是蓝色", vbInformation
     End If
+    Exit Sub
+
+ErrH:
+    Application.ScreenUpdating = True
+    MsgBox "设置蓝色失败：" & Err.Description, vbCritical
 End Sub
 
 Private Function ProcessFieldsExcludeCaptions(rng As Range) As Integer

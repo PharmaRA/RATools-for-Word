@@ -1,5 +1,6 @@
 Attribute VB_Name = "Mod_ConvertHeadingNumbers"
 Sub ConvertHeadingNumbers()
+    On Error GoTo ErrH
     ' 声明变量
     Dim i As Long
     Dim doc As Document
@@ -33,4 +34,9 @@ Sub ConvertHeadingNumbers()
     
     ' 提示完成
     MsgBox "修复版转换完成！共处理了 " & count & " 个标题。", vbInformation, "操作成功"
+    Exit Sub
+
+ErrH:
+    Application.ScreenUpdating = True
+    MsgBox "标题编号转换失败：" & Err.Description, vbCritical
 End Sub

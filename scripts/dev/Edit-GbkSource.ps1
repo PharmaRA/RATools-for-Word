@@ -44,6 +44,10 @@ if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
 $gbk = [System.Text.Encoding]::GetEncoding(936)
 $text = [System.IO.File]::ReadAllText($Path, $gbk)
 
+# VBA 源码固定为 CRLF；调用方脚本里的多行 here-string 可能是裸 LF，统一归一化
+$Old = $Old -replace "`r`n", "`n" -replace "`n", "`r`n"
+$New = $New -replace "`r`n", "`n" -replace "`n", "`r`n"
+
 $count = ([System.Text.RegularExpressions.Regex]::Matches(
     $text, [System.Text.RegularExpressions.Regex]::Escape($Old))).Count
 

@@ -81,6 +81,7 @@ Public Function ImportStyles(Optional isSilent As Boolean = False) As Boolean
     System.Cursor = wdCursorWait
     
     ' 2. 后台打开模版 (只读/不可见)
+    On Error GoTo OpenFail
     Set sourceDoc = Documents.Open(fileName:=tmplPath, ReadOnly:=True, Visible:=False)
     
     On Error Resume Next
@@ -129,6 +130,14 @@ Public Function ImportStyles(Optional isSilent As Boolean = False) As Boolean
     End If
     
     ImportStyles = True
+    Exit Function
+
+OpenFail:
+    ' 打开模板失败（被占用/损坏/路径失效）时必须恢复屏幕刷新与光标
+    System.Cursor = wdCursorNormal
+    Application.ScreenUpdating = True
+    If Not isSilent Then MsgBox "无法打开样式模板：" & Err.Description, vbCritical
+    ImportStyles = False
 End Function
 
 '=====================  智 能 样 式 映 射  =====================
