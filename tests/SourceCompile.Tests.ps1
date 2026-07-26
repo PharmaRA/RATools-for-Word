@@ -15,10 +15,7 @@ $failedModules = @()
 try {
     $sources = Get-RAToolsVbaSourceFiles -RepoRoot $repoRoot
 
-    $word = New-Object -ComObject Word.Application
-    $word.Visible = $false
-    $word.DisplayAlerts = 0
-    $word.AutomationSecurity = 1
+    $word = Start-RAToolsWordSession
 
     $doc = $word.Documents.Add()
     $project = $doc.VBProject
@@ -95,12 +92,7 @@ finally {
         $doc.Saved = $true
         $doc.Close(0)
     }
-    if ($null -ne $word) {
-        $word.Quit()
-        [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($word)
-    }
-    [GC]::Collect()
-    [GC]::WaitForPendingFinalizers()
+    Stop-RAToolsWordSession -Word $word
 }
 
 if ($failedModules.Count -gt 0) {

@@ -4,6 +4,8 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+Import-Module (Join-Path $PSScriptRoot "..\scripts\RATools.Build.psm1") -Force
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 
 function Assert-True {
@@ -175,10 +177,8 @@ Write-Output "Running QuickToolbar Word COM source-import smoke"
 $word = $null
 $doc = $null
 try {
-    $word = New-Object -ComObject Word.Application
-    $word.Visible = $false
-    $word.DisplayAlerts = 0
-    $word.AutomationSecurity = 1
+    $word = Start-RAToolsWordSession
+
     $doc = $word.Documents.Add()
 
     foreach ($sourceFile in @($modulePath, $actionModulePath, $styleNamesModulePath, $formPath)) {
@@ -466,7 +466,5 @@ finally {
     if ($null -ne $doc) {
         $doc.Close($false) | Out-Null
     }
-    if ($null -ne $word) {
-        $word.Quit() | Out-Null
-    }
+    Stop-RAToolsWordSession -Word $word
 }

@@ -1,4 +1,5 @@
 ﻿$ErrorActionPreference = "Stop"
+Import-Module (Join-Path $PSScriptRoot "..\scripts\RATools.Build.psm1") -Force
 
 # 校验 Mod_StyleNames 的中英映射表与 template/master-template-en.dotx 的
 # 实际样式名一致：每个映射目标英文名必须存在于英文模板中。
@@ -51,10 +52,7 @@ $word = $null
 $comDoc = $null
 $mappingLines = $null
 try {
-    $word = New-Object -ComObject Word.Application
-    $word.Visible = $false
-    $word.DisplayAlerts = 0
-    $word.AutomationSecurity = 1
+    $word = Start-RAToolsWordSession
     $comDoc = $word.Documents.Add()
     [void]$comDoc.VBProject.VBComponents.Import($styleModulePath)
 
@@ -78,9 +76,7 @@ End Function
 }
 finally {
     if ($null -ne $comDoc) { $comDoc.Saved = $true; $comDoc.Close(0) }
-    if ($null -ne $word) { $word.Quit() }
-    [GC]::Collect()
-    [GC]::WaitForPendingFinalizers()
+    Stop-RAToolsWordSession -Word $word
 }
 
 Assert-True ($mappingLines.Count -ge 40) "Mapping table too small: $($mappingLines.Count)"

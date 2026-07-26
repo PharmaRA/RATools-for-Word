@@ -7,6 +7,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+Import-Module (Join-Path $PSScriptRoot "..\scripts\RATools.Build.psm1") -Force
+
 if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
     $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 }
@@ -273,10 +275,8 @@ $designer = $null
 $helper = $null
 
 try {
-    $word = New-Object -ComObject Word.Application
-    $word.Visible = $false
-    $word.DisplayAlerts = 0
-    $word.AutomationSecurity = 1
+    $word = Start-RAToolsWordSession
+
     $document = $word.Documents.Add()
 
     $component = $document.VBProject.VBComponents.Import($formPath)
@@ -369,16 +369,13 @@ End Function
 }
 finally {
     if ($null -ne $document) { $document.Close($false) | Out-Null }
-    if ($null -ne $word) { $word.Quit() | Out-Null }
 
     Release-ComObjectSafe $helper
     Release-ComObjectSafe $designer
     Release-ComObjectSafe $component
     Release-ComObjectSafe $document
-    Release-ComObjectSafe $word
-    [GC]::Collect()
-    [GC]::WaitForPendingFinalizers()
-
+    Stop-RAToolsWordSession -Word $word
+    
     if (Test-Path -LiteralPath $workRoot) {
         Remove-Item -LiteralPath $workRoot -Recurse -Force
     }

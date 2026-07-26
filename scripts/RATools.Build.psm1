@@ -519,6 +519,58 @@ function Clear-RAToolsPackageMetadata {
     return $packageFull
 }
 
+function Start-RAToolsWordSession {
+    <#
+    .SYNOPSIS
+    启动用于自动化的 Word 实例（隐藏窗口、静默警告、放行宏）。
+
+    .DESCRIPTION
+    Build/Sync/COM 测试共用的会话样板。返回 Word Application COM 对象；
+    使用完毕必须调用 Stop-RAToolsWordSession 释放，否则残留 WINWORD 进程
+    会导致后续 VBComponents.Import 报"输入超出文件结尾"等假性错误。
+    #>
+    [CmdletBinding()]
+    param()
+
+    $word = New-Object -ComObject Word.Application
+    $word.Visible = $false
+    $word.DisplayAlerts = 0
+    # msoAutomationSecurityLow：允许打开含宏的模板
+    $word.AutomationSecurity = 1
+    return $word
+}
+
+function Stop-RAToolsWordSession {
+    <#
+    .SYNOPSIS
+    退出并释放 Start-RAToolsWordSession 启动的 Word 实例。
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [AllowNull()]
+        $Word
+    )
+
+    if ($null -eq $Word) {
+        return
+    }
+
+    try {
+        $Word.Quit()
+    }
+    catch {
+        Write-Warning "Word quit failed: $($_.Exception.Message)"
+    }
+
+    if ([Runtime.InteropServices.Marshal]::IsComObject($Word)) {
+        [void][Runtime.InteropServices.Marshal]::ReleaseComObject($Word)
+    }
+
+    [GC]::Collect()
+    [GC]::WaitForPendingFinalizers()
+}
+
 Export-ModuleMember -Function @(
     "Assert-RAToolsPathInsideRoot",
     "Get-RAToolsProjectLayout",
@@ -528,5 +580,7 @@ Export-ModuleMember -Function @(
     "Test-RAToolsDotmDirectory",
     "New-RAToolsDotmFromDirectory",
     "Expand-RAToolsDotmToDirectory",
-    "Clear-RAToolsPackageMetadata"
+    "Clear-RAToolsPackageMetadata",
+    "Start-RAToolsWordSession",
+    "Stop-RAToolsWordSession"
 )
