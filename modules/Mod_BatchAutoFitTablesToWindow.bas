@@ -1,34 +1,42 @@
 Attribute VB_Name = "Mod_BatchAutoFitTablesToWindow"
 Option Explicit
+
+' ==========================================
+' 一键表格自动调整：全文档表格设为“根据窗口自动调整”
+' ==========================================
+
+Private Const DIALOG_TITLE As String = "一键表格自动调整"
+
 Sub BatchAutoFitTablesToWindow()
-    '================================================
-    ' 功能：将文档中所有表格批量设置为“根据窗口自动调整”
-    '================================================
     Dim objTable As Table
     Dim tableCount As Long
+
+    If Documents.count = 0 Then
+        MsgBox "没有打开的文档！", vbExclamation, DIALOG_TITLE
+        Exit Sub
+    End If
+
+    BeginBatchUI
+    On Error GoTo ErrH
+
     tableCount = 0
-    
-    ' 关闭屏幕更新，加快处理速度，防止屏幕闪烁
-    Application.ScreenUpdating = False
-    
-    ' 检查文档中是否有表格
+
     If ActiveDocument.Tables.count > 0 Then
-        ' 循环遍历每一个表格
         For Each objTable In ActiveDocument.Tables
-            ' 应用“根据窗口自动调整”
-            objTable.AutoFitBehavior (wdAutoFitWindow)
+            objTable.AutoFitBehavior wdAutoFitWindow
             tableCount = tableCount + 1
         Next objTable
     Else
-        Application.ScreenUpdating = True
-        MsgBox "当前文档中没有发现表格。", vbExclamation, "提示"
+        EndBatchUI
+        MsgBox "当前文档中没有发现表格。", vbExclamation, DIALOG_TITLE
         Exit Sub
     End If
-    
-    ' 恢复屏幕更新
-    Application.ScreenUpdating = True
-    
-    ' 弹出完成提示
-    MsgBox "处理完成！已成功调整 " & tableCount & " 个表格。", vbInformation, "成功"
 
+    EndBatchUI
+    MsgBox "处理完成，已成功调整 " & tableCount & " 个表格。", vbInformation, DIALOG_TITLE
+    Exit Sub
+
+ErrH:
+    EndBatchUI
+    MsgBox "表格调整失败：" & Err.Description, vbCritical, DIALOG_TITLE
 End Sub
