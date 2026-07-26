@@ -19,6 +19,7 @@ Sub BatchAutoFitTablesToWindow()
             count = count + 1
         Next objTable
     Else
+        Application.ScreenUpdating = True
         MsgBox "当前文档中没有发现表格。", vbExclamation, "提示"
         Exit Sub
     End If
