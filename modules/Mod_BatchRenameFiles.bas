@@ -43,15 +43,9 @@ Sub BatchRenameFiles()
     ' 2. 根据模式获取文件列表
     If mode = vbYes Then
         ' --- 文件夹模式 (递归) ---
-        Set fDialog = Application.FileDialog(msoFileDialogFolderPicker)
-        fDialog.Title = "请选择包含待处理文件的文件夹"
-        
-        If fDialog.Show = -1 Then
-            targetFolder = fDialog.SelectedItems(1)
-            RecursiveGetFiles fso.GetFolder(targetFolder), fileList
-        Else
-            Exit Sub
-        End If
+        targetFolder = PickFolder("请选择需要批量处理文件名的文件夹")
+        If targetFolder = "" Then Exit Sub
+        RecursiveGetFiles fso.GetFolder(targetFolder), fileList
     Else
         ' --- 文件多选模式 ---
         Set fDialog = Application.FileDialog(msoFileDialogFilePicker)
@@ -96,7 +90,8 @@ Sub BatchRenameFiles()
     
     renamedCount = 0
     copyCount = 0
-    Application.ScreenUpdating = False
+    BeginBatchUI
+    On Error GoTo ErrH
     
     ' 4. 统一循环处理
     For Each vFile In fileList
@@ -159,8 +154,8 @@ Sub BatchRenameFiles()
         End If
         
     Next vFile
-    
-    Application.ScreenUpdating = True
+
+    EndBatchUI
     
     ' 5. 结果提示
     MsgBox "处理完成！" & vbCrLf & _
@@ -173,7 +168,11 @@ Sub BatchRenameFiles()
     Set fso = Nothing
     Set fDialog = Nothing
     Set fileList = Nothing
+    Exit Sub
 
+ErrH:
+    EndBatchUI
+    MsgBox "批量重命名出错：" & Err.Description, vbCritical, "批量修改文件名"
 End Sub
 
 ' ==========================================
