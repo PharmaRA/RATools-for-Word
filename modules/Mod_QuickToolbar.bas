@@ -8,6 +8,10 @@ Option Explicit
 ' 动作键清单与 scripts/QuickToolbarButtons.psd1 保持一致。
 ' =============================================
 
+' 悬浮窗的窗口标题（即窗体 Caption），Win32 按标题定位窗口时使用，
+' 必须与 frmQuickToolbar 的 Me.Caption 保持一致。
+Private Const QUICK_TOOLBAR_WINDOW_CAPTION As String = "RATools"
+
 Private Const QUICK_TOOLBAR_TITLE As String = "RATools 快捷工具栏"
 
 ' Ribbon 入口：显示或隐藏快捷悬浮窗（customUI14.xml onAction，不可改名）
@@ -31,6 +35,10 @@ Public Sub ShowQuickToolbar()
     On Error GoTo ErrH
     Load frmQuickToolbar
     frmQuickToolbar.Show vbModeless
+    ' Show 之后立刻脱离文档窗口，否则关闭该文档会连带销毁悬浮窗。
+    DetachQuickToolbarFromDocumentWindow
+    ' 显示悬浮窗不应抢走编辑焦点，否则用户回到正文要多点一次。
+    ReturnFocusToDocumentWindow
     Exit Sub
 
 ErrH:
@@ -46,6 +54,14 @@ End Sub
 ' 按钮统一通过动作键调升本过程（避免窗体复制 Ribbon 业务逻辑）。
 ' 单一分发表：19 个动作键与悬浮窗按钮一一对应。
 Public Sub RunQuickToolbarAction(ByVal actionKey As String)
+    DispatchQuickToolbarAction actionKey
+    ' 点击悬浮窗按钮会把激活状态移到窗体上，之后用户在正文里的第一次点击
+    ' 只是把焦点还给 Word，光标要点第二次才落到目标位置。动作结束后主动
+    ' 把焦点交还文档窗口，消除这次多余点击。成功与失败路径都要走到。
+    ReturnFocusToDocumentWindow
+End Sub
+
+Private Sub DispatchQuickToolbarAction(ByVal actionKey As String)
     On Error GoTo ErrH
 
     If Documents.Count = 0 Then
@@ -141,3 +157,47 @@ Public Function ReleaseQuickToolbarForTest() As Boolean
 ErrH:
     ReleaseQuickToolbarForTest = False
 End Function
+
+' ====== 悬浮窗窗口所有权（脱离单个文档窗口的生命周期） ======
+'
+' Word 2013+ 是 SDI，modeless UserForm 默认由 Show 时的活动文档窗口 own，
+' 关闭该文档会连带销毁窗体。下面几个过程把 owner 置 0 并接管窗体的显示、
+' 抬升与卸载；窗口定位统一用标题匹配，避免触碰默认实例导致意外加载窗体。
+
+' 让悬浮窗脱离当前文档窗口；须在 Show 之后调用
+Public Function DetachQuickToolbarFromDocumentWindow() As Boolean
+    On Error Resume Next
+    DetachQuickToolbarFromDocumentWindow = _
+        DetachUserFormWindowFromOwner(QUICK_TOOLBAR_WINDOW_CAPTION)
+End Function
+
+' 文档切换/激活后把悬浮窗抬回前面；未显示时什么都不做。
+' 刻意不访问 frmQuickToolbar.Visible：默认实例会在此处被隐式创建。
+Public Sub RaiseQuickToolbarIfVisible()
+    On Error Resume Next
+    If Not IsUserFormWindowVisible(QUICK_TOOLBAR_WINDOW_CAPTION) Then Exit Sub
+    RaiseUserFormWindow QUICK_TOOLBAR_WINDOW_CAPTION
+End Sub
+
+' 把激活状态交还 Word 文档窗口。
+'
+' 点击 modeless UserForm 会激活窗体自身的顶层窗口，Word 随之失活；用户回到
+' 正文的第一次点击只是重新激活 Word，光标要到第二次点击才落到目标位置。
+' 每个动作结束后调用本过程，把那次多余点击省掉。
+'
+' 用 Application.Activate 而非 SetForegroundWindow：前者是文档模型内的受支持
+' 做法，且不受前台窗口切换限制的影响。无文档打开时静默返回。
+Public Sub ReturnFocusToDocumentWindow()
+    On Error Resume Next
+    If Documents.Count = 0 Then Exit Sub
+    Application.Activate
+End Sub
+
+' Word 退出前卸载悬浮窗：owner 置 0 后它不再随文档窗口销毁，
+' 必须显式卸载，否则位置来不及存盘。
+Public Sub UnloadQuickToolbarOnQuit()
+    On Error Resume Next
+    If FindUserFormWindow(QUICK_TOOLBAR_WINDOW_CAPTION) = 0 Then Exit Sub
+    frmQuickToolbar.SaveToolbarPosition
+    Unload frmQuickToolbar
+End Sub
