@@ -35,7 +35,8 @@ Public Sub ShowQuickToolbar()
     On Error GoTo ErrH
     Load frmQuickToolbar
     frmQuickToolbar.Show vbModeless
-    ' Show 之后立刻脱离文档窗口，否则关闭该文档会连带销毁悬浮窗。
+    ' Show 之后立刻脱离文档窗口，否则关闭该文档会连带销毁悬浮窗；
+    ' 脱离 owner 的同时会把窗体钉进置顶层，避免被 Word 主窗口盖住（见 Mod_Core_Window）。
     DetachQuickToolbarFromDocumentWindow
     ' 显示悬浮窗不应抢走编辑焦点，否则用户回到正文要多点一次。
     ReturnFocusToDocumentWindow
@@ -162,7 +163,7 @@ End Function
 '
 ' Word 2013+ 是 SDI，modeless UserForm 默认由 Show 时的活动文档窗口 own，
 ' 关闭该文档会连带销毁窗体。下面几个过程把 owner 置 0 并接管窗体的显示、
-' 抬升与卸载；窗口定位统一用标题匹配，避免触碰默认实例导致意外加载窗体。
+' 置顶与卸载；窗口定位统一用标题匹配，避免触碰默认实例导致意外加载窗体。
 
 ' 让悬浮窗脱离当前文档窗口；须在 Show 之后调用
 Public Function DetachQuickToolbarFromDocumentWindow() As Boolean
@@ -171,15 +172,15 @@ Public Function DetachQuickToolbarFromDocumentWindow() As Boolean
         DetachUserFormWindowFromOwner(QUICK_TOOLBAR_WINDOW_CAPTION)
 End Function
 
-' 文档切换/激活后把悬浮窗抬回前面；未显示时什么都不做。
+' 文档切换/激活后再确认一次悬浮窗置顶；未显示时什么都不做。
 ' 刻意不访问 frmQuickToolbar.Visible：默认实例会在此处被隐式创建。
 Public Sub RaiseQuickToolbarIfVisible()
     On Error Resume Next
     If Not IsUserFormWindowVisible(QUICK_TOOLBAR_WINDOW_CAPTION) Then Exit Sub
-    RaiseUserFormWindow QUICK_TOOLBAR_WINDOW_CAPTION
+    KeepUserFormWindowOnTop QUICK_TOOLBAR_WINDOW_CAPTION
 End Sub
 
-' 把激活状态交还 Word 文档窗口。
+' 把激活状态交还 Word 文档窗口，并确认悬浮窗仍在最前。
 '
 ' 点击 modeless UserForm 会激活窗体自身的顶层窗口，Word 随之失活；用户回到
 ' 正文的第一次点击只是重新激活 Word，光标要到第二次点击才落到目标位置。
@@ -187,10 +188,15 @@ End Sub
 '
 ' 用 Application.Activate 而非 SetForegroundWindow：前者是文档模型内的受支持
 ' 做法，且不受前台窗口切换限制的影响。无文档打开时静默返回。
+'
+' 激活 Word 会把文档窗口抬到 z 序最前，owner 为 0 的悬浮窗只靠置顶层留在前面，
+' 所以交还焦点后再确认一次置顶。少了这一步，点完一个按钮悬浮窗就被 Word 盖到
+' 后面，而工具窗没有任务栏按钮，用户只能从 Ribbon 关掉再打开才能接着点。
 Public Sub ReturnFocusToDocumentWindow()
     On Error Resume Next
     If Documents.Count = 0 Then Exit Sub
     Application.Activate
+    RaiseQuickToolbarIfVisible
 End Sub
 
 ' Word 退出前卸载悬浮窗：owner 置 0 后它不再随文档窗口销毁，

@@ -31,6 +31,21 @@ Word/VBE 在中文 Windows 上按系统 ANSI 代码页（936）导入导出 VBA 
 5. **纯 ASCII 修改不受限**：如果改动只涉及 ASCII 字符且工具保持原字节
    不动，无需特殊处理；但"整文件重写"式的工具仍会破坏文件中已有的中文。
 
+## 反向契约：PowerShell 脚本必须是带 BOM 的 UTF-8
+
+VBA 源码走 GBK，**构建/测试脚本走相反的约定**：`.ps1/.psm1/.psd1` 中只要含非 ASCII
+字符（几乎所有脚本都有中文注释），就必须存为**带 BOM 的 UTF-8**。
+
+Windows PowerShell 5.1 对无 BOM 文件按系统 ANSI 代码页解码。在中文系统（936）上，
+UTF-8 中文注释被按双字节 GBK 拆读，行尾落单的前导字节会与 CRLF 的 `0x0A` 配成一个
+字符、把换行吞掉，紧随其后的那行代码于是被划进注释、静默失效。
+`scripts/RATools.Build.psm1` 曾因此让 `Set-RAToolsAppVersion` 报
+"无法检索变量 `$gbkEncoding`"，本地 `.dotm` 构建随之失败；而 CI 的 ANSI 是 1252，
+单字节解码不会吞换行，同一份文件在 CI 上全绿，所以这类故障只在中文机器上暴露。
+
+`tests/ScriptEncoding.Tests.ps1`（无 COM）守住这条契约：遍历仓库内的 PowerShell
+文件，含非 ASCII 者断言 BOM 存在且内容是合法 UTF-8（顺带拦住误存为 GBK 的脚本）。
+
 ## 验证手段
 
 - `tests/BuildRATools.Tests.ps1` 的 "Set-RAToolsAppVersion preserves GBK
