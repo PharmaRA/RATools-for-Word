@@ -95,6 +95,7 @@ $frxPath = Join-Path $repoRoot "userforms\frmQuickToolbar.frx"
 $modulePath = Join-Path $repoRoot "modules\Mod_QuickToolbar.bas"
 $actionModulePath = Join-Path $repoRoot "modules\Mod_QuickToolbarActions.bas"
 $styleNamesModulePath = Join-Path $repoRoot "modules\Mod_StyleNames.bas"
+$windowModulePath = Join-Path $repoRoot "modules\Mod_Core_Window.bas"
 $syncScriptPath = Join-Path $repoRoot "scripts\Sync-QuickToolbarForm.ps1"
 $iconScriptPath = Join-Path $repoRoot "scripts\Generate-QuickToolbarIcon.ps1"
 $ribbonPath = Join-Path $repoRoot "dotm\customUI\customUI14.xml"
@@ -106,6 +107,8 @@ foreach ($requiredPath in @(
     $frxPath,
     $modulePath,
     $actionModulePath,
+    $styleNamesModulePath,
+    $windowModulePath,
     $syncScriptPath,
     $iconScriptPath,
     $ribbonPath,
@@ -114,7 +117,7 @@ foreach ($requiredPath in @(
 )) {
     Assert-True (Test-Path -LiteralPath $requiredPath -PathType Leaf) "Required quick toolbar file should exist: $requiredPath"
 }
-Assert-True ((Get-Item -LiteralPath $frxPath).Length -gt 25000) "Quick toolbar FRX should contain all 19 embedded icon pictures."
+Assert-True ((Get-Item -LiteralPath $frxPath).Length -gt 25000) "Quick toolbar FRX should contain all $($expectedItems.Count) embedded icon pictures."
 
 $formText = Read-VbaSource -Path $formPath
 $moduleText = Read-VbaSource -Path $modulePath
@@ -148,6 +151,9 @@ Assert-Contains $formText "If rowIndex >= 4 Then" "Toolbar should separate the c
 Assert-Contains $formText "GetButtonLeft = (Me.InsideWidth - rowWidth) / 2" "Each button row should be centered from the live client width."
 Assert-Contains $formText "ByVal buttonItem As MSForms.Label" "Toolbar controls should use flat label tiles."
 Assert-Contains $formText ".PicturePosition = fmPicturePositionCenter" "Toolbar icons should be centered inside each tile."
+Assert-Contains $formText "Private Sub UserForm_MouseMove" "The form should hook mouse-move to raise the tooltip."
+Assert-Contains $formText "_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)" "Button mouse-move handlers should match the MSForms signature."
+Assert-Contains $formText "RefreshTooltipWatch" "Form mouse-move handlers should call the refresh entry."
 Assert-Contains $moduleText "Public Sub ToggleQuickToolbar" "Ribbon toggle callback should exist."
 Assert-Contains $moduleText "Public Sub RunQuickToolbarAction" "Action dispatcher should exist."
 foreach ($b in $buttonData.Buttons) {
@@ -181,7 +187,7 @@ try {
 
     $doc = $word.Documents.Add()
 
-    foreach ($sourceFile in @($modulePath, $actionModulePath, $styleNamesModulePath, $formPath)) {
+    foreach ($sourceFile in @($modulePath, $actionModulePath, $styleNamesModulePath, $windowModulePath, $formPath)) {
         try {
             [void]$doc.VBProject.VBComponents.Import($sourceFile)
         }
@@ -274,7 +280,7 @@ End Function
 '@)
 
     $buttonCount = [int]$word.Run("GetQuickToolbarButtonCount")
-    Assert-True ($buttonCount -eq $expectedItems.Count) "Quick toolbar should contain 19 controls; got $buttonCount."
+    Assert-True ($buttonCount -eq $expectedItems.Count) "Quick toolbar should contain $($expectedItems.Count) controls; got $buttonCount."
 
     $toolbarCaption = [string]$word.Run("GetQuickToolbarCaptionForTest")
     Assert-True ($toolbarCaption -eq "RATools") "Quick toolbar title should be readable; got $toolbarCaption."
@@ -320,7 +326,7 @@ End Function
 
     [void]$word.Run("ReleaseQuickToolbarForTest")
     $toolbarComponent = $doc.VBProject.VBComponents.Item("frmQuickToolbar")
-    Assert-True ([int]$toolbarComponent.Designer.Controls.Count -eq $expectedItems.Count) "Designer should contain exactly 19 controls."
+    Assert-True ([int]$toolbarComponent.Designer.Controls.Count -eq $expectedItems.Count) "Designer should contain exactly $($expectedItems.Count) controls."
     for ($i = 0; $i -lt $expectedItems.Count; $i++) {
         $item = $expectedItems[$i]
         $control = $toolbarComponent.Designer.Controls.Item([string]$item.Name)
@@ -398,7 +404,7 @@ End Function
         Assert-True ($componentNames -contains "frmQuickToolbar") "Built dotm should contain frmQuickToolbar."
 
         $artifactToolbar = $doc.VBProject.VBComponents.Item("frmQuickToolbar")
-        Assert-True ([int]$artifactToolbar.Designer.Controls.Count -eq $expectedItems.Count) "Built toolbar should contain exactly 19 controls."
+        Assert-True ([int]$artifactToolbar.Designer.Controls.Count -eq $expectedItems.Count) "Built toolbar should contain exactly $($expectedItems.Count) controls."
         $artifactCode = $artifactToolbar.CodeModule.Lines(1, $artifactToolbar.CodeModule.CountOfLines)
         Assert-Contains $artifactCode "GetButtonLeft = (Me.InsideWidth - rowWidth) / 2" "Built toolbar should preserve row centering."
         Assert-Contains $artifactCode "If rowIndex >= 2 Then" "Built toolbar should preserve the first group gap."

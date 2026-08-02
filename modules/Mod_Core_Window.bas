@@ -40,11 +40,36 @@ Private Declare PtrSafe Function SetWindowPos Lib "user32" ( _
     ByVal hWnd As LongPtr, ByVal hWndInsertAfter As LongPtr, _
     ByVal X As Long, ByVal Y As Long, ByVal cx As Long, ByVal cy As Long, _
     ByVal uFlags As Long) As Long
+Private Declare PtrSafe Function FindWindowEx Lib "user32" Alias "FindWindowExA" ( _
+    ByVal hWndParent As LongPtr, ByVal hWndChildAfter As LongPtr, _
+    ByVal lpClassName As String, ByVal lpWindowName As String) As LongPtr
+Private Declare PtrSafe Function GetWindow Lib "user32" ( _
+    ByVal hWnd As LongPtr, ByVal uCmd As Long) As LongPtr
+Private Declare PtrSafe Function GetAncestor Lib "user32" ( _
+    ByVal hWnd As LongPtr, ByVal gaFlags As Long) As LongPtr
+Private Declare PtrSafe Function GetParent Lib "user32" ( _
+    ByVal hWnd As LongPtr) As LongPtr
+Private Declare PtrSafe Function GetWindowRect Lib "user32" ( _
+    ByVal hWnd As LongPtr, ByRef windowRect As WINDOWRECT) As Long
+Private Const MAX_TOOLTIP_WIDTH As Long = 400
+Private Const MAX_TOOLTIP_HEIGHT As Long = 60
+
 
 ' MSForms UserForm 的窗口类名
 Public Const USERFORM_WINDOW_CLASS As String = "ThunderDFrame"
 
+Private Type WINDOWRECT
+    Left As Long
+    Top As Long
+    Right As Long
+    Bottom As Long
+End Type
+
 Private Const GWL_EXSTYLE As Long = -20
+Private Const GW_OWNER As Long = 4
+Private Const GA_ROOT As Long = 2
+Private Const GA_ROOTOWNER As Long = 3
+
 Private Const GWLP_HWNDPARENT As Long = -8
 Private Const WS_EX_TOOLWINDOW As Long = &H80
 Private Const WS_EX_APPWINDOW As Long = &H40000
@@ -167,6 +192,79 @@ Public Function IsUserFormWindowOnTop(ByVal windowCaption As String) As Boolean
 ErrH:
     IsUserFormWindowOnTop = False
 End Function
+
+' 悬浮窗钉入置顶层后，ControlTipText 的提示气泡是独立的 MSForms 窗口
+' （类名 "F3 Tooltip ..."），默认不在置顶带，显示时会落在窗体层级下面。
+' 把本窗体可见的气泡钉回置顶带；气泡隐藏时不动它，反复抬高由调用方的周期轮询完成。
+Public Function EnsureTooltipOnTop(ByVal windowCaption As String) As Boolean
+    Dim formHandle As LongPtr
+    Dim tipHandle As LongPtr
+
+    On Error GoTo ErrH
+
+    formHandle = FindUserFormWindow(windowCaption)
+    If formHandle = 0 Then Exit Function
+
+    ' 类名带进程相关后缀且每次运行可能变化，只能枚举全部顶层窗口做前缀匹配。
+    Dim scanCount As Long
+    tipHandle = FindWindowEx(0, 0, vbNullString, vbNullString)
+    Do While tipHandle <> 0
+        ' 保险：限制扫描窗口数，防止任何异常导致的死循环
+        scanCount = scanCount + 1
+        If scanCount > 5000 Then Exit Do
+
+        If IsTooltipOfForm(tipHandle, formHandle) Then
+            If IsWindowVisible(tipHandle) <> 0 Then
+                ' 注意：SetWindowPos(HWND_TOPMOST) 会改变窗口 Z 序，
+                ' 继续 FindWindowEx 枚举会被打乱导致死循环，所以抬升后立即退出。
+                SetWindowPos tipHandle, HWND_TOPMOST, 0, 0, 0, 0, _
+                             SWP_NOMOVE Or SWP_NOSIZE Or SWP_NOACTIVATE
+                Exit Do
+            End If
+        End If
+        tipHandle = FindWindowEx(0, tipHandle, vbNullString, vbNullString)
+    Loop
+    EnsureTooltipOnTop = True
+    Exit Function
+
+ErrH:
+    EnsureTooltipOnTop = False
+End Function
+
+' 气泡属于本窗体：类名以 "F3 Tooltip" 开头，且根 owner 是窗体本身
+' 或窗体的某个后代窗口（MSForms 气泡由内部容器窗口 owner，owner 链根是窗体）。
+Private Function IsTooltipOfForm(ByVal tooltipHandle As LongPtr, _
+                                 ByVal formHandle As LongPtr) As Boolean
+    Dim tipRect As WINDOWRECT
+    Dim formRect As WINDOWRECT
+
+    On Error GoTo ErrH
+
+    ' 气泡是小尺寸窗口；先按尺寸过滤掉窗体本身、容器与普通窗口。
+    If GetWindowRect(tooltipHandle, tipRect) = 0 Then Exit Function
+    If tipRect.Right - tipRect.Left > MAX_TOOLTIP_WIDTH Then Exit Function
+    If tipRect.Bottom - tipRect.Top > MAX_TOOLTIP_HEIGHT Then Exit Function
+
+    ' 气泡的 owner 是悬浮窗之外的窗口（实测），但显示时必与窗体矩形重叠；
+    ' 用矩形相交判定归属，绕开 owner 链不可靠的问题。
+    If GetWindowRect(formHandle, formRect) = 0 Then Exit Function
+    If tipRect.Right <= formRect.Left Then Exit Function
+    If tipRect.Left >= formRect.Right Then Exit Function
+    If tipRect.Bottom <= formRect.Top Then Exit Function
+    If tipRect.Top >= formRect.Bottom Then Exit Function
+
+    IsTooltipOfForm = True
+    Exit Function
+
+ErrH:
+    IsTooltipOfForm = False
+End Function
+
+
+
+
+
+
 
 ' ====== 32/64 位 GetWindowLong 差异收敛在此两个包装内 ======
 

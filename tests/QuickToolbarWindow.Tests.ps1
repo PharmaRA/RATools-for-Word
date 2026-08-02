@@ -109,6 +109,11 @@ Assert-Contains $windowText "Public Function KeepUserFormWindowOnTop(ByVal windo
 Assert-Contains $windowText "Public Function IsUserFormWindowOnTop(ByVal windowCaption As String) As Boolean" "Window layer should expose IsUserFormWindowOnTop."
 Assert-NotContains $windowText "RaiseUserFormWindow" "HWND_TOP based raising was replaced by the topmost band; no stale helper should remain."
 Assert-NotContains $windowText "HWND_TOP As LongPtr = 0" "Plain HWND_TOP cannot keep an ownerless form above Word; it should be gone."
+Assert-Contains $windowText 'Private Declare PtrSafe Function FindWindowEx Lib "user32" Alias "FindWindowExA"' "Window layer should enumerate tooltip windows."
+Assert-Contains $windowText 'Private Const MAX_TOOLTIP_WIDTH As Long = 400' "Window layer should filter tooltips by size."
+Assert-Contains $windowText "Private Type WINDOWRECT" "Window layer should use a RECT type for window geometry."
+Assert-Contains $windowText "Public Function EnsureTooltipOnTop(ByVal windowCaption As String) As Boolean" "Window layer should expose EnsureTooltipOnTop."
+Assert-Contains $windowText "Private Function IsTooltipOfForm" "Window layer should scope tooltip raising to the form's own tooltip."
 
 $keepOnTopBody = Get-ProcedureBody -Text $windowText `
     -Signature "Public Function KeepUserFormWindowOnTop(ByVal windowCaption As String) As Boolean" `
@@ -123,6 +128,26 @@ $isOnTopBody = Get-ProcedureBody -Text $windowText `
     -Terminator "End Function"
 Assert-Contains $isOnTopBody "GetWindowLongCompat(windowHandle, GWL_EXSTYLE) And WS_EX_TOPMOST" "IsUserFormWindowOnTop should read the live WS_EX_TOPMOST bit."
 
+$tooltipBody = Get-ProcedureBody -Text $windowText `
+    -Signature "Public Function EnsureTooltipOnTop(ByVal windowCaption As String) As Boolean" `
+    -Terminator "End Function"
+Assert-Contains $tooltipBody 'FindWindowEx(0, 0, vbNullString, vbNullString)' "EnsureTooltipOnTop should enumerate all top-level windows."
+Assert-Contains $tooltipBody "scanCount > 5000 Then Exit Do" "EnsureTooltipOnTop should bound the scan to prevent any runaway loop."
+Assert-Contains $tooltipBody "IsTooltipOfForm(tipHandle, formHandle)" "EnsureTooltipOnTop should only touch tooltips belonging to the form."
+Assert-Contains $tooltipBody "SetWindowPos tipHandle, HWND_TOPMOST" "EnsureTooltipOnTop should pin the visible tooltip into the topmost band."
+Assert-Contains $tooltipBody "SWP_NOACTIVATE" "Raising the tooltip must not steal focus."
+Assert-Contains $tooltipBody "IsWindowVisible(tipHandle) <> 0" "EnsureTooltipOnTop should only raise visible tooltips."
+$exitDoIndex = $tooltipBody.IndexOf("SetWindowPos tipHandle, HWND_TOPMOST")
+$nextIndex = $tooltipBody.IndexOf("Exit Do", $exitDoIndex)
+Assert-True ($exitDoIndex -ge 0 -and $nextIndex -gt $exitDoIndex -and ($nextIndex - $exitDoIndex) -lt 400) "SetWindowPos changes Z order, so the scan must Exit Do right after raising to avoid re-visiting the same window forever."
+
+$isTooltipBody = Get-ProcedureBody -Text $windowText -Signature "Private Function IsTooltipOfForm" -Terminator "End Function"
+Assert-Contains $isTooltipBody "GetWindowRect(tooltipHandle, tipRect) = 0" "IsTooltipOfForm should read the tooltip's geometry."
+Assert-Contains $isTooltipBody "tipRect.Right - tipRect.Left > MAX_TOOLTIP_WIDTH" "IsTooltipOfForm should reject oversized windows."
+Assert-Contains $isTooltipBody "GetWindowRect(formHandle, formRect) = 0" "IsTooltipOfForm should read the form's geometry."
+Assert-Contains $isTooltipBody "tipRect.Right <= formRect.Left" "IsTooltipOfForm should require horizontal overlap with the form."
+Assert-Contains $isTooltipBody "tipRect.Bottom <= formRect.Top" "IsTooltipOfForm should require vertical overlap with the form."
+
 # 脱离 owner 与置顶必须成对：owner 为 0 的窗体不再被 Word 自动压在文档窗口之上
 $detachBody = Get-ProcedureBody -Text $windowText `
     -Signature "Public Function DetachUserFormWindowFromOwner(ByVal windowCaption As String) As Boolean" `
@@ -136,6 +161,7 @@ Assert-CallOrder -Body $detachBody -First "ShowWindow windowHandle, SW_SHOWNA" -
 $showBody = Get-ProcedureBody -Text $toolbarText -Signature "Public Sub ShowQuickToolbar()" -Terminator "End Sub"
 Assert-CallOrder -Body $showBody -First "frmQuickToolbar.Show vbModeless" -Then "DetachQuickToolbarFromDocumentWindow" `
     -Message "ShowQuickToolbar should detach only after the window handle exists."
+Assert-NotContains $showBody "StartTooltipTopmostWatch" "ShowQuickToolbar should not arm any Win32 timer poll (it can hang Word)."
 Assert-CallOrder -Body $showBody -First "DetachQuickToolbarFromDocumentWindow" -Then "ReturnFocusToDocumentWindow" `
     -Message "ShowQuickToolbar should hand the focus back to the document last."
 
@@ -148,12 +174,27 @@ Assert-Contains $raiseBody "If Not IsUserFormWindowVisible(QUICK_TOOLBAR_WINDOW_
 Assert-Contains $raiseBody "KeepUserFormWindowOnTop QUICK_TOOLBAR_WINDOW_CAPTION" "Raising should re-assert the topmost band."
 Assert-NotContains $raiseBody "frmQuickToolbar.Visible" "Raising must not touch the default instance, or it would load the form implicitly."
 
+Assert-Contains $toolbarText "Public Sub RefreshTooltipWatch()" "Toolbar should expose the mouse-move event entry."
+Assert-NotContains $toolbarText "SetTimer" "No Win32 timer poll may remain (it hangs Word's UI thread)."
+Assert-NotContains $toolbarText "KillTimer" "No timer cleanup may remain."
+Assert-NotContains $toolbarText "StartTooltipTopmostWatch" "No stale watch-start procedure may remain."
+Assert-NotContains $toolbarText "StopTooltipTopmostWatch" "No stale watch-stop procedure may remain."
+$refreshBody = Get-ProcedureBody -Text $toolbarText -Signature "Public Sub RefreshTooltipWatch()" -Terminator "End Sub"
+Assert-Contains $refreshBody "If Not IsUserFormWindowVisible(QUICK_TOOLBAR_WINDOW_CAPTION) Then Exit Sub" "Refresh should no-op while the toolbar is hidden."
+Assert-Contains $refreshBody "EnsureTooltipOnTop QUICK_TOOLBAR_WINDOW_CAPTION" "Refresh should raise the form's visible tooltip synchronously."
+
 $focusBody = Get-ProcedureBody -Text $toolbarText -Signature "Public Sub ReturnFocusToDocumentWindow()" -Terminator "End Sub"
 Assert-Contains $focusBody "If Documents.Count = 0 Then Exit Sub" "Returning focus should be silent with no document open."
 Assert-CallOrder -Body $focusBody -First "Application.Activate" -Then "RaiseQuickToolbarIfVisible" `
     -Message "Activating Word raises its document window, so the toolbar must be re-asserted afterwards; without this the toolbar sinks behind Word after one click."
 
 Assert-Contains $toolbarText "Public Sub UnloadQuickToolbarOnQuit()" "Word quit should still unload the ownerless toolbar."
+$unloadBody = Get-ProcedureBody -Text $toolbarText -Signature "Public Sub UnloadQuickToolbarOnQuit()" -Terminator "End Sub"
+Assert-NotContains $unloadBody "StopTooltipTopmostWatch" "Word quit should not reference the removed timer stop."
+$hideBody = Get-ProcedureBody -Text $toolbarText -Signature "Public Sub HideQuickToolbar()" -Terminator "End Sub"
+Assert-NotContains $hideBody "StopTooltipTopmostWatch" "Hiding the toolbar should not reference the removed timer stop."
+$toggleBody = Get-ProcedureBody -Text $toolbarText -Signature "Public Sub ToggleQuickToolbar(ByVal control As IRibbonControl)" -Terminator "End Sub"
+Assert-NotContains $toggleBody "StopTooltipTopmostWatch" "Toggling off should not reference the removed timer stop."
 
 # --- clsAppEvents：文档生命周期钩子 ---
 $documentChangeBody = Get-ProcedureBody -Text $appEventsText -Signature "Private Sub App_DocumentChange()" -Terminator "End Sub"
@@ -170,6 +211,7 @@ foreach ($match in [regex]::Matches($windowText, "(?m)^Public (?:Function|Sub) (
     $exported[$match.Groups[1].Value] = $true
 }
 Assert-True ($exported.Count -ge 5) "Window layer should export its helper set; found $($exported.Count)."
+Assert-True ($exported.ContainsKey("EnsureTooltipOnTop")) "Mod_QuickToolbar calls EnsureTooltipOnTop, which Mod_Core_Window does not export."
 
 $callers = @{ "Mod_QuickToolbar.bas" = $toolbarText }
 foreach ($caller in $callers.GetEnumerator()) {

@@ -12,6 +12,11 @@ Option Explicit
 ' 必须与 frmQuickToolbar 的 Me.Caption 保持一致。
 Private Const QUICK_TOOLBAR_WINDOW_CAPTION As String = "RATools"
 
+' 提示气泡置顶轮询：窗体钉入置顶层后，MSForms 的 ControlTipText 气泡
+' （tooltips_class32 窗口）默认不在置顶带，会被窗体压住。用系统定时器周期性
+' 把可见的气泡钉回置顶带，窗体隐藏或 Word 退出时停止。
+
+
 Private Const QUICK_TOOLBAR_TITLE As String = "RATools 快捷工具栏"
 
 ' Ribbon 入口：显示或隐藏快捷悬浮窗（customUI14.xml onAction，不可改名）
@@ -50,6 +55,18 @@ Public Sub HideQuickToolbar()
     On Error Resume Next
     frmQuickToolbar.SaveToolbarPosition
     frmQuickToolbar.Hide
+End Sub
+
+' 悬浮窗可见期间，用系统定时器周期性把提示气泡钉回置顶带；
+' 窗体隐藏或 Word 退出时停止。气泡窗口由 MSForms 按需创建，只有轮询能随时抓住它。
+
+
+
+
+Public Sub RefreshTooltipWatch()
+    On Error Resume Next
+    If Not IsUserFormWindowVisible(QUICK_TOOLBAR_WINDOW_CAPTION) Then Exit Sub
+    EnsureTooltipOnTop QUICK_TOOLBAR_WINDOW_CAPTION
 End Sub
 
 ' 按钮统一通过动作键调升本过程（避免窗体复制 Ribbon 业务逻辑）。
@@ -92,16 +109,14 @@ Private Sub DispatchQuickToolbarAction(ByVal actionKey As String)
             ApplyRAToolsStyle UnnumberedHeadingStyle(4)
 
         ' --- 其他样式 ---
-        Case "style_body"
-            ApplyRAToolsStyle BodyTextStyle()
+
         Case "style_table_title"
             ApplyRAToolsStyle TableTitleStyle()
         Case "style_figure_title"
             ApplyRAToolsStyle FigureTitleStyle()
 
         ' --- Word 内置命令 ---
-        Case "format_painter"
-            ExecuteQuickToolbarMso "FormatPainter"
+
         Case "paragraph_settings"
             ExecuteQuickToolbarMso "ParagraphDialog"
         Case "insert_cross_reference"
@@ -110,16 +125,14 @@ Private Sub DispatchQuickToolbarAction(ByVal actionKey As String)
             ExecuteQuickToolbarMso "FieldsUpdate"
 
         ' --- Ribbon 命令复用 ---
-        Case "text_blue"
-            SetTextBlue Nothing
+
         Case "page_break_before"
             TogglePageBreakBefore Nothing
         Case "autofit_table"
             AutoFitTableWindow Nothing
 
         ' --- 批处理宏 ---
-        Case "normalize_terms"
-            NormalizeScientificTerms
+
         Case "hyperlinks_fields_blue"
             SetHyperlinksAndFieldsToBlue
         Case "accept_revisions_comments"

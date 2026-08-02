@@ -102,6 +102,10 @@ function New-FormCode {
 Private Sub $($item.Name)_Click()
     RunQuickToolbarAction "$($item.Action)"
 End Sub
+
+Private Sub $($item.Name)_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+    RefreshTooltipWatch
+End Sub
 "@
     }
 
@@ -128,6 +132,10 @@ Private Sub UserForm_Initialize()
 __CONFIGURE_LINES__
 
     RestoreToolbarPosition
+End Sub
+
+Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+    RefreshTooltipWatch
 End Sub
 
 Private Sub ConfigureButton(ByVal buttonItem As MSForms.Label, _
