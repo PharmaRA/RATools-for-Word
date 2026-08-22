@@ -117,6 +117,8 @@ Private Sub DispatchQuickToolbarAction(ByVal actionKey As String)
 
         ' --- Word ÄÚÖÃÃüÁî ---
 
+        Case "format_painter"
+            ExecuteQuickToolbarMso "FormatPainter"
         Case "paragraph_settings"
             ExecuteQuickToolbarMso "ParagraphDialog"
         Case "insert_cross_reference"

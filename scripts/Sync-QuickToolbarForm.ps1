@@ -20,7 +20,7 @@ $workRoot = Join-Path ([IO.Path]::GetTempPath()) ("RATools_QuickToolbar_" + [gui
 
 # 按钮与布局定义单一事实源：QuickToolbarButtons.psd1
 # （tests/QuickToolbar.Tests.ps1 从同一文件推导期望值）
-$buttonData = Import-PowerShellDataFile (Join-Path $PSScriptRoot "QuickToolbarButtons.psd1")
+$buttonData = Import-RAToolsDataFile (Join-Path $PSScriptRoot "QuickToolbarButtons.psd1")
 $toolbarItems = $buttonData.Buttons
 $layoutSpec = $buttonData.Layout
 

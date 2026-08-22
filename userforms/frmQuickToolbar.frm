@@ -40,16 +40,17 @@ Private Sub UserForm_Initialize()
     ConfigureButton Me.btnUnnumberedHeading2, 1, 1, 4, 5
     ConfigureButton Me.btnUnnumberedHeading3, 1, 2, 4, 6
     ConfigureButton Me.btnUnnumberedHeading4, 1, 3, 4, 7
-    ConfigureButton Me.btnParagraphSettings, 2, 0, 3, 8
-    ConfigureButton Me.btnPageBreakBefore, 2, 1, 3, 9
-    ConfigureButton Me.btnTableTitle, 2, 2, 3, 10
-    ConfigureButton Me.btnFigureTitle, 3, 0, 4, 11
-    ConfigureButton Me.btnAutoFitTable, 3, 1, 4, 12
-    ConfigureButton Me.btnInsertCrossReference, 3, 2, 4, 13
-    ConfigureButton Me.btnUpdateFields, 3, 3, 4, 14
-    ConfigureButton Me.btnHyperlinksFieldsBlue, 4, 0, 3, 15
-    ConfigureButton Me.btnAcceptRevisionsComments, 4, 1, 3, 16
-    ConfigureButton Me.btnDetectHighlights, 4, 2, 3, 17
+    ConfigureButton Me.btnFormatPainter, 2, 0, 4, 8
+    ConfigureButton Me.btnParagraphSettings, 2, 1, 4, 9
+    ConfigureButton Me.btnPageBreakBefore, 2, 2, 4, 10
+    ConfigureButton Me.btnTableTitle, 2, 3, 4, 11
+    ConfigureButton Me.btnFigureTitle, 3, 0, 4, 12
+    ConfigureButton Me.btnAutoFitTable, 3, 1, 4, 13
+    ConfigureButton Me.btnInsertCrossReference, 3, 2, 4, 14
+    ConfigureButton Me.btnUpdateFields, 3, 3, 4, 15
+    ConfigureButton Me.btnHyperlinksFieldsBlue, 4, 0, 3, 16
+    ConfigureButton Me.btnAcceptRevisionsComments, 4, 1, 3, 17
+    ConfigureButton Me.btnDetectHighlights, 4, 2, 3, 18
 
     RestoreToolbarPosition
 End Sub
@@ -164,6 +165,13 @@ Private Sub btnUnnumberedHeading4_Click()
 End Sub
 
 Private Sub btnUnnumberedHeading4_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+    RefreshTooltipWatch
+End Sub
+Private Sub btnFormatPainter_Click()
+    RunQuickToolbarAction "format_painter"
+End Sub
+
+Private Sub btnFormatPainter_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
     RefreshTooltipWatch
 End Sub
 Private Sub btnParagraphSettings_Click()

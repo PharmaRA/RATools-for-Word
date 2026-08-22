@@ -573,7 +573,31 @@ function Stop-RAToolsWordSession {
     [GC]::WaitForPendingFinalizers()
 }
 
+function Import-RAToolsDataFile {
+    <#
+    .SYNOPSIS
+    读取 PowerShell 数据文件 (.psd1)，向后兼容缺少 Import-PowerShellDataFile cmdlet 的环境。
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Path
+    )
+
+    if (Get-Command Import-PowerShellDataFile -ErrorAction SilentlyContinue) {
+        return Import-PowerShellDataFile -LiteralPath $Path
+    }
+
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        throw "Data file not found: $Path"
+    }
+
+    $rawContent = Get-Content -LiteralPath $Path -Raw -Encoding UTF8
+    return (Invoke-Expression $rawContent)
+}
+
 Export-ModuleMember -Function @(
+    "Import-RAToolsDataFile",
     "Assert-RAToolsPathInsideRoot",
     "Get-RAToolsProjectLayout",
     "Get-RAToolsVbaSourceFiles",

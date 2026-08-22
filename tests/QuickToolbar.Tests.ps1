@@ -39,7 +39,7 @@ function Read-VbaSource {
 # 按钮定义单一事实源：scripts/QuickToolbarButtons.psd1
 # 本测试的全部期望值（名称/提示/图标/布局/分发结果）由该文件推导，
 # 修改按钮后无需同步改测试。
-$buttonData = Import-PowerShellDataFile (Join-Path $repoRoot "scripts\QuickToolbarButtons.psd1")
+$buttonData = Import-RAToolsDataFile (Join-Path $repoRoot "scripts\QuickToolbarButtons.psd1")
 $layoutSpec = $buttonData.Layout
 
 function Get-ExpectedQuickToolbarLayout {

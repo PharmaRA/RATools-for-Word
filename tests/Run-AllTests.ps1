@@ -19,6 +19,7 @@ $suites = @(
     @{ Name = "BatchRenameFiles";        File = "BatchRenameFiles.Tests.ps1";        RequiresCom = $true },
     @{ Name = "NormalizeScientificTerms"; File = "NormalizeScientificTerms.Tests.ps1"; RequiresCom = $true },
     @{ Name = "BatchDetectHighlights";   File = "BatchDetectHighlights.Tests.ps1";   RequiresCom = $true },
+    @{ Name = "BatchConvertWordToPDF";   File = "BatchConvertWordToPDF.Tests.ps1";   RequiresCom = $true },
     @{ Name = "QuickToolbar";            File = "QuickToolbar.Tests.ps1";            RequiresCom = $true }
 )
 

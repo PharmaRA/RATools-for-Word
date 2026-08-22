@@ -41,7 +41,7 @@ Public Function GetMyMacroRegistry() As Variant
     ' 第3个
     items.Add Array("BatchConvertWordToPDF", _
                     "Word批量转PDF", _
-                    "批量将单个或多个Word转为PDF，并通过Word标题创建PDF书签。")
+                    "批量将单个或多个Word转为PDF文档，支持锁定域所见即所得、仅刷新页码或刷新整个目录，并通过Word标题创建PDF书签。")
     
     ' 第4个
     items.Add Array("BatchRenameFiles", _
