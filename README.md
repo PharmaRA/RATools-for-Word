@@ -6,7 +6,7 @@
 
 本插件基于 `.dotm`（启用宏的模板）定义功能核心，并通过 `.dotx` 文件管理样式模板。旨在解决药品RA人在文档编写中频繁切换选项卡、格式调整繁琐等痛点。
 
-当前发布版本：`v0.8.2`。
+当前发布版本：`v0.8.3`。
 
 **主要特性：**
 
@@ -164,9 +164,26 @@ RATools 的样式应用功能依赖于底层的 `.dotx` 模板文件。如果你
 
 ### 2. 创建属于自己的宏并添加至宏列表中
 
-RATools 支持扩展。如果你具备 VBA 开发能力，可以将自己的常用脚本集成到工具中：
+RATools 支持扩展。如果你具备 VBA 开发能力，可以将自己的常用脚本集成到宏列表工具中：
 
-1. 打开 RATools 的主程序文件（`.dotm`），但是不要直接打开 `D:\RATools`中的`.dotm`文件，可以复制到其他路径打开。
+#### 方式一：源码优先（推荐开发者使用）
+
+1. **编写宏代码**：在 `modules/` 目录下新建模块文件（例如 `Mod_MyMacro.bas`），或在现有业务模块中编写无参的 `Public Sub` 过程。
+2. **注册宏信息**：打开 `modules/Mod_MacroRegistry.bas`，在 `GetMyMacroRegistry` 函数中添加一行注册项：
+   ```vba
+   items.Add Array("你的宏过程名", _
+                   "列表显示的中文名称", _
+                   "下方显示的详细功能说明")
+   ```
+3. **一键构建**：在项目根目录下运行本地构建脚本：
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File scripts\Build-RAToolsDotm.ps1
+   ```
+   构建脚本会自动将源码同步编译至 `dist/RATools_local.dotm` 与 `dotm/` 目录。将生成的 `.dotm` 部署至 `D:\RATools` 即可。
+
+#### 方式二：直接在 Word VBA 编辑器中修改（免构建环境）
+
+1. 打开 RATools 的主程序文件（`.dotm`），注意不要直接打开正在被 Word 占用的 `D:\RATools` 中的文件，建议复制到其他临时路径打开。
 
    <div align="center"> <img src="_image/12_1.png" width=100%/> </div>
 
@@ -178,13 +195,17 @@ RATools 支持扩展。如果你具备 VBA 开发能力，可以将自己的常�
 
 4. 编写你的 `Public Sub` 过程（宏代码）。
 
-5. 在「mRibbon」模块中末尾处添加你所创建的宏代码的信息。
+5. 在 **`Mod_MacroRegistry`** 模块中，找到 `GetMyMacroRegistry` 函数，在末尾处添加你所创建宏的注册信息：
+   ```vba
+   items.Add Array("你的宏过程名", "列表显示的中文名称", "下方显示的详细功能说明")
+   ```
 
-   <div align="center"> <img src="_image/12_3.png" width=75%/> </div>
+6. 测试无误后保存代码，并将保存后的 `.dotm` 文件移动覆盖至 `D:\RATools`（操作前请注意备份）。
 
-6. 测试无误后左上角保存代码并将保存后的 `.dotm` 文件移动至 `D:\RATools`，删除之前的版本（注意备份）。
-
-你的自定义宏现在可以通过 Word 的宏列表或 RATools 的宏管理功能进行调用，实现功能的个性化扩展。
+> **💡 编写与注册说明**：
+> - 宏列表通过 `Application.Run` 按过程名动态执行，因此自定义宏必须是**标准模块中的无参 `Public Sub`**。
+> - 过程无需与注册表放在同一模块中，跨模块调用均可被正确识别。
+> - 若调用的宏需要参数（例如 Ribbon 按钮回调的 `control As IRibbonControl`），请编写一个无参的包装过程（如 `Sub Wrapper_MyMacro()`）进行封装后再注册。
 
 ## 📝 交流与反馈
 

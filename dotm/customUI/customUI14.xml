@@ -8,13 +8,36 @@
 
                 <!-- == 模板加载 == -->
                 <group id="grpLogo" label="模板">
-                    <button id="btnLogo"
-                            label="点击加载"
-                            image="Logo"
-                            size="large"
-                            description="为当前文档附加主样式模板"
-                            screentip="为当前文档附加主样式模板"
-                            onAction="AttachTemplate"/>
+                    <splitButton id="splitBtnTemplate" size="large">
+                        <button id="btnLogo"
+                                label="加载"
+                                image="Logo"
+                                description="为当前文档附加主样式模板"
+                                screentip="加载样式模板"
+                                supertip="默认加载中文申报模板；点击下方箭头可直接选择英文模板或自定义模板。"
+                                onAction="AttachTemplate"/>
+                        <menu id="menuTemplate" itemSize="normal">
+                            <button id="btnAttachCN"
+                                    label="加载中文模板 (CN)"
+                                    imageMso="Word2010InsertTheme"
+                                    screentip="加载中文样式模板"
+                                    supertip="从 master-template-cn.dotx 导入正文、标题等中文申报样式"
+                                    onAction="AttachTemplateCN"/>
+                            <button id="btnAttachEN"
+                                    label="加载英文模板 (EN)"
+                                    imageMso="Translation"
+                                    screentip="加载英文样式模板"
+                                    supertip="从 master-template-en.dotx 导入正文、标题等英文申报样式"
+                                    onAction="AttachTemplateEN"/>
+                            <menuSeparator id="sepTemplate"/>
+                            <button id="btnAttachCustom"
+                                    label="浏览其他模板..."
+                                    imageMso="OpenFolder"
+                                    screentip="自定义模板"
+                                    supertip="手动选择任意 .dotx / .dotm / .dot 样式模板文件导入"
+                                    onAction="AttachTemplateCustom"/>
+                        </menu>
+                    </splitButton>
                 </group>
 
                 <!-- == 编号标题 1-9 == -->
