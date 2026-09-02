@@ -1,4 +1,4 @@
-Attribute VB_Name = "Mod_BatchAutoFitTablesToWindow"
+Attribute VB_Name = "Macro_BatchAutoFitTables"
 Option Explicit
 
 ' ==========================================

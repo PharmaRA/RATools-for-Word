@@ -58,8 +58,8 @@ UTF-8 中文注释被按双字节 GBK 拆读，行尾落单的前导字节会与
 
 ## 例外清单
 
-- `Mod_NormalizeScientificTerms.bas`、部分纯 ASCII 模块：无中文内容，
+- `Macro_NormalizeScientificTerms.bas`、部分纯 ASCII 模块：无中文内容，
   GBK 与 ASCII 兼容，无特殊处理。
 - `frmAbout.frm` 保留一份私有 `FromCodePoints`（码点构造中文），
   这是窗体导入隔离下的历史规避手段；新代码一律直接写 GBK 中文字面量，
-  公共版本在 `Mod_Core_Text`。
+  公共版本在 `Core_Text`。

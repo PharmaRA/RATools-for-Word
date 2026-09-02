@@ -1,4 +1,4 @@
-Attribute VB_Name = "Mod_NormalizeScientificTerms"
+Attribute VB_Name = "Macro_NormalizeScientificTerms"
 Option Explicit
 
 Public Sub NormalizeScientificTerms()

@@ -1,4 +1,4 @@
-Attribute VB_Name = "Mod_UpdateChecker"
+Attribute VB_Name = "Engine_UpdateChecker"
 Option Explicit
 
 Private Const APP_VERSION As String = "v0.8.3"

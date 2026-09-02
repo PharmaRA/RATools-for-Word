@@ -1,4 +1,4 @@
-Attribute VB_Name = "Mod_DocCommands"
+Attribute VB_Name = "UI_RibbonCommands"
 Option Explicit
 
 ' =============================================

@@ -1,4 +1,4 @@
-Attribute VB_Name = "Mod_QuickToolbarActions"
+Attribute VB_Name = "UI_QuickToolbarActions"
 Option Explicit
 
 ' =============================================

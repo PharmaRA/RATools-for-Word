@@ -1,4 +1,4 @@
-Attribute VB_Name = "Mod_MacroRegistry"
+Attribute VB_Name = "UI_MacroRegistry"
 Option Explicit
 
 ' =============================================

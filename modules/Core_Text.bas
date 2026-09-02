@@ -1,4 +1,4 @@
-Attribute VB_Name = "Mod_Core_Text"
+Attribute VB_Name = "Core_Text"
 Option Explicit
 
 ' =============================================

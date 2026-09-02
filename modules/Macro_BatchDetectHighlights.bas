@@ -1,4 +1,4 @@
-Attribute VB_Name = "Mod_BatchDetectHighlights"
+Attribute VB_Name = "Macro_BatchDetectHighlights"
 Option Explicit
 
 ' ==========================================

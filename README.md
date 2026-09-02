@@ -30,7 +30,7 @@
 
 - 日常开发优先直接修改 `modules/`、`class_modules/`、`userforms/` 中的源码文件。
 - 修改完成后运行 `powershell -ExecutionPolicy Bypass -File scripts\Build-RAToolsDotm.ps1`。
-- 构建脚本会以当前 `dotm/` 为模板基底，先按 `CHANGELOG.md` 顶部版本同步 `Mod_UpdateChecker.bas` 中的 `APP_VERSION`，再自动把源码导入 VBA 工程，清理作者、最后修改者、公司等文档元数据，保存新的 `.dotm`，同步回 `dotm/`，并生成 `dist/RATools_local.dotm`。
+- 构建脚本会以当前 `dotm/` 为模板基底，先按 `CHANGELOG.md` 顶部版本同步 `Engine_UpdateChecker.bas` 中的 `APP_VERSION`，再自动把源码导入 VBA 工程，清理作者、最后修改者、公司等文档元数据，保存新的 `.dotm`，同步回 `dotm/`，并生成 `dist/RATools_local.dotm`。
 - 如需在提交前自动同步，可运行 `powershell -ExecutionPolicy Bypass -File scripts\Install-RAToolsBuildHook.ps1` 安装本地 `pre-commit` hook。hook 会要求相关 VBA 源码先暂存，避免提交中的源码和 `dotm/` 不一致；卸载可运行同一脚本并加上 `-Uninstall`。
 
 原有流程仍然保留：如果你仍然在 Word 的 VBA 编辑器中修改主程序，可以保存 `.dotm` 后手动解包回 `dotm/`；远程发布工作流仍会基于 `dotm/` 打包发布。
@@ -168,8 +168,8 @@ RATools 支持扩展。如果你具备 VBA 开发能力，可以将自己的常�
 
 #### 方式一：源码优先（推荐开发者使用）
 
-1. **编写宏代码**：在 `modules/` 目录下新建模块文件（例如 `Mod_MyMacro.bas`），或在现有业务模块中编写无参的 `Public Sub` 过程。
-2. **注册宏信息**：打开 `modules/Mod_MacroRegistry.bas`，在 `GetMyMacroRegistry` 函数中添加一行注册项：
+1. **编写宏代码**：在 `modules/` 目录下新建模块文件（例如 `Macro_MyMacro.bas`），或在现有业务模块中编写无参的 `Public Sub` 过程。
+2. **注册宏信息**：打开 `modules/UI_MacroRegistry.bas`，在 `GetMyMacroRegistry` 函数中添加一行注册项：
    ```vba
    items.Add Array("你的宏过程名", _
                    "列表显示的中文名称", _
@@ -195,7 +195,7 @@ RATools 支持扩展。如果你具备 VBA 开发能力，可以将自己的常�
 
 4. 编写你的 `Public Sub` 过程（宏代码）。
 
-5. 在 **`Mod_MacroRegistry`** 模块中，找到 `GetMyMacroRegistry` 函数，在末尾处添加你所创建宏的注册信息：
+5. 在 **`UI_MacroRegistry`** 模块中，找到 `GetMyMacroRegistry` 函数，在末尾处添加你所创建宏的注册信息：
    ```vba
    items.Add Array("你的宏过程名", "列表显示的中文名称", "下方显示的详细功能说明")
    ```

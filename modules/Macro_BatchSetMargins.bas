@@ -1,4 +1,4 @@
-Attribute VB_Name = "Mod_BatchSetMargins"
+Attribute VB_Name = "Macro_BatchSetMargins"
 Option Explicit
 
 ' ==========================================

@@ -3,7 +3,7 @@
 Import-Module (Join-Path $PSScriptRoot "..\scripts\RATools.Build.psm1") -Force
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
-$modulePath = Join-Path $repoRoot "modules\Mod_BatchDetectHighlights.bas"
+$modulePath = Join-Path $repoRoot "modules\Macro_BatchDetectHighlights.bas"
 
 function Assert-Equal {
     param($Expected, $Actual, [string]$Message)

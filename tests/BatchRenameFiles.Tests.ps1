@@ -1,10 +1,10 @@
 ﻿$ErrorActionPreference = "Stop"
 Import-Module (Join-Path $PSScriptRoot "..\scripts\RATools.Build.psm1") -Force
 
-# Mod_BatchRenameFiles 文件名清洗规则测试（纯逻辑，不触碰文件系统）。
+# Macro_BatchRenameFiles 文件名清洗规则测试（纯逻辑，不触碰文件系统）。
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$modulePath = Join-Path $repoRoot "modules\Mod_BatchRenameFiles.bas"
+$modulePath = Join-Path $repoRoot "modules\Macro_BatchRenameFiles.bas"
 
 function Assert-True {
     param([bool]$Condition, [string]$Message)

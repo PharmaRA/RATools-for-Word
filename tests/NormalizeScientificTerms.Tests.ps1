@@ -3,7 +3,7 @@
 Import-Module (Join-Path $PSScriptRoot "..\scripts\RATools.Build.psm1") -Force
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
-$modulePath = Join-Path $repoRoot "modules\Mod_NormalizeScientificTerms.bas"
+$modulePath = Join-Path $repoRoot "modules\Macro_NormalizeScientificTerms.bas"
 $logPath = Join-Path ([System.IO.Path]::GetTempPath()) "RATools_NormalizeScientificTerms_Test.log"
 
 function Write-Step {

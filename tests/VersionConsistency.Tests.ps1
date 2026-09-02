@@ -1,6 +1,6 @@
 ﻿$ErrorActionPreference = "Stop"
 
-# 校验版本号三处一致：CHANGELOG.md 顶部标题、Mod_UpdateChecker.bas 的 APP_VERSION、README.md 的“当前发布版本”。
+# 校验版本号三处一致：CHANGELOG.md 顶部标题、Engine_UpdateChecker.bas 的 APP_VERSION、README.md 的“当前发布版本”。
 # 全程纯文本读取，无 Word COM 依赖，可在 CI 运行。
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
@@ -29,7 +29,7 @@ function Run-Test {
     & $Body
 }
 
-$updateCheckerPath = Join-Path $repoRoot "modules\Mod_UpdateChecker.bas"
+$updateCheckerPath = Join-Path $repoRoot "modules\Engine_UpdateChecker.bas"
 $readmePath = Join-Path $repoRoot "README.md"
 
 $changelogVersion = Get-RAToolsLatestChangelogVersion -RepoRoot $repoRoot
@@ -42,7 +42,7 @@ Run-Test "Changelog top version is a vX.Y.Z tag" {
 Run-Test "APP_VERSION matches changelog version" {
     $source = Get-Content -LiteralPath $updateCheckerPath -Raw
     $match = [Regex]::Match($source, 'Private\s+Const\s+APP_VERSION\s+As\s+String\s*=\s*"([^"]+)"')
-    Assert-True $match.Success "APP_VERSION constant not found in Mod_UpdateChecker.bas"
+    Assert-True $match.Success "APP_VERSION constant not found in Engine_UpdateChecker.bas"
     Assert-True ($match.Groups[1].Value -eq $changelogVersion) `
         "APP_VERSION <$($match.Groups[1].Value)> does not match changelog <$changelogVersion>"
 }

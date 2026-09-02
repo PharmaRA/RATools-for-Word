@@ -1,4 +1,4 @@
-Attribute VB_Name = "Mod_Core_UI"
+Attribute VB_Name = "Core_UI"
 Option Explicit
 
 ' =============================================

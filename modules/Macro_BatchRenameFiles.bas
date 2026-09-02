@@ -1,4 +1,4 @@
-Attribute VB_Name = "Mod_BatchRenameFiles"
+Attribute VB_Name = "Macro_BatchRenameFiles"
 Option Explicit
 Sub BatchRenameFiles()
     ' ==============================================================================

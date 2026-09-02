@@ -77,8 +77,8 @@ function Assert-CallOrder {
 
 Write-Output "Running QuickToolbar window-layer checks"
 
-$windowModulePath = Join-Path $repoRoot "modules\Mod_Core_Window.bas"
-$toolbarModulePath = Join-Path $repoRoot "modules\Mod_QuickToolbar.bas"
+$windowModulePath = Join-Path $repoRoot "modules\Core_Window.bas"
+$toolbarModulePath = Join-Path $repoRoot "modules\UI_QuickToolbar.bas"
 $appEventsPath = Join-Path $repoRoot "class_modules\clsAppEvents.cls"
 
 foreach ($requiredPath in @($windowModulePath, $toolbarModulePath, $appEventsPath)) {
@@ -101,7 +101,7 @@ $windowText = Read-VbaSource -Path $windowModulePath
 $toolbarText = Read-VbaSource -Path $toolbarModulePath
 $appEventsText = Read-VbaSource -Path $appEventsPath
 
-# --- Mod_Core_Window：置顶层原语 ---
+# --- Core_Window：置顶层原语 ---
 Assert-Contains $windowText 'Private Declare PtrSafe Function SetWindowPos Lib "user32"' "Window layer should declare SetWindowPos."
 Assert-Contains $windowText "Private Const HWND_TOPMOST As LongPtr = -1" "Window layer should define HWND_TOPMOST."
 Assert-Contains $windowText "Private Const WS_EX_TOPMOST As Long = &H8" "Window layer should define WS_EX_TOPMOST for its state check."
@@ -157,7 +157,7 @@ Assert-Contains $detachBody "WS_EX_TOOLWINDOW" "Detach should keep the toolbar o
 Assert-CallOrder -Body $detachBody -First "ShowWindow windowHandle, SW_SHOWNA" -Then "KeepUserFormWindowOnTop windowCaption" `
     -Message "Detach should pin the form on top after re-showing it, otherwise Word buries an ownerless toolwindow."
 
-# --- Mod_QuickToolbar：显示、动作、焦点归还 ---
+# --- UI_QuickToolbar：显示、动作、焦点归还 ---
 $showBody = Get-ProcedureBody -Text $toolbarText -Signature "Public Sub ShowQuickToolbar()" -Terminator "End Sub"
 Assert-CallOrder -Body $showBody -First "frmQuickToolbar.Show vbModeless" -Then "DetachQuickToolbarFromDocumentWindow" `
     -Message "ShowQuickToolbar should detach only after the window handle exists."
@@ -198,11 +198,11 @@ Assert-NotContains $toggleBody "StopTooltipTopmostWatch" "Toggling off should no
 
 # --- clsAppEvents：文档生命周期钩子 ---
 $documentChangeBody = Get-ProcedureBody -Text $appEventsText -Signature "Private Sub App_DocumentChange()" -Terminator "End Sub"
-Assert-Contains $documentChangeBody "Mod_QuickToolbar.RaiseQuickToolbarIfVisible" "Switching documents should re-assert the toolbar."
+Assert-Contains $documentChangeBody "UI_QuickToolbar.RaiseQuickToolbarIfVisible" "Switching documents should re-assert the toolbar."
 $windowActivateBody = Get-ProcedureBody -Text $appEventsText -Signature "Private Sub App_WindowActivate(ByVal Doc As Document, ByVal Wn As Window)" -Terminator "End Sub"
-Assert-Contains $windowActivateBody "Mod_QuickToolbar.RaiseQuickToolbarIfVisible" "Activating a document window should re-assert the toolbar."
+Assert-Contains $windowActivateBody "UI_QuickToolbar.RaiseQuickToolbarIfVisible" "Activating a document window should re-assert the toolbar."
 $quitBody = Get-ProcedureBody -Text $appEventsText -Signature "Private Sub App_Quit()" -Terminator "End Sub"
-Assert-Contains $quitBody "Mod_QuickToolbar.UnloadQuickToolbarOnQuit" "Word quit should save the toolbar position."
+Assert-Contains $quitBody "UI_QuickToolbar.UnloadQuickToolbarOnQuit" "Word quit should save the toolbar position."
 
 # --- 跨文件引用完整性：悬浮窗调用的窗口层过程必须真实存在 ---
 # 重命名窗口层过程而漏改调用方，只有在 Word 里编译时才会报错，这里提前拦住。
@@ -211,13 +211,13 @@ foreach ($match in [regex]::Matches($windowText, "(?m)^Public (?:Function|Sub) (
     $exported[$match.Groups[1].Value] = $true
 }
 Assert-True ($exported.Count -ge 5) "Window layer should export its helper set; found $($exported.Count)."
-Assert-True ($exported.ContainsKey("EnsureTooltipOnTop")) "Mod_QuickToolbar calls EnsureTooltipOnTop, which Mod_Core_Window does not export."
+Assert-True ($exported.ContainsKey("EnsureTooltipOnTop")) "UI_QuickToolbar calls EnsureTooltipOnTop, which Core_Window does not export."
 
-$callers = @{ "Mod_QuickToolbar.bas" = $toolbarText }
+$callers = @{ "UI_QuickToolbar.bas" = $toolbarText }
 foreach ($caller in $callers.GetEnumerator()) {
     foreach ($match in [regex]::Matches($caller.Value, "\b(\w*UserFormWindow\w*)\b")) {
         $name = $match.Groups[1].Value
-        Assert-True ($exported.ContainsKey($name)) "$($caller.Key) calls $name, which Mod_Core_Window does not export."
+        Assert-True ($exported.ContainsKey($name)) "$($caller.Key) calls $name, which Core_Window does not export."
     }
 }
 

@@ -1,4 +1,4 @@
-Attribute VB_Name = "Mod_ExtractAbbreviations"
+Attribute VB_Name = "Macro_ExtractAbbreviations"
 Option Explicit
 Sub ExtractAbbreviations()
     Dim docSource As Document

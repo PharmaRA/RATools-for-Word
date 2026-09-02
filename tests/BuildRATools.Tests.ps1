@@ -211,13 +211,13 @@ Run-Test "Get-RAToolsLatestChangelogVersion reads the first changelog heading" {
     }
 }
 
-Run-Test "Set-RAToolsAppVersion updates Mod_UpdateChecker APP_VERSION" {
+Run-Test "Set-RAToolsAppVersion updates Engine_UpdateChecker APP_VERSION" {
     $root = New-TestRepo
-    $modulePath = Join-Path $root "modules\Mod_UpdateChecker.bas"
+    $modulePath = Join-Path $root "modules\Engine_UpdateChecker.bas"
 
     try {
         Set-Content -LiteralPath $modulePath -Value @"
-Attribute VB_Name = "Mod_UpdateChecker"
+Attribute VB_Name = "Engine_UpdateChecker"
 Option Explicit
 
 Private Const APP_VERSION As String = "v0.1.0"
@@ -238,13 +238,13 @@ Private Const GITHUB_REPOSITORY_URL As String = "https://github.com/PharmaRA/RAT
 
 Run-Test "Set-RAToolsAppVersion preserves GBK Chinese content" {
     $root = New-TestRepo
-    $modulePath = Join-Path $root "modules\Mod_UpdateChecker.bas"
+    $modulePath = Join-Path $root "modules\Engine_UpdateChecker.bas"
     $gbk = [System.Text.Encoding]::GetEncoding(936)
 
     try {
         # 模拟真实场景：模块含 GBK 中文注释与字面量
         $sourceWithChinese = @"
-Attribute VB_Name = "Mod_UpdateChecker"
+Attribute VB_Name = "Engine_UpdateChecker"
 Option Explicit
 
 ' 检查更新模块：版本常量由构建脚本自动同步

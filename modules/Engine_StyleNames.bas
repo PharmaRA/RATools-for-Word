@@ -1,4 +1,4 @@
-Attribute VB_Name = "Mod_StyleNames"
+Attribute VB_Name = "Engine_StyleNames"
 Option Explicit
 
 ' =============================================

@@ -1,4 +1,4 @@
-Attribute VB_Name = "Mod_BatchConvertWordToPDF"
+Attribute VB_Name = "Macro_BatchConvertWordToPDF"
 Option Explicit
 
 ' ==========================================

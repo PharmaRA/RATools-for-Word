@@ -1,4 +1,4 @@
-Attribute VB_Name = "Mod_Core_Files"
+Attribute VB_Name = "Core_Files"
 Option Explicit
 
 ' =============================================

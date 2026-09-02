@@ -1,4 +1,4 @@
-Attribute VB_Name = "Mod_Core_Window"
+Attribute VB_Name = "Core_Window"
 Option Explicit
 
 ' =============================================

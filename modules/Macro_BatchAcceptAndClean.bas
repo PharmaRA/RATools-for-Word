@@ -1,4 +1,4 @@
-Attribute VB_Name = "Mod_BatchAcceptAndClean"
+Attribute VB_Name = "Macro_BatchAcceptAndClean"
 Option Explicit
 
 ' =============================================

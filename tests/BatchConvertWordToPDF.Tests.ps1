@@ -2,11 +2,11 @@
 $ErrorActionPreference = "Stop"
 Import-Module (Join-Path $PSScriptRoot "..\scripts\RATools.Build.psm1") -Force
 
-# Mod_BatchConvertWordToPDF 转换选项与域锁定机制测试。
+# Macro_BatchConvertWordToPDF 转换选项与域锁定机制测试。
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$modulePath = Join-Path $repoRoot "modules\Mod_BatchConvertWordToPDF.bas"
-$macroRegistryPath = Join-Path $repoRoot "modules\Mod_MacroRegistry.bas"
+$modulePath = Join-Path $repoRoot "modules\Macro_BatchConvertWordToPDF.bas"
+$macroRegistryPath = Join-Path $repoRoot "modules\UI_MacroRegistry.bas"
 
 function Assert-True {
     param([bool]$Condition, [string]$Message)
@@ -47,9 +47,9 @@ $doc = $null
 try {
     $word = Start-RAToolsWordSession
     $doc = $word.Documents.Add()
-    [void]$doc.VBProject.VBComponents.Import((Join-Path $repoRoot "modules\Mod_Core_Files.bas"))
-    [void]$doc.VBProject.VBComponents.Import((Join-Path $repoRoot "modules\Mod_Core_Session.bas"))
-    [void]$doc.VBProject.VBComponents.Import((Join-Path $repoRoot "modules\Mod_Core_UI.bas"))
+    [void]$doc.VBProject.VBComponents.Import((Join-Path $repoRoot "modules\Core_Files.bas"))
+    [void]$doc.VBProject.VBComponents.Import((Join-Path $repoRoot "modules\Core_Session.bas"))
+    [void]$doc.VBProject.VBComponents.Import((Join-Path $repoRoot "modules\Core_UI.bas"))
     [void]$doc.VBProject.VBComponents.Import($modulePath)
 
     # 1. 主文档正文域

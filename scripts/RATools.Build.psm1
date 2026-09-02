@@ -305,7 +305,7 @@ function Set-RAToolsAppVersion {
     }
 
     $layout = Get-RAToolsProjectLayout -RepoRoot $RepoRoot
-    $modulePath = Join-Path $layout.ModulesDirectory "Mod_UpdateChecker.bas"
+    $modulePath = Join-Path $layout.ModulesDirectory "Engine_UpdateChecker.bas"
 
     if (-not (Test-Path -LiteralPath $modulePath -PathType Leaf)) {
         throw "Missing update checker module: $modulePath"

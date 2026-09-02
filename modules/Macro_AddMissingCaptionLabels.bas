@@ -1,4 +1,4 @@
-Attribute VB_Name = "Mod_AddMissingCaptionLabels"
+Attribute VB_Name = "Macro_AddMissingCaptionLabels"
 Option Explicit
 
 Public Sub AddMissingCaptionLabels()

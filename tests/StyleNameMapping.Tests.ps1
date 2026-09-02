@@ -1,14 +1,14 @@
 ﻿$ErrorActionPreference = "Stop"
 Import-Module (Join-Path $PSScriptRoot "..\scripts\RATools.Build.psm1") -Force
 
-# 校验 Mod_StyleNames 的中英映射表与 template/master-template-en.dotx 的
+# 校验 Engine_StyleNames 的中英映射表与 template/master-template-en.dotx 的
 # 实际样式名一致：每个映射目标英文名必须存在于英文模板中。
 # 通过解包 dotx 读取 word/styles.xml 的 w:name 清单（纯文件解析，但依赖
 # Word COM 导入源码执行 GetStyleNameMappingData，故归类 COM 测试）。
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 $templatePath = Join-Path $repoRoot "template\master-template-en.dotx"
-$styleModulePath = Join-Path $repoRoot "modules\Mod_StyleNames.bas"
+$styleModulePath = Join-Path $repoRoot "modules\Engine_StyleNames.bas"
 
 function Assert-True {
     param([bool]$Condition, [string]$Message)

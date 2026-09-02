@@ -1,4 +1,4 @@
-Attribute VB_Name = "Mod_Core_Session"
+Attribute VB_Name = "Core_Session"
 Option Explicit
 
 ' =============================================

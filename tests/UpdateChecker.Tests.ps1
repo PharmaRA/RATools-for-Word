@@ -1,11 +1,11 @@
 ﻿$ErrorActionPreference = "Stop"
 Import-Module (Join-Path $PSScriptRoot "..\scripts\RATools.Build.psm1") -Force
 
-# Mod_UpdateChecker 纯逻辑函数测试：版本比较与 JSON 字段提取。
+# Engine_UpdateChecker 纯逻辑函数测试：版本比较与 JSON 字段提取。
 # 需要 Word COM 执行 VBA，但不联网、不弹窗。
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$modulePath = Join-Path $repoRoot "modules\Mod_UpdateChecker.bas"
+$modulePath = Join-Path $repoRoot "modules\Engine_UpdateChecker.bas"
 
 function Assert-True {
     param([bool]$Condition, [string]$Message)

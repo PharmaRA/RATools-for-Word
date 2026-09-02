@@ -1,4 +1,4 @@
-Attribute VB_Name = "Mod_HyperlinksToBlue"
+Attribute VB_Name = "Macro_HyperlinksToBlue"
 Option Explicit
 '=== 智能设置超链接和域为蓝色===
 Sub SetHyperlinksAndFieldsToBlue()

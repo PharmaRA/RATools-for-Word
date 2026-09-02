@@ -30,7 +30,7 @@ v0.6.4
 版本号需要同时用于：
 
 - `CHANGELOG.md` 顶部标题。
-- `modules/Mod_UpdateChecker.bas` 中的 `APP_VERSION`，构建脚本会自动同步。
+- `modules/Engine_UpdateChecker.bas` 中的 `APP_VERSION`，构建脚本会自动同步。
 - Git tag。
 - GitHub Release 名称和资产名。
 
@@ -106,7 +106,7 @@ powershell -ExecutionPolicy Bypass -File scripts\Build-RAToolsDotm.ps1 -AppVersi
 
 这一步会：
 
-- 按 `CHANGELOG.md` 顶部版本同步 `modules\Mod_UpdateChecker.bas` 中的 `APP_VERSION`。
+- 按 `CHANGELOG.md` 顶部版本同步 `modules\Engine_UpdateChecker.bas` 中的 `APP_VERSION`。
 - 从 `modules/`、`class_modules/`、`userforms/` 导入 VBA 源码。
 - 清理作者、最后修改者、公司等文档元数据。
 - 生成 `dist\RATools_local.dotm`。
@@ -120,7 +120,7 @@ git status --short
 
 如果 `dotm/word/vbaProject.bin` 等文件变化，这是预期结果，需要随本次发布提交。
 
-如果 `modules/Mod_UpdateChecker.bas` 变化，通常是 `APP_VERSION` 被同步到了当前发布版本，也需要随本次发布提交。
+如果 `modules/Engine_UpdateChecker.bas` 变化，通常是 `APP_VERSION` 被同步到了当前发布版本，也需要随本次发布提交。
 
 ## 6. 手动检查本地 dotm
 

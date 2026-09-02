@@ -1,4 +1,4 @@
-Attribute VB_Name = "Mod_RemoveUnusedStyles"
+Attribute VB_Name = "Macro_RemoveUnusedStyles"
 Option Explicit
 
 ' =============================================

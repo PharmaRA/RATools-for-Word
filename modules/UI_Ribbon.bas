@@ -1,4 +1,4 @@
-Attribute VB_Name = "mRibbon"
+Attribute VB_Name = "UI_Ribbon"
 Option Explicit
 
 ' =============================================

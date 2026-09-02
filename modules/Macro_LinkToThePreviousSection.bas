@@ -1,4 +1,4 @@
-Attribute VB_Name = "Mod_LinkToThePreviousSection"
+Attribute VB_Name = "Macro_LinkToThePreviousSection"
 Option Explicit
 Sub LinkToThePreviousSection()
     ' ==========================================

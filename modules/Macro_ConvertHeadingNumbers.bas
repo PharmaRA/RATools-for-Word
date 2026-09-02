@@ -1,4 +1,4 @@
-Attribute VB_Name = "Mod_ConvertHeadingNumbers"
+Attribute VB_Name = "Macro_ConvertHeadingNumbers"
 Option Explicit
 Sub ConvertHeadingNumbers()
     On Error GoTo ErrH

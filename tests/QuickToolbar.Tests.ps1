@@ -92,10 +92,10 @@ function Get-ExpectedButtonGeometry {
 Write-Output "Running QuickToolbar source checks"
 $formPath = Join-Path $repoRoot "userforms\frmQuickToolbar.frm"
 $frxPath = Join-Path $repoRoot "userforms\frmQuickToolbar.frx"
-$modulePath = Join-Path $repoRoot "modules\Mod_QuickToolbar.bas"
-$actionModulePath = Join-Path $repoRoot "modules\Mod_QuickToolbarActions.bas"
-$styleNamesModulePath = Join-Path $repoRoot "modules\Mod_StyleNames.bas"
-$windowModulePath = Join-Path $repoRoot "modules\Mod_Core_Window.bas"
+$modulePath = Join-Path $repoRoot "modules\UI_QuickToolbar.bas"
+$actionModulePath = Join-Path $repoRoot "modules\UI_QuickToolbarActions.bas"
+$styleNamesModulePath = Join-Path $repoRoot "modules\Engine_StyleNames.bas"
+$windowModulePath = Join-Path $repoRoot "modules\Core_Window.bas"
 $syncScriptPath = Join-Path $repoRoot "scripts\Sync-QuickToolbarForm.ps1"
 $iconScriptPath = Join-Path $repoRoot "scripts\Generate-QuickToolbarIcon.ps1"
 $ribbonPath = Join-Path $repoRoot "dotm\customUI\customUI14.xml"
@@ -399,8 +399,8 @@ End Function
         Write-Output "Inspecting built QuickToolbar artifact"
         $doc = $word.Documents.Open($resolvedDotmPath, $false, $true, $false)
         $componentNames = @($doc.VBProject.VBComponents | ForEach-Object { $_.Name })
-        Assert-True ($componentNames -contains "Mod_QuickToolbar") "Built dotm should contain Mod_QuickToolbar."
-        Assert-True ($componentNames -contains "Mod_QuickToolbarActions") "Built dotm should contain Mod_QuickToolbarActions."
+        Assert-True ($componentNames -contains "UI_QuickToolbar") "Built dotm should contain UI_QuickToolbar."
+        Assert-True ($componentNames -contains "UI_QuickToolbarActions") "Built dotm should contain UI_QuickToolbarActions."
         Assert-True ($componentNames -contains "frmQuickToolbar") "Built dotm should contain frmQuickToolbar."
 
         $artifactToolbar = $doc.VBProject.VBComponents.Item("frmQuickToolbar")
@@ -453,9 +453,9 @@ End Function
         }
         [void]$word.Run("ReleaseQuickToolbarForTest")
 
-        $artifactActionModule = $doc.VBProject.VBComponents.Item("Mod_QuickToolbarActions")
+        $artifactActionModule = $doc.VBProject.VBComponents.Item("UI_QuickToolbarActions")
         $artifactActionCode = $artifactActionModule.CodeModule.Lines(1, $artifactActionModule.CodeModule.CountOfLines)
-        $artifactMainModule = $doc.VBProject.VBComponents.Item("Mod_QuickToolbar")
+        $artifactMainModule = $doc.VBProject.VBComponents.Item("UI_QuickToolbar")
         $artifactMainCode = $artifactMainModule.CodeModule.Lines(1, $artifactMainModule.CodeModule.CountOfLines)
         $artifactDispatchCode = $artifactMainCode + "`r`n" + $artifactActionCode
         foreach ($actionCase in $expectedDispatch.GetEnumerator()) {
