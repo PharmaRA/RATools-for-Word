@@ -265,11 +265,10 @@
 				
                 <!-- == 审阅 == -->
 				<group id="grpMyReview" label="审阅及修订">
-					<box id="boxReview1" boxStyle="horizontal">
+					<box id="boxReview" boxStyle="vertical">
 						<button idMso="ReviewNewComment" showLabel="false"/>
-					</box>
-					<box id="boxReview2" boxStyle="horizontal">
 						<toggleButton idMso="ReviewTrackChanges" showLabel="false"/>
+						<button id="btnAcceptFormatRevisions" label="接受格式修订" imageMso="ReviewAcceptChange" size="normal" description="只接受格式类修订（字符格式、段落格式），插入、删除、替换、移动等内容类修订保持未接受状态。" screentip="接受格式修订" showLabel="false" onAction="AcceptFormatRevisions"/>
 					</box>
 				</group>
 

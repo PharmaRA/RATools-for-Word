@@ -4,6 +4,10 @@
 
 开发中的改动先记入 `# [Unreleased]`，发版时再改为对应的版本号小节。
 
+# [Unreleased]
+
+- 功能区「审阅及修订」组新增「接受格式修订」按钮：一键接受文档中的格式类修订（`wdRevisionProperty` 字符格式、`wdRevisionParagraphProperty` 段落格式），插入、删除、替换、移动等内容类修订保持未接受状态；Ribbon 按钮与「宏列表」窗口均已接入。`✨ 新增` (Added)
+
 # v0.8.4
 
 - 修复宏「超链接和域批量设置为蓝色」在处理包含章节号的图表题注时，章节号所在 `STYLEREF` 域被误标为蓝色的缺陷：显式排除 `wdFieldSequence` (12)、`wdFieldStyleRef` (10) 与 `wdFieldTOC` (13)，增加题注段落样式识别保护，确保题注（章节号与序号）均保持原色，同时保障正文交叉引用域（`REF`）与超链接正常标蓝。`🐛 修复` (Fixed)
