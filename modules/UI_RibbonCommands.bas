@@ -55,25 +55,30 @@ End Sub
 
 '================  打开文件所在文件夹  ================
 Public Sub OpenDocumentFolder(control As IRibbonControl)
-        
-    ' 1. 声明一个变量，用来临时存储文档的路径
     Dim docPath As String
-    
-    ' 2. 获取当前活动文档的路径
+
+    ' 1. 获取当前活动文档的路径（OneDrive/SharePoint 文档返回的是 https 地址）
     docPath = ActiveDocument.Path
-    
-    ' 3. 检查文档是否已经保存过（如果没有保存过，路径会是空的）
+
+    ' 2. 未保存的文档没有路径
     If docPath = "" Then
-        ' 弹出一个消息框提醒用户
         MsgBox "这个文档还没有保存过哦！请先保存文档，然后再尝试打开所在文件夹。", vbExclamation, "温馨提示"
-        ' 停止运行后面的代码
         Exit Sub
     End If
-    
-    ' 4. 如果路径存在，使用 Windows 资源管理器打开该路径
-    ' explorer.exe 是 Windows 自带的文件夹管理程序
+
+    ' 3. 云端文档的路径是网址，直接交给资源管理器会打开浏览器；
+    '    先按本机 OneDrive 同步映射换算成本地同步文件夹（见 Core_Files）
+    If IsWebPath(docPath) Then
+        docPath = ResolveWebPathToLocalFolder(docPath)
+        If docPath = "" Then
+            MsgBox "这个文档存放在 OneDrive/SharePoint 云端，本机没有找到对应的同步文件夹。" & vbCrLf & _
+                   "请先把该文档所在的文件夹设置为本地同步，然后再试。", vbExclamation, "温馨提示"
+            Exit Sub
+        End If
+    End If
+
+    ' 4. 使用 Windows 资源管理器打开该文件夹
     Shell "explorer.exe """ & docPath & """", vbNormalFocus
-    
 End Sub
 
 
