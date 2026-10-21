@@ -93,7 +93,9 @@ Public Function ResolveWebPathToLocalFolder(ByVal webPath As String) As String
 
     resolvedPath = MapWebPathToLocalFolder(webPath, urlNamespaces, localRoots)
     If Len(resolvedPath) = 0 Then Exit Function
-    If Not FolderExistsSync(resolvedPath) Then Exit Function
+    If Not FolderExistsSync(resolvedPath) Then
+        If Not FileExistsSync(resolvedPath) Then Exit Function
+    End If
 
     ResolveWebPathToLocalFolder = resolvedPath
 End Function
@@ -485,6 +487,17 @@ Private Function FolderExistsSync(ByVal folderPath As String) As Boolean
     On Error Resume Next
     Set fso = CreateObject("Scripting.FileSystemObject")
     If Not fso Is Nothing Then FolderExistsSync = fso.FolderExists(folderPath)
+    Set fso = Nothing
+    On Error GoTo 0
+End Function
+
+' 判断文件是否存在
+Private Function FileExistsSync(ByVal filePath As String) As Boolean
+    Dim fso As Object
+
+    On Error Resume Next
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso Is Nothing Then FileExistsSync = fso.FileExists(filePath)
     Set fso = Nothing
     On Error GoTo 0
 End Function

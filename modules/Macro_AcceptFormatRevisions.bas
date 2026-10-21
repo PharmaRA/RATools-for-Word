@@ -41,6 +41,18 @@ Public Sub AcceptFormatRevisions(control As IRibbonControl)
     Set doc = ActiveDocument
     docPath = doc.FullName
 
+    ' OneDrive/SharePoint 云端文档的 FullName 可能返回 https 地址：
+    ' 先换算为本机同步副本路径；无法换算时回退到 Word 对象模型
+    If IsWebPath(docPath) Then
+        Dim syncLocalPath As String
+        syncLocalPath = ResolveWebPathToLocalFolder(docPath)
+        If Len(syncLocalPath) = 0 Then
+            AcceptFormatRevisionsByWordApi doc
+            Exit Sub
+        End If
+        docPath = syncLocalPath
+    End If
+
     ' 未保存的新文档没有磁盘路径，无法使用 OOXML 快速路径
     If Len(docPath) = 0 Then
         MsgBox "请先将文档保存为 .docx 或 .docm 格式后再使用。", vbExclamation, DIALOG_TITLE
