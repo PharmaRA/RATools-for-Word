@@ -4,7 +4,7 @@
 
 开发中的改动先记入 `# [Unreleased]`，发版时再改为对应的版本号小节。
 
-# [Unreleased]
+# v0.8.5
 
 - 修复「打开所在文件夹」在文档存放于 OneDrive/SharePoint 时会打开浏览器的问题：Document.Path 对云端文档返回的是 https 地址，直接交给资源管理器只会启动浏览器。现按 OneDrive 同步引擎登记的 UrlNamespace → MountPoint 映射把云端路径换算成本地同步文件夹（URL 解码、大小写不敏感、最长前缀匹配），本机未同步时给出明确提示；映射读取同时兼容 32/64 位 Office 注册表视图。`🐛 修复` (Fixed)
 - 功能区「审阅及修订」组新增「接受格式修订」按钮：一键接受文档中的格式类修订（`wdRevisionProperty` 字符格式、`wdRevisionParagraphProperty` 段落格式），插入、删除、替换、移动等内容类修订保持未接受状态；Ribbon 按钮与「宏列表」窗口均已接入。`✨ 新增` (Added)
