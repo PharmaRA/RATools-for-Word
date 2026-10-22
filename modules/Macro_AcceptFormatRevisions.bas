@@ -87,6 +87,9 @@ Private Sub AcceptFormatRevisionsByOoxml(ByVal docPath As String)
     Dim doc As Document
     Dim fso As Object
     Dim backupPath As String
+    Dim rollbackPath As String
+    Dim makeBackup As Boolean
+    Dim msgText As String
     Dim workDir As String
     Dim zipCopyPath As String
     Dim outZipPath As String
@@ -112,17 +115,20 @@ Private Sub AcceptFormatRevisionsByOoxml(ByVal docPath As String)
     Set fso = CreateObject("Scripting.FileSystemObject")
     backupPath = docPath & ".bak"
 
-    ' 2. 备份原文件
-    On Error Resume Next
-    If fso.FileExists(backupPath) Then fso.DeleteFile backupPath, True
-    fso.CopyFile docPath, backupPath, True
-    If Err.Number <> 0 Then
-        MsgBox "无法创建备份文件：" & Err.Description, vbExclamation, DIALOG_TITLE
-        Err.Clear
+    ' 2. 询问是否生成备份，并按选择备份原文件
+    makeBackup = AskMakeBackup(backupPath)
+    If makeBackup Then
+        On Error Resume Next
+        If fso.FileExists(backupPath) Then fso.DeleteFile backupPath, True
+        fso.CopyFile docPath, backupPath, True
+        If Err.Number <> 0 Then
+            MsgBox "无法创建备份文件：" & Err.Description, vbExclamation, DIALOG_TITLE
+            Err.Clear
+            On Error GoTo 0
+            Exit Sub
+        End If
         On Error GoTo 0
-        Exit Sub
     End If
-    On Error GoTo 0
 
     ' 3. 创建临时工作目录与 zip 副本
     Randomize
@@ -148,17 +154,40 @@ Private Sub AcceptFormatRevisionsByOoxml(ByVal docPath As String)
     ' 5. 解压 -> 删除格式修订标记 -> 重新压缩
     ok = ProcessOoxml(zipCopyPath, workDir, outZipPath, removed)
 
-    ' 6. 成功则替换原文件，失败则从备份恢复
+    ' 6. 替换原文件：有备份时直接覆盖（失败用备份恢复）；
+    '    无备份时先把原文件改名作为回滚点，写入失败立即回滚，成功后删除
     If ok Then
-        On Error Resume Next
-        fso.CopyFile outZipPath, docPath, True
-        If Err.Number <> 0 Then
-            ok = False
-            Err.Clear
+        If makeBackup Then
+            On Error Resume Next
+            fso.CopyFile outZipPath, docPath, True
+            If Err.Number <> 0 Then
+                ok = False
+                Err.Clear
+            End If
+            On Error GoTo 0
+        Else
+            rollbackPath = docPath & ".ratools.old"
+            On Error Resume Next
+            If fso.FileExists(rollbackPath) Then fso.DeleteFile rollbackPath, True
+            fso.MoveFile docPath, rollbackPath
+            If Err.Number <> 0 Then
+                ok = False
+                Err.Clear
+            Else
+                fso.CopyFile outZipPath, docPath, True
+                If Err.Number <> 0 Then
+                    Err.Clear
+                    fso.MoveFile rollbackPath, docPath
+                    ok = False
+                Else
+                    fso.DeleteFile rollbackPath, True
+                End If
+                Err.Clear
+            End If
+            On Error GoTo 0
         End If
-        On Error GoTo 0
     End If
-    If Not ok Then
+    If Not ok And makeBackup Then
         On Error Resume Next
         fso.CopyFile backupPath, docPath, True
         On Error GoTo 0
@@ -185,11 +214,18 @@ Private Sub AcceptFormatRevisionsByOoxml(ByVal docPath As String)
 
     ' 9. 结果提示
     If ok Then
-        MsgBox "已完成：格式类修订已接受（处理 " & removed & " 处格式标记）。" & vbCrLf & vbCrLf & _
-               "文档中剩余 " & remaining & " 处修订（插入、删除等内容类），均已保持未接受状态。" & vbCrLf & vbCrLf & _
-               "原文件备份：" & backupPath, vbInformation, DIALOG_TITLE
+        msgText = "已完成：格式类修订已接受（处理 " & removed & " 处格式标记）。" & vbCrLf & vbCrLf & _
+                  "文档中剩余 " & remaining & " 处修订（插入、删除等内容类），均已保持未接受状态。"
+        If makeBackup Then
+            msgText = msgText & vbCrLf & vbCrLf & "原文件备份：" & backupPath
+        End If
+        MsgBox msgText, vbInformation, DIALOG_TITLE
     Else
-        MsgBox "处理失败，已从备份恢复原文件并重新打开。", vbExclamation, DIALOG_TITLE
+        If makeBackup Then
+            MsgBox "处理失败，已从备份恢复原文件并重新打开。", vbExclamation, DIALOG_TITLE
+        Else
+            MsgBox "处理失败，原文件未被修改，已重新打开。", vbExclamation, DIALOG_TITLE
+        End If
     End If
 End Sub
 
@@ -208,6 +244,13 @@ Private Function ToLongPath(ByVal path As String) As String
     Else
         ToLongPath = path
     End If
+End Function
+' 询问是否在修改前生成原文件备份（默认"是"）
+Private Function AskMakeBackup(ByVal backupPath As String) As Boolean
+    AskMakeBackup = (MsgBox("是否在修改前生成原文件备份？" & vbCrLf & vbCrLf & _
+                            "是：备份为 " & backupPath & vbCrLf & _
+                            "否：直接修改原文件（处理失败时自动回滚，不留备份）", _
+                            vbYesNo + vbQuestion, DIALOG_TITLE) = vbYes)
 End Function
 Private Function ProcessOoxml(ByVal zipCopyPath As String, ByVal workDir As String, ByVal outZipPath As String, ByRef removed As Long) As Boolean
     Dim fso As Object
