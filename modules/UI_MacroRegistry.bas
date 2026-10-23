@@ -106,6 +106,11 @@ Public Function GetMyMacroRegistry() As Variant
     items.Add Array("Wrapper_AcceptFormatRevisions", _
                     "接受格式修订", _
                     "只接受文档中的格式类修订（字符格式、段落格式），插入、删除、替换、移动等内容类修订保持未接受状态。")
+
+    ' 第16个
+    items.Add Array("Wrapper_ShowReviewerFilter", _
+                    "按审阅者筛选", _
+                    "勾选要在文档中显示的批注与修订作者，勾选立即生效；双击某位审阅者可只看该审阅者。")
                     
     ' 如果以后要加新宏，直接复制粘贴即可，无需修改其他地方
     ' 如果需要control参数的宏，需要下面做一个Wrapper，见下面Wrapper包装器下的内容，同时需要在上面添加

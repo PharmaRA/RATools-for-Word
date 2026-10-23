@@ -5,6 +5,7 @@ Option Explicit
 ' 云端路径解析读取的 OneDrive 同步登记位置（模块级声明必须在过程之前）
 ' =============================================
 Private Const ONEDRIVE_SYNC_REG_KEY As String = "HKCU\Software\SyncEngines\Providers\OneDrive"
+Private Const ONEDRIVE_ACCOUNTS_REG_KEY As String = "HKCU\Software\Microsoft\OneDrive\Accounts"
 
 ' =============================================
 ' 公共层：文件系统工具
@@ -329,12 +330,52 @@ End Function
 ' 64 位 Windows 上会被重定向，两个视图各读一次最稳妥。
 Private Sub LoadOneDriveSyncMappings(ByRef urlNamespaces As Collection, _
                                      ByRef localRoots As Collection)
-    CollectSyncMappingsFromRegistry "/reg:64", urlNamespaces, localRoots
-    CollectSyncMappingsFromRegistry "/reg:32", urlNamespaces, localRoots
+    Dim accountKeys As Collection
+    Dim i As Long
+
+    ' 鏂扮増 OneDrive 鐧昏鍦?SyncEngines\Providers\OneDrive 涓?    CollectSyncMappingsFromRegistry ONEDRIVE_SYNC_REG_KEY, "/reg:64", urlNamespaces, localRoots
+    CollectSyncMappingsFromRegistry ONEDRIVE_SYNC_REG_KEY, "/reg:32", urlNamespaces, localRoots
+
+    ' 閮ㄥ垎鐗堟湰/绉熸埛鍙櫥璁板湪 Accounts\<Personal|BusinessN> 涓?    Set accountKeys = ListAccountSubKeys()
+    If Not accountKeys Is Nothing Then
+        For i = 1 To accountKeys.Count
+            CollectSyncMappingsFromRegistry CStr(accountKeys(i)), "/reg:64", urlNamespaces, localRoots
+            CollectSyncMappingsFromRegistry CStr(accountKeys(i)), "/reg:32", urlNamespaces, localRoots
+        Next i
+    End If
 End Sub
 
+' 鍒楀嚭 Accounts 涓嬬殑璐﹀彿瀛愰敭锛圥ersonal銆丅usiness1銆丅usiness2...锛?Private Function ListAccountSubKeys() As Collection
+    Dim lines As Collection
+    Dim keys As Collection
+    Dim i As Long
+    Dim lineText As String
+    Dim prefixLength As Long
+
+    Set keys = New Collection
+    Set ListAccountSubKeys = keys
+
+    Set lines = ReadRegistryQueryLines(ONEDRIVE_ACCOUNTS_REG_KEY, "/reg:64")
+    If lines Is Nothing Then Exit Function
+
+    prefixLength = Len("HKEY_CURRENT_USER\" & Replace(ONEDRIVE_ACCOUNTS_REG_KEY, "HKCU\", ""))
+    For i = 1 To lines.Count
+        lineText = CStr(lines(i))
+        If IsRegistryKeyLine(lineText) Then
+            lineText = RTrim$(lineText)
+            ' 鍙敹 Accounts 鐨勭洿鎺ュ瓙閿紝璺宠繃 Accounts 鑷韩
+            If Len(lineText) > prefixLength + 1 Then
+                If StrComp(Left$(lineText, prefixLength), "HKEY_CURRENT_USER\" & Replace(ONEDRIVE_ACCOUNTS_REG_KEY, "HKCU\", ""), vbTextCompare) = 0 Then
+                    keys.Add "HKCU\" & Mid$(lineText, prefixLength + 2)
+                End If
+            End If
+        End If
+    Next i
+End Function
+
 ' 执行一次 reg query /s 并把每个子键的 UrlNamespace、MountPoint 配对收集
-Private Sub CollectSyncMappingsFromRegistry(ByVal regView As String, _
+Private Sub CollectSyncMappingsFromRegistry(ByVal rootKey As String, _
+                                            ByVal regView As String, _
                                             ByRef urlNamespaces As Collection, _
                                             ByRef localRoots As Collection)
     Dim lines As Collection
@@ -345,7 +386,7 @@ Private Sub CollectSyncMappingsFromRegistry(ByVal regView As String, _
     Dim valueName As String
     Dim valueData As String
 
-    Set lines = ReadRegistryQueryLines(ONEDRIVE_SYNC_REG_KEY, regView)
+    Set lines = ReadRegistryQueryLines(rootKey, regView)
     If lines Is Nothing Then Exit Sub
 
     For i = 1 To lines.Count

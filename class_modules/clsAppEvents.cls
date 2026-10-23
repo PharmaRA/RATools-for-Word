@@ -41,6 +41,7 @@ End Sub
 ' ==========================================
 Private Sub App_DocumentChange()
     UI_QuickToolbar.RaiseQuickToolbarIfVisible
+    RefreshReviewerFilterIfVisible
 End Sub
 
 ' ==========================================
@@ -48,6 +49,7 @@ End Sub
 ' ==========================================
 Private Sub App_WindowActivate(ByVal Doc As Document, ByVal Wn As Window)
     UI_QuickToolbar.RaiseQuickToolbarIfVisible
+    RefreshReviewerFilterIfVisible
 End Sub
 
 ' ==========================================
