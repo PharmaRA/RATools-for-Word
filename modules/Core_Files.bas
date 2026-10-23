@@ -333,10 +333,12 @@ Private Sub LoadOneDriveSyncMappings(ByRef urlNamespaces As Collection, _
     Dim accountKeys As Collection
     Dim i As Long
 
-    ' 新版 OneDrive 登记�?SyncEngines\Providers\OneDrive �?    CollectSyncMappingsFromRegistry ONEDRIVE_SYNC_REG_KEY, "/reg:64", urlNamespaces, localRoots
+    ' 新版 OneDrive 登记�?SyncEngines\Providers\OneDrive �?
+    CollectSyncMappingsFromRegistry ONEDRIVE_SYNC_REG_KEY, "/reg:64", urlNamespaces, localRoots
     CollectSyncMappingsFromRegistry ONEDRIVE_SYNC_REG_KEY, "/reg:32", urlNamespaces, localRoots
 
-    ' 部分版本/租户只登记在 Accounts\<Personal|BusinessN> �?    Set accountKeys = ListAccountSubKeys()
+    ' 部分版本/租户只登记在 Accounts\<Personal|BusinessN> �?
+    Set accountKeys = ListAccountSubKeys()
     If Not accountKeys Is Nothing Then
         For i = 1 To accountKeys.Count
             CollectSyncMappingsFromRegistry CStr(accountKeys(i)), "/reg:64", urlNamespaces, localRoots
@@ -345,7 +347,8 @@ Private Sub LoadOneDriveSyncMappings(ByRef urlNamespaces As Collection, _
     End If
 End Sub
 
-' 列出 Accounts 下的账号子键（Personal、Business1、Business2...�?Private Function ListAccountSubKeys() As Collection
+' 列出 Accounts 下的账号子键（Personal、Business1、Business2...�
+Private Function ListAccountSubKeys() As Collection
     Dim lines As Collection
     Dim keys As Collection
     Dim i As Long
@@ -366,7 +369,7 @@ End Sub
             ' 只收 Accounts 的直接子键，跳过 Accounts 自身
             If Len(lineText) > prefixLength + 1 Then
                 If StrComp(Left$(lineText, prefixLength), "HKEY_CURRENT_USER\" & Replace(ONEDRIVE_ACCOUNTS_REG_KEY, "HKCU\", ""), vbTextCompare) = 0 Then
-                    keys.Add "HKCU\" & Mid$(lineText, prefixLength + 2)
+                    keys.Add ONEDRIVE_ACCOUNTS_REG_KEY & "\" & Mid$(lineText, prefixLength + 2)
                 End If
             End If
         End If
