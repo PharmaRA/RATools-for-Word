@@ -33,18 +33,35 @@ Assert-True (Test-Path -LiteralPath $formPath) "Missing form: $formPath"
 $moduleSource = Read-VbaSource $modulePath
 $formSource = Read-VbaSource $formPath
 
+$itemPath = Join-Path $repoRoot "class_modules\clsReviewerItem.cls"
+Assert-True (Test-Path -LiteralPath $itemPath) "Missing class module: $itemPath"
+$itemSource = Read-VbaSource $itemPath
+
 foreach ($required in @('Public Sub ShowReviewerFilter(', 'Public Sub Wrapper_ShowReviewerFilter(',
         'Public Function CollectReviewerNames(', 'Public Function ApplyReviewerFilter(',
-        'Public Function IsReviewerVisible(', 'Public Sub RefreshReviewerFilterIfVisible(')) {
+        'Public Function IsReviewerVisible(', 'Public Sub RefreshReviewerFilterIfVisible(',
+        'Public Function SetReviewerVisible(', 'Public Function GetReviewerSnapshot(',
+        'Private Function CollectReviewerNamesByXml(')) {
     Assert-True ($moduleSource.Contains($required)) "Module is missing $required"
 }
 
-foreach ($required in @('lstAuthors_Click', 'lstAuthors_DblClick', 'chkAll_MouseUp',
-        'Public Sub RefreshReviewerList(', 'Public Sub ToggleAllReviewers(',
-        'Public Sub ShowOnlyAuthorAt(', 'Public Sub ToggleAuthorAt(',
-        'ApplyReviewerFilter(')) {
+foreach ($required in @('Public Sub OnItemClicked(', 'Public Sub RefreshReviewerList(',
+        'Public Sub ToggleAllReviewers(', 'Public Sub ShowOnlyAuthorAt(',
+        'Public Sub ShowOnlyLastClicked(', 'Public Sub ToggleAuthorAt(',
+        'Private Sub BuildRows(', 'ApplyReviewerFilter(')) {
     Assert-True ($formSource.Contains($required)) "Form is missing $required"
 }
+# 双击「只看某人」已取消：动态复选框不再接 DblClick
+Assert-True (-not $itemSource.Contains('DblClick')) 'clsReviewerItem must not handle double-click anymore'
+# 勾选状态只认 m_Checked：复选框列表/复选框控件都由它回填
+Assert-True (-not $formSource.Contains('.ListStyle = fmListStyleOption')) 'Form must not assign the checkbox list style'
+
+Assert-True ($itemSource.Contains('WithEvents chk As MSForms.CheckBox')) 'clsReviewerItem must expose a WithEvents checkbox'
+Assert-True ($itemSource.Contains('Owner.OnItemClicked')) 'clsReviewerItem must forward clicks to the form'
+
+# 切回 Word 触发 WindowActivate 时必须能立刻返回，不能重新枚举修订
+Assert-True ($moduleSource.Contains('If StrComp(frmReviewerFilter.FilteredDocumentKey')) `
+    'WindowActivate refresh must short-circuit for the same document'
 
 $ribbonText = Get-Content -LiteralPath $ribbonPath -Raw
 Assert-True ($ribbonText.Contains('onAction="ShowReviewerFilter"')) 'Ribbon button is not wired'
@@ -63,8 +80,9 @@ try {
     $doc = $word.Documents.Add()
 
     [void]$doc.VBProject.VBComponents.Import($modulePath)
+    [void]$doc.VBProject.VBComponents.Import($itemPath)
     $form = $doc.VBProject.VBComponents.Import($formPath)
-    Assert-True ([int]$form.Designer.Controls.Count -ge 4) "Form controls were not imported"
+    Assert-True ([int]$form.Designer.Controls.Count -ge 3) "Form controls were not imported"
 
     $originalUserName = $word.UserName
 

@@ -269,7 +269,7 @@
 						<button idMso="ReviewNewComment" showLabel="false"/>
 						<toggleButton idMso="ReviewTrackChanges" showLabel="false"/>
 						<button id="btnAcceptFormatRevisions" label="接受格式修订" imageMso="ReviewAcceptChange" size="normal" description="只接受格式类修订（字符格式、段落格式），插入、删除、替换、移动等内容类修订保持未接受状态。" screentip="接受格式修订" showLabel="false" onAction="AcceptFormatRevisions"/>
-						<button id="btnReviewerFilter" label="按审阅者筛选" imageMso="ReviewShowMarkupMenu" size="normal" description="勾选要在文档中显示的批注与修订作者，勾选立即生效；双击某位审阅者可只看该审阅者。" screentip="按审阅者筛选" showLabel="false" onAction="ShowReviewerFilter"/>
+						<button id="btnReviewerFilter" label="按审阅者筛选" imageMso="ReviewShowMarkupMenu" size="normal" description="勾选要在文档中显示的批注与修订作者，勾选立即生效；选中某位后点「只看此人」可一键只看他。" screentip="按审阅者筛选" showLabel="false" onAction="ShowReviewerFilter"/>
 					</box>
 				</group>
 
