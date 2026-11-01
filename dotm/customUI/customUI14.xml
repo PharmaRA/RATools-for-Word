@@ -237,6 +237,7 @@
                         <control idMso="CaptionInsert" showLabel="false"/> 
                         <control idMso="CrossReferenceInsert" showLabel="false"/>
                         <button id="btnAddMissingCaptionLabels" label="恢复题注标签" imageMso="TableTestValidationRules" size="normal" description="扫描文档中的 SEQ 域并补齐缺失的题注标签，便于在交叉引用中使用" screentip="恢复缺失题注标签" showLabel="false" onAction="Wrapper_AddMissingCaptionLabels"/>
+                        <button id="btnPasteRelinkCrossReference" label="粘贴并重连引用" imageMso="Paste" size="normal" description="粘贴剪贴板内容后，把粘贴出的正文里指向题注的交叉引用重新连到粘贴出的新题注，并只更新粘贴范围内的域" screentip="粘贴并重连交叉引用" supertip="粘贴内容里的「见表X」会自动改成「见表Y」，指向粘贴出的新题注；原文不受影响，一次 Ctrl+Z 可整体撤销。" showLabel="false" onAction="PasteRelinkCrossReference"/>
                         <control idMso="HyperlinkInsert" showLabel="false"/>
                     </box>
                     <box id="boxR3" boxStyle="horizontal">
