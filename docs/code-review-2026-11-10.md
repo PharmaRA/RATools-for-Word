@@ -20,7 +20,7 @@
 | --- | --- | --- | --- | --- |
 | R01 | P1 | `modules/Macro_AcceptFormatRevisions.bas`：异步 ZIP 仅凭目录出现/300ms 大小稳定判断完成，随后覆盖原文档；恢复提示无对应恢复 | 完整保留包部件和二进制数据；仅接受字符/段落格式修订；损坏输入、打包失败、替换失败不得破坏原文件；完成后可重新打开 | 已修复并通过针对性回归、review；启动限制见下 |
 | R02 | P1 | 同模块 `FindLocalSyncCopy`：精确映射失败后按同名文件寻找本地副本 | 同名不同目录/账户不误处理；无法确定映射时对当前 Document 回退 | 已修复，回归和 review 通过 |
-| R03 | P1 | `Macro_PasteRelinkCrossReference.bas`：缓存绝对坐标后逐条改写域代码 | 多个题注前有多条引用，新旧书签名长短不同时仍指向正确题注；原文不变、一次撤销 | 待处理 |
+| R03 | P1 | `Macro_PasteRelinkCrossReference.bas`：缓存绝对坐标后逐条改写域代码 | 多个题注前有多条引用，新旧书签名长短不同时仍指向正确题注；原文不变、一次撤销 | 已修复，Word 回归和 review 通过 |
 | R04 | P1 | 同模块 `MatchPastedCaption`：重复标签/描述取首个未使用项 | 反序引用重复描述、空描述题注不串号；单一明确匹配仍正常；优化候选索引但不牺牲唯一性 | 待处理 |
 | R05 | P1 | `Core_Session.bas`：Save 错误吞掉后仍不保存关闭；清理/边距调用方报成功 | 保存失败返回失败并保留修改；批处理统计准确；正常保存及用户已有文档行为不退化 | 待处理 |
 | R06 | P1 | `scripts/RATools.Build.psm1`：先删除旧 dotm 再解压校验，允许目标等于 SafeRoot | 坏包/中断保留旧目录；拒绝根目录、输入包位于替换目标、链接目标；成功替换可恢复且不用物理删除 | 待处理 |
@@ -66,3 +66,12 @@ Microsoft 文档确认 [CopyHere 不通知复制完成](https://learn.microsoft.
 - `powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests\FormatRevisionPath.Tests.ps1`：退出码 0，映射缺失、精确映射、精确文件缺失三例通过。
 - 同模块 `AcceptFormatRevisions.Tests.ps1` 全部针对性回归再次通过；R01 的本机启动限制保持记录。
 - `review_reference` 只读 review 通过。R02 测试仅替换外部发现、URL、UI 和写入边界，证明路径选择与当前文档回退决策；不把夹具未变当作真实修改验收。
+- 独立提交：`4b4b74d`。
+
+### R03：先建立书签再改写引用
+
+- 真实 Word 失败复现：两条前置引用采用 `A` 和 `LongCaptionBetaSourceName`，旧实现第二条粘贴引用返回 `ha captionTable 4`，混入上一题注文字。
+- 实现分为两步：先建立所有新书签并收集待改写域，再统一替换书签名。编辑引起的位置变化由 Word 的书签自动跟随。
+- `PasteRelinkSafety.Tests.ps1` 通过：原引用 Table 1/2 保持，新引用准确为 Table 3/4；单次 Undo 恢复原文文本（未据此宣称所有格式和书签状态完全一致）。
+- `PasteRelinkCrossReference.Tests.ps1` 和 `PasteRelinkCrossReferenceCases.Tests.ps1` 均退出 0，覆盖单题注、不同引用形状、无题注、文档中间粘贴。
+- `review_reference` 独立只读 review 通过；新用例注册到总测试入口。

@@ -24,6 +24,7 @@ $suites = @(
     @{ Name = "BatchConvertWordToPDF";   File = "BatchConvertWordToPDF.Tests.ps1";   RequiresCom = $true },
     @{ Name = "QuickToolbar";            File = "QuickToolbar.Tests.ps1";            RequiresCom = $true },
     @{ Name = "ReviewerFilter";          File = "ReviewerFilter.Tests.ps1";          RequiresCom = $true },
+    @{ Name = "PasteRelinkSafety"; File = "PasteRelinkSafety.Tests.ps1"; RequiresCom = $true },
     @{ Name = "PasteRelinkCrossReference"; File = "PasteRelinkCrossReference.Tests.ps1"; RequiresCom = $true },
     @{ Name = "PasteRelinkCrossReferenceCases"; File = "PasteRelinkCrossReferenceCases.Tests.ps1"; RequiresCom = $true },
     @{ Name = "ReviewerFormRuntime";     File = "ReviewerFormRuntime.Tests.ps1";     RequiresCom = $true }

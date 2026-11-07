@@ -285,6 +285,10 @@ Private Sub RelinkPastedReferences(ByVal doc As Document, ByVal pastedRange As R
     Dim cache As Object
     Dim used As Object
     Dim claimed As Object
+    Dim pendingFields As New Collection
+    Dim pendingNames As New Collection
+    Dim pendingIndex As Long
+    Dim names As Variant
 
     If fields Is Nothing Then Exit Sub
 
@@ -311,11 +315,20 @@ Private Sub RelinkPastedReferences(ByVal doc As Document, ByVal pastedRange As R
                 End If
 
                 If Len(newName) > 0 Then
-                    ReplaceBookmarkInCode fld, oldName, newName
+                    pendingFields.Add fld
+                    pendingNames.Add Array(oldName, newName)
                 End If
             End If
         End If
     Next fld
+
+    ' Build every bookmark before editing any field code; numeric caption positions
+    ' remain valid during planning, and Word moves created bookmarks with edits.
+    For pendingIndex = 1 To pendingFields.Count
+        Set fld = pendingFields(pendingIndex)
+        names = pendingNames(pendingIndex)
+        ReplaceBookmarkInCode fld, CStr(names(0)), CStr(names(1))
+    Next pendingIndex
 End Sub
 
 ' 为一条引用找到粘贴出来的对应题注并新建书签；不需要/无法重连时返回空串
