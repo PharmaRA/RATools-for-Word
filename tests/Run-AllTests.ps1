@@ -13,6 +13,7 @@ $suites = @(
     @{ Name = "RibbonCallbacks";         File = "RibbonCallbacks.Tests.ps1";         RequiresCom = $false },
     @{ Name = "QuickToolbarWindow";      File = "QuickToolbarWindow.Tests.ps1";      RequiresCom = $false },
     @{ Name = "ScriptEncoding";          File = "ScriptEncoding.Tests.ps1";          RequiresCom = $false },
+    @{ Name = "FormatRevisionPath"; File = "FormatRevisionPath.Tests.ps1"; RequiresCom = $true },
     @{ Name = "AcceptFormatRevisions"; File = "AcceptFormatRevisions.Tests.ps1"; RequiresCom = $true },
     @{ Name = "SourceCompile";           File = "SourceCompile.Tests.ps1";           RequiresCom = $true },
     @{ Name = "StyleNameMapping";        File = "StyleNameMapping.Tests.ps1";        RequiresCom = $true },
