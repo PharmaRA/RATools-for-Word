@@ -21,6 +21,7 @@ Private Const CONVERT_OPT_FULL_TOC As String = "3"    ' Ë¢ÐÂÕû¸öÄ¿Â¼£¨¸üÐÂ±êÌâ+Ò
 Private Type ConvertSession
     fso As Object
     processLog As String
+    lastOutputPath As String
     successCount As Long
     failCount As Long
     totalFileCount As Long
@@ -125,7 +126,7 @@ Sub BatchConvertWordToPDF()
     If modeInput = BATCH_MODE_CURRENT Then
         If session.successCount > 0 Or session.failCount > 0 Then
             MsgBox "µ±Ç°ÎÄµµ´¦ÀíÍê³É£º" & vbCrLf & _
-                IIf(session.failCount > 0, "×¢Òâ£º×ª»»Ê§°Ü¡£", "×ª»»³É¹¦£¡PDFÒÑ±£´æÔÚÍ¬¼¶Ä¿Â¼ÏÂ¡£"), _
+                IIf(session.failCount > 0, "×¢Òâ£º×ª»»Ê§°Ü¡£", "×ª»»³É¹¦£¡PDFÒÑ±£´æµ½£º" & vbCrLf & session.lastOutputPath), _
                 vbInformation, DIALOG_TITLE
         End If
     Else
@@ -215,7 +216,8 @@ Private Sub ConvertActiveDocument(ByRef session As ConvertSession)
     End If
 
     session.successCount = session.successCount + 1
-    session.processLog = session.processLog & "[³É¹¦] " & doc.Name & " (µ±Ç°ÎÄµµ)" & vbCrLf
+    session.lastOutputPath = pdfFileName
+    session.processLog = session.processLog & "[³É¹¦] " & doc.Name & " -> " & pdfFileName & " (µ±Ç°ÎÄµµ)" & vbCrLf
     Exit Sub
 
 ActiveDocError:
@@ -272,7 +274,8 @@ Private Sub ConvertOneFile(ByRef session As ConvertSession, ByVal filePath As St
     doc.Close SaveChanges:=wdDoNotSaveChanges
 
     session.successCount = session.successCount + 1
-    session.processLog = session.processLog & "[³É¹¦] " & fileName & vbCrLf
+    session.lastOutputPath = pdfFileName
+    session.processLog = session.processLog & "[³É¹¦] " & fileName & " -> " & pdfFileName & vbCrLf
     GoTo Finally
 
 FileError:
@@ -352,26 +355,85 @@ Private Sub RefreshTableOfContents(doc As Document, ByVal uType As Long)
 End Sub
 
 ' ==================== ¸¨Öúº¯Êý£º°²È«µ¼³öPDF ====================
-Private Sub SafeExportAsPDF(doc As Document, ByVal pdfFileName As String)
-    If doc.ActiveWindow.View.Type <> wdPrintView Then
-        doc.ActiveWindow.View.Type = wdPrintView
-    End If
+Private Function AvailablePdfPath(ByVal fso As Object, ByVal preferredPath As String) As String
+    Dim candidate As String
+    Dim suffix As Long
+    candidate = preferredPath
+    Do While fso.FileExists(candidate) Or fso.FolderExists(candidate)
+        suffix = suffix + 1
+        candidate = fso.BuildPath(fso.GetParentFolderName(preferredPath), _
+                    fso.GetBaseName(preferredPath) & "_" & CStr(suffix) & ".pdf")
+    Loop
+    AvailablePdfPath = candidate
+End Function
 
+Private Sub SafeExportAsPDF(doc As Document, ByRef pdfFileName As String)
+    Dim fso As Object
+    Dim reservation As Object
+    Dim tempPdf As String
+    Dim preferredPath As String
+    Dim ownsTemp As Boolean
+    Dim attempt As Long
+    Dim moveError As Long
+    Dim moveDescription As String
+    Dim errorNumber As Long
+    Dim errorDescription As String
+    Dim shell As Object
+
+    On Error GoTo Failed
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    preferredPath = pdfFileName
+    tempPdf = fso.BuildPath(fso.GetParentFolderName(preferredPath), fso.GetTempName & ".pdf")
+    ' Reserve a unique file without overwriting any pre-existing path.
+    Set reservation = fso.CreateTextFile(tempPdf, False)
+    ownsTemp = True
+    reservation.Close
+    Set reservation = Nothing
+
+    If doc.ActiveWindow.View.Type <> wdPrintView Then doc.ActiveWindow.View.Type = wdPrintView
     doc.Repaginate
-
-    ' µ¼³öÆÚ¼ä±ØÐë¿ªÆôÆÁÄ»Ë¢ÐÂ£¬·ñÔò²¿·Ö°æÊ½ÔªËØ£¨Ò³Ã¼Ò³½Å±ß¿ò£©»á¶ªÊ§
     Application.ScreenUpdating = True
     DoEvents
-
     doc.ExportAsFixedFormat _
-        OutputFileName:=pdfFileName, _
+        OutputFileName:=tempPdf, _
         ExportFormat:=wdExportFormatPDF, _
         OpenAfterExport:=False, _
         OptimizeFor:=wdExportOptimizeForPrint, _
         CreateBookmarks:=wdExportCreateHeadingBookmarks, _
         DocStructureTags:=True
 
+    For attempt = 1 To 1000
+        pdfFileName = AvailablePdfPath(fso, preferredPath)
+        On Error Resume Next
+        Err.Clear
+        fso.MoveFile tempPdf, pdfFileName
+        moveError = Err.Number
+        moveDescription = Err.Description
+        On Error GoTo Failed
+        If moveError = 0 Then
+            ownsTemp = False
+            Application.ScreenUpdating = False
+            Exit Sub
+        End If
+        ' Another writer may have claimed the name after selection; never replace it.
+        If Not fso.FileExists(pdfFileName) And Not fso.FolderExists(pdfFileName) Then
+            Err.Raise moveError, , moveDescription
+        End If
+    Next attempt
+    Err.Raise vbObjectError + 2201, , "ÎÞ·¨»ñµÃ¿ÉÓÃµÄ PDF Êä³öÎÄ¼þÃû¡£"
+Failed:
+    errorNumber = Err.Number
+    errorDescription = Err.Description
+    On Error Resume Next
+    If Not reservation Is Nothing Then reservation.Close
+    If ownsTemp Then
+        Set shell = CreateObject("Shell.Application")
+        shell.Namespace(10).MoveHere tempPdf, 4 Or 16 Or 1024
+        If fso.FileExists(tempPdf) Then errorDescription = errorDescription & vbCrLf & "ÁÙÊ±ÎÄ¼þ¿ÉÄÜ±£ÁôÔÚ£º" & tempPdf
+    End If
     Application.ScreenUpdating = False
+    On Error GoTo 0
+    Err.Raise errorNumber, , errorDescription
 End Sub
 
 ' ==================== ¸¨Öúº¯Êý£ºÓÑºÃµÄ´íÎóÌáÊ¾ ====================

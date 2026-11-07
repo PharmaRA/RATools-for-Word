@@ -24,7 +24,7 @@
 | R04 | P1 | 同模块 `MatchPastedCaption`：重复标签/描述取首个未使用项 | 反序引用重复描述、空描述题注不串号；单一明确匹配仍正常；优化候选索引但不牺牲唯一性 | 已修复并建立候选索引，Word 回归和 review 通过 |
 | R05 | P1 | `Core_Session.bas`：Save 错误吞掉后仍不保存关闭；清理/边距调用方报成功 | 保存失败返回失败并保留修改；批处理统计准确；正常保存及用户已有文档行为不退化 | 修复中，未提交；Word 许可错误阻断回归，review 待办见下 |
 | R06 | P1 | `scripts/RATools.Build.psm1`：先删除旧 dotm 再解压校验，允许目标等于 SafeRoot | 坏包/中断保留旧目录；拒绝根目录、输入包位于替换目标、链接目标；成功替换可恢复且不用物理删除 | 已修复，构建回归和 review 通过 |
-| R07 | P1 | `Macro_BatchConvertWordToPDF.bas`：同主文件名不同扩展名输出到同一 PDF | 批次内冲突和已有输出不无提示覆盖；每个成功结果对应独立有效 PDF | 待处理 |
+| R07 | P1 | `Macro_BatchConvertWordToPDF.bas`：同主文件名不同扩展名输出到同一 PDF | 批次内冲突和已有输出不无提示覆盖；每个成功结果对应独立有效 PDF | 已修复，真实导出及竞争发布回归、review 通过 |
 | R08 | P2 | 同模块：导出结束统一解锁全部域 | 混合 Locked 状态在成功和异常路径均恢复，覆盖正文/页眉/文本框 | 待处理 |
 | R09 | P2 | `Macro_RemoveUnusedStyles.bas`：只在正文检查样式是否使用 | 页眉/页脚/脚注/文本框使用中的样式保留；真正未用样式正常清理 | 待处理 |
 | R10 | P2 | `Macro_ReviewerFilter.bas`：正文修订计数为零提前返回 | 只有页眉或页脚修订且零批注时仍列出审阅者；无标记文档仍返回空 | 待处理 |
@@ -108,3 +108,12 @@ Microsoft 文档确认 [CopyHere 不通知复制完成](https://learn.microsoft.
 - 用合成仓库执行 `Build-RAToolsDotm.ps1 -SkipVbaImport` 的完整打包、目录同步和输出发布通过；未对真实工作区 dotm 执行覆盖。
 - `BuildRATools.Tests.ps1` 全部通过，测试自身清理也已改为回收站。枚举故障注入首先命中安全检查阶段；打包枚举的 Stop 策略由源码 review 确认，没有声称分别注入了两个阶段。
 - `review_batch` 复查通过；补充入口链接输出用例 RED→GREEN 后再确认。R05 测试入口变更与本项分开暂存。
+- 独立提交：`64c1c14`。
+
+### R07：PDF 不覆盖发布
+
+- 真实 Word 失败复现：同目录 Report.doc 与 Report.docx 导出时覆盖既有 Report.pdf。
+- 先独占创建临时输出文件，再真实导出 PDF；发布使用不覆盖目标的 MoveFile，已存在的名称自动加 `_1`、`_2` 等后缀。选择后被其他写入者抢占则重新选名；成功计数发生在发布之后，报告记录实际路径。
+- `PdfOutputSafety.Tests.ps1` 退出 0：原 PDF 哈希不变、两份源文档生成独立有效 PDF、报告路径准确；同名目录保持、竞争者抢占文件保持、真实发布重试生成有效 PDF。
+- `BatchConvertWordToPDF.Tests.ps1` 原有回归退出 0；`review_batch` 独立只读 review 通过。
+- 验证通过 ConvertActiveDocument 覆盖共用导出函数；未声称动态覆盖非冲突发布失败和临时回收失败，这两条异常路径仅经源码 review。
