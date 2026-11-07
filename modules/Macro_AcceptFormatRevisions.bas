@@ -9,9 +9,8 @@ Option Explicit
 ' 实现（两条路径）：
 '   1. OOXML 快速路径（.docx/.docm）：保存并备份后，把文档当作 zip 解包，
 '      删除 word/*.xml 中的 w:rPrChange / w:pPrChange，再重新打包。
-'      ZIP 读写交给独立的 cscript 进程完成 —— Word 进程内的
-'      Shell.Application 会返回空命名空间或阻塞，不可用；
-'      而 powershell.exe 在部分安全策略下会被拦截，cscript 不受影响。
+'      ZIP 由独立 PowerShell/.NET 进程同步读写，完整校验后替换。
+'      策略禁止 PowerShell 或处理失败时回退到 Word 对象模型。
 '   2. Word 对象模型回退路径：非 OOXML 文档、或 OOXML 处理失败时使用。
 ' =============================================
 
@@ -278,121 +277,108 @@ Private Function IsOoxmlDocument(ByVal docPath As String) As Boolean
 End Function
 
 ' =============================================
-' 快速路径：OOXML（ZIP 操作交给独立 cscript 进程）
+' 快速路径：OOXML（同步 ZIP 处理、校验及原子替换）
 ' =============================================
 Private Sub AcceptFormatRevisionsByOoxml(ByVal docPath As String)
     Dim doc As Document
     Dim fso As Object
     Dim backupPath As String
+    Dim originalPath As String
+    Dim recoveryPath As String
     Dim workDir As String
     Dim scriptPath As String
     Dim resultPath As String
-    Dim makeBackup As Boolean
     Dim ok As Boolean
     Dim removed As Long
-    Dim remaining As Long
     Dim errText As String
-    Dim msgText As String
+    Dim failureText As String
+    Dim suffix As Long
 
+    On Error GoTo Failed
     Set doc = ActiveDocument
-
-    ' 1. 自动保存（OOXML 需要文件已落盘）
-    If Not doc.Saved Then
-        On Error Resume Next
-        doc.Save
-        If Err.Number <> 0 Then
-            MsgBox "保存文档失败：" & Err.Description, vbExclamation, DIALOG_TITLE
-            Err.Clear
-            On Error GoTo 0
-            Exit Sub
-        End If
-        On Error GoTo 0
-    End If
-
+    If Not doc.Saved Then doc.Save
+    If Not doc.Saved Then Err.Raise vbObjectError + 2103, , "保存未完成，文档保持打开。"
     Set fso = CreateObject("Scripting.FileSystemObject")
     backupPath = docPath & ".bak"
+    If AskMakeBackup(backupPath) Then
+        Do While fso.FileExists(backupPath)
+            suffix = suffix + 1
+            backupPath = docPath & "." & CStr(suffix) & ".bak"
+        Loop
+        fso.CopyFile docPath, backupPath, False
+    End If
 
-    ' 2. 询问是否生成备份
-    makeBackup = AskMakeBackup(backupPath)
-    If makeBackup Then
-        On Error Resume Next
-        If fso.FileExists(backupPath) Then fso.DeleteFile backupPath, True
-        fso.CopyFile docPath, backupPath, True
-        If Err.Number <> 0 Then
-            MsgBox "无法创建备份文件：" & Err.Description, vbExclamation, DIALOG_TITLE
-            Err.Clear
-            On Error GoTo 0
+    workDir = NewTempFolder(fso)
+    If Len(workDir) = 0 Then Err.Raise vbObjectError + 2101, , "无法创建临时目录。"
+    originalPath = workDir & "\original.docx"
+    fso.CopyFile docPath, originalPath, False
+    scriptPath = workDir & "\strip.ps1"
+    resultPath = workDir & "\result.txt"
+    recoveryPath = docPath & ".ratools-" & fso.GetFileName(workDir) & ".tmp.bak"
+    If Not WriteStripScript(scriptPath) Then Err.Raise vbObjectError + 2102, , "无法创建处理脚本。"
+
+    doc.Close wdDoNotSaveChanges
+    Set doc = Nothing
+    ok = RunStripScript(scriptPath, docPath, workDir, resultPath, removed, errText)
+    On Error GoTo ReopenFailed
+    Set doc = Application.Documents.Open(docPath)
+    On Error GoTo Failed
+    If ok Then
+        MsgBox "已接受 " & removed & " 处格式修订，内容类修订保持未接受。", vbInformation, DIALOG_TITLE
+    Else
+        If fso.FileExists(recoveryPath) Then
+            MsgBox "事务恢复未确认，已停止后续修改。原件保留在：" & vbCrLf & _
+                   recoveryPath & vbCrLf & originalPath & vbCrLf & errText, vbCritical, DIALOG_TITLE
             Exit Sub
         End If
-        On Error GoTo 0
-    End If
-
-    ' 3. 准备临时目录、脚本、结果文件
-    workDir = NewTempFolder(fso)
-    If Len(workDir) = 0 Then
-        MsgBox "无法创建临时目录。", vbExclamation, DIALOG_TITLE
-        Exit Sub
-    End If
-    scriptPath = workDir & "\strip.vbs"
-    resultPath = workDir & "\result.txt"
-
-    If Not WriteStripScript(scriptPath) Then
-        MsgBox "无法创建临时处理脚本。", vbExclamation, DIALOG_TITLE
-        fso.DeleteFolder workDir, True
-        Exit Sub
-    End If
-
-    ' 4. 关闭文档（已保存，无提示）
-    doc.Close wdSaveChanges
-    Set doc = Nothing
-
-    ' 5. 调用 cscript 处理文件
-    ok = RunStripScript(scriptPath, docPath, workDir, resultPath, removed, errText)
-
-    ' 6. 重新打开文档
-    On Error Resume Next
-    Set doc = Application.Documents.Open(docPath)
-    If Err.Number <> 0 Then
-        MsgBox "文档处理" & IIf(ok, "完成", "失败") & "，但重新打开失败，请手动打开：" & vbCrLf & docPath & vbCrLf & Err.Description, vbExclamation, DIALOG_TITLE
-        Err.Clear
-        On Error GoTo 0
-        fso.DeleteFolder workDir, True
-        Exit Sub
-    End If
-    On Error GoTo 0
-
-    remaining = doc.Revisions.Count
-
-    ' 7. 清理临时目录
-    On Error Resume Next
-    fso.DeleteFolder workDir, True
-    On Error GoTo 0
-
-    ' 8. 结果提示
-    If ok Then
-        msgText = "已完成：格式类修订已接受（处理 " & removed & " 处格式标记）。" & vbCrLf & vbCrLf & _
-                  "文档中剩余 " & remaining & " 处修订（插入、删除等内容类），均已保持未接受状态。"
-        If makeBackup Then
-            msgText = msgText & vbCrLf & vbCrLf & "原文件备份：" & backupPath
-        End If
-        MsgBox msgText, vbInformation, DIALOG_TITLE
-    Else
-        If makeBackup Then
-            msgText = "快速处理失败，已从备份恢复原文件，将改用兼容模式（较慢）。"
-        Else
-            msgText = "快速处理失败，将改用兼容模式（较慢）。"
-        End If
-        If Len(errText) > 0 Then msgText = msgText & vbCrLf & vbCrLf & "原因：" & errText
-        MsgBox msgText, vbExclamation, DIALOG_TITLE
+        MsgBox "快速处理失败，将对当前文档使用兼容模式。" & vbCrLf & errText, vbExclamation, DIALOG_TITLE
         AcceptFormatRevisionsByWordApi doc
     End If
+    RecycleFormatWork recoveryPath
+    RecycleFormatWork workDir
+    Exit Sub
+
+ReopenFailed:
+    failureText = Err.Description
+    ' Word rejects the completed package: restore the saved original before reopening.
+    On Error Resume Next
+    Err.Clear
+    fso.CopyFile originalPath, docPath, True
+    If Err.Number = 0 Then
+        Set doc = Application.Documents.Open(docPath)
+        If Err.Number = 0 Then
+            MsgBox "处理后的文档无法打开，已恢复原文件。" & vbCrLf & failureText, vbExclamation, DIALOG_TITLE
+            RecycleFormatWork recoveryPath
+            RecycleFormatWork workDir
+            Exit Sub
+        End If
+    End If
+    MsgBox "无法自动恢复并打开文档。原件副本保留在：" & vbCrLf & originalPath, vbCritical, DIALOG_TITLE
+    Exit Sub
+Failed:
+    failureText = Err.Description
+    MsgBox "格式修订处理失败：" & failureText & vbCrLf & _
+           "如已生成临时原件，其位置为：" & originalPath, vbExclamation, DIALOG_TITLE
+End Sub
+
+' Only recycle the operation's own temporary files; keep originals on recovery failures.
+Private Sub RecycleFormatWork(ByVal path As String)
+    Dim fso As Object
+    Dim shell As Object
+    Dim quotedPath As String
+    On Error Resume Next
+    If Len(path) = 0 Then Exit Sub
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso.FileExists(path) And Not fso.FolderExists(path) Then Exit Sub
+    Set shell = CreateObject("Shell.Application")
+    shell.Namespace(10).MoveHere path, 4 Or 16 Or 1024
 End Sub
 
 ' 询问是否在修改前生成原文件备份（默认"是"）
 Private Function AskMakeBackup(ByVal backupPath As String) As Boolean
     AskMakeBackup = (MsgBox("是否在修改前生成原文件备份？" & vbCrLf & vbCrLf & _
                             "是：备份为 " & backupPath & vbCrLf & _
-                            "否：直接修改原文件（处理失败时自动回滚，不留备份）", _
+                            "否：不保留额外备份；处理期间仍保留恢复副本", _
                             vbYesNo + vbQuestion, DIALOG_TITLE) = vbYes)
 End Function
 
@@ -418,149 +404,146 @@ Private Function NewTempFolder(ByVal fso As Object) As String
     On Error GoTo 0
 End Function
 
-' 生成 cscript 处理脚本（纯 ASCII）
+' 生成同步 ZIP 处理脚本（纯 ASCII；文档路径通过参数传递）
 Private Function WriteStripScript(ByVal scriptPath As String) As Boolean
     Dim f As Integer
-
     On Error GoTo Failed
     f = FreeFile
     Open scriptPath For Output As #f
-
-    Print #f, "Dim fso, shell, zipNs, destNs, srcNs, outNs, t, removed, k, z"
-    Print #f, "Dim docPath, workDir, payloadDir, zipCopy, outZip, xmlDoc, nodes, folder, file, bin, s1, s2"
-    Print #f, "docPath = WScript.Arguments(0)"
-    Print #f, "workDir = WScript.Arguments(1)"
-    Print #f, "removed = 0"
-    Print #f, ""
-    Print #f, "Set fso = CreateObject(""Scripting.FileSystemObject"")"
-    Print #f, "payloadDir = workDir & ""\payload"""
-    Print #f, "zipCopy = workDir & ""\src.zip"""
-    Print #f, "outZip = workDir & ""\out.zip"""
-    Print #f, "If Not fso.FolderExists(workDir) Then fso.CreateFolder workDir"
-    Print #f, "If fso.FolderExists(payloadDir) Then fso.DeleteFolder payloadDir, True"
-    Print #f, "fso.CreateFolder payloadDir"
-    Print #f, "If fso.FileExists(zipCopy) Then fso.DeleteFile zipCopy, True"
-    Print #f, "If fso.FileExists(outZip) Then fso.DeleteFile outZip, True"
-    Print #f, "fso.CopyFile docPath, zipCopy, True"
-    Print #f, ""
-    Print #f, "Set shell = CreateObject(""Shell.Application"")"
-    Print #f, "Set zipNs = shell.NameSpace(zipCopy)"
-    Print #f, "If zipNs Is Nothing Then Fail ""zipns-nothing"""
-    Print #f, "If zipNs.Items().Count = 0 Then Fail ""zip-empty"""
-    Print #f, "Set destNs = shell.NameSpace(payloadDir)"
-    Print #f, "If destNs Is Nothing Then Fail ""destns-nothing"""
-    Print #f, "destNs.CopyHere zipNs.Items(), 20"
-    Print #f, "t = Timer"
-    Print #f, "Do While Timer - t < 60"
-    Print #f, "  If fso.FolderExists(payloadDir & ""\word"") Then Exit Do"
-    Print #f, "  WScript.Sleep 50"
-    Print #f, "Loop"
-    Print #f, "If Not fso.FolderExists(payloadDir & ""\word"") Then Fail ""extract-timeout"""
-    Print #f, ""
-    Print #f, "Set folder = fso.GetFolder(payloadDir & ""\word"")"
-    Print #f, "For Each file In folder.Files"
-    Print #f, "  If LCase(Right(file.Name, 4)) = "".xml"" Then"
-    Print #f, "    Set xmlDoc = CreateObject(""MSXML2.DOMDocument.6.0"")"
-    Print #f, "    xmlDoc.async = False"
-    Print #f, "    xmlDoc.preserveWhiteSpace = True"
-    Print #f, "    xmlDoc.validateOnParse = False"
-    Print #f, "    If xmlDoc.load(file.Path) Then"
-    Print #f, "      xmlDoc.setProperty ""SelectionNamespaces"", ""xmlns:w='http://schemas.openxmlformats.org/wordprocessingml/2006/main'"""
-    Print #f, "      Set nodes = xmlDoc.selectNodes(""//w:rPrChange | //w:pPrChange"")"
-    Print #f, "      If Not nodes Is Nothing Then"
-    Print #f, "        If nodes.Length > 0 Then"
-    Print #f, "          For k = nodes.Length - 1 To 0 Step -1"
-    Print #f, "            nodes.Item(k).parentNode.removeChild nodes.Item(k)"
-    Print #f, "          Next"
-    Print #f, "          xmlDoc.save file.Path"
-    Print #f, "          removed = removed + nodes.Length"
-    Print #f, "        End If"
-    Print #f, "      End If"
-    Print #f, "    End If"
-    Print #f, "  End If"
-    Print #f, "Next"
-    Print #f, ""
-    Print #f, "Set bin = fso.CreateTextFile(outZip, True)"
-    Print #f, "bin.Write Chr(80) & Chr(75) & Chr(5) & Chr(6)"
-    Print #f, "For z = 1 To 18"
-    Print #f, "  bin.Write Chr(0)"
-    Print #f, "Next"
-    Print #f, "bin.Close"
-    Print #f, ""
-    Print #f, "Set outNs = shell.NameSpace(outZip)"
-    Print #f, "If outNs Is Nothing Then Fail ""outns-nothing"""
-    Print #f, "Set srcNs = shell.NameSpace(payloadDir)"
-    Print #f, "If srcNs Is Nothing Then Fail ""srcns-nothing"""
-    Print #f, "outNs.CopyHere srcNs.Items(), 20"
-    Print #f, "t = Timer"
-    Print #f, "Do While Timer - t < 120"
-    Print #f, "  If fso.FileExists(outZip) Then"
-    Print #f, "    s1 = fso.GetFile(outZip).Size"
-    Print #f, "    If s1 > 22 Then"
-    Print #f, "      WScript.Sleep 300"
-    Print #f, "      s2 = fso.GetFile(outZip).Size"
-    Print #f, "      If s1 = s2 Then Exit Do"
-    Print #f, "    End If"
-    Print #f, "  End If"
-    Print #f, "  WScript.Sleep 100"
-    Print #f, "Loop"
-    Print #f, "s1 = fso.GetFile(outZip).Size"
-    Print #f, "If s1 <= 22 Then Fail ""zip-create-failed-size-"" & s1"
-    Print #f, ""
-    Print #f, "On Error Resume Next"
-    Print #f, "fso.CopyFile outZip, docPath, True"
-    Print #f, "If Err.Number <> 0 Then Fail ""replace-failed"""
-    Print #f, "WScript.Echo ""OK="" & removed & "" size="" & s1"
-    Print #f, "WScript.Quit 0"
-    Print #f, ""
-    Print #f, "Sub Fail(msg)"
-    Print #f, "  WScript.Echo ""ERROR="" & msg"
-    Print #f, "  WScript.Quit 1"
-    Print #f, "End Sub"
-
+    Print #f, "param([string]$DocumentPath, [string]$WorkDirectory, [string]$ResultPath)"
+    Print #f, "$ErrorActionPreference = 'Stop'"
+    Print #f, "Add-Type -AssemblyName System.IO.Compression.FileSystem"
+    Print #f, "Add-Type -AssemblyName Microsoft.VisualBasic"
+    Print #f, "$ready = $DocumentPath + '.ratools-' + [IO.Path]::GetFileName($WorkDirectory) + '.tmp'"
+    Print #f, "$recovery = $ready + '.bak'"
+    Print #f, "$committed = $false"
+    Print #f, "$readyOwned = $false"
+    Print #f, "$removed = 0"
+    Print #f, "function Read-Part($entry) {"
+    Print #f, "    $inputStream = $entry.Open()"
+    Print #f, "    $buffer = [IO.MemoryStream]::new()"
+    Print #f, "    try { $inputStream.CopyTo($buffer); return ,$buffer.ToArray() }"
+    Print #f, "    finally { $inputStream.Dispose(); $buffer.Dispose() }"
+    Print #f, "}"
+    Print #f, "function Parse-Xml([byte[]]$bytes) {"
+    Print #f, "    $stream = [IO.MemoryStream]::new($bytes, $false)"
+    Print #f, "    $settings = [Xml.XmlReaderSettings]::new()"
+    Print #f, "    $settings.DtdProcessing = [Xml.DtdProcessing]::Prohibit"
+    Print #f, "    $settings.XmlResolver = $null"
+    Print #f, "    $reader = [Xml.XmlReader]::Create($stream, $settings)"
+    Print #f, "    try {"
+    Print #f, "        $xml = [Xml.XmlDocument]::new()"
+    Print #f, "        $xml.PreserveWhitespace = $true"
+    Print #f, "        $xml.XmlResolver = $null"
+    Print #f, "        $xml.Load($reader)"
+    Print #f, "        return ,$xml"
+    Print #f, "    } finally { $reader.Dispose(); $stream.Dispose() }"
+    Print #f, "}"
+    Print #f, "try {"
+    Print #f, "    if ((Test-Path -LiteralPath $ready) -or (Test-Path -LiteralPath $recovery)) { throw 'Transaction paths already exist' }"
+    Print #f, "    $before = (Get-FileHash -LiteralPath $DocumentPath -Algorithm SHA256).Hash"
+    Print #f, "    [IO.File]::Copy($DocumentPath, $ready, $false)"
+    Print #f, "    $readyOwned = $true"
+    Print #f, "    $archive = [IO.Compression.ZipFile]::Open($ready, 'Update')"
+    Print #f, "    $manifest = @{}"
+    Print #f, "    try {"
+    Print #f, "        foreach ($required in @('[Content_Types].xml', '_rels/.rels', 'word/document.xml')) {"
+    Print #f, "            if ($null -eq $archive.GetEntry($required)) { throw ""Missing package part: $required"" }"
+    Print #f, "        }"
+    Print #f, "        foreach ($entry in $archive.Entries) {"
+    Print #f, "            if ($manifest.ContainsKey($entry.FullName)) { throw 'Duplicate package part' }"
+    Print #f, "            $bytes = Read-Part $entry"
+    Print #f, "            if ($entry.FullName -match '\.(xml|rels)$') {"
+    Print #f, "                $xml = Parse-Xml $bytes"
+    Print #f, "                if ($entry.FullName -match '^word/[^/]+\.xml$') {"
+    Print #f, "                    $ns = [Xml.XmlNamespaceManager]::new($xml.NameTable)"
+    Print #f, "                    $ns.AddNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main')"
+    Print #f, "                    $nodes = @($xml.SelectNodes('//w:rPrChange | //w:pPrChange', $ns))"
+    Print #f, "                    foreach ($node in $nodes) { [void]$node.ParentNode.RemoveChild($node); $removed++ }"
+    Print #f, "                    if ($nodes.Count -gt 0) {"
+    Print #f, "                        $output = [IO.MemoryStream]::new()"
+    Print #f, "                        try { $xml.Save($output); $bytes = $output.ToArray() } finally { $output.Dispose() }"
+    Print #f, "                        $entryStream = $entry.Open()"
+    Print #f, "                        try { $entryStream.SetLength(0); $entryStream.Write($bytes, 0, $bytes.Length) } finally { $entryStream.Dispose() }"
+    Print #f, "                    }"
+    Print #f, "                }"
+    Print #f, "            }"
+    Print #f, "            $sha = [Security.Cryptography.SHA256]::Create()"
+    Print #f, "            try { $manifest[$entry.FullName] = [Convert]::ToBase64String($sha.ComputeHash($bytes)) } finally { $sha.Dispose() }"
+    Print #f, "        }"
+    Print #f, "    } finally { $archive.Dispose() }"
+    Print #f, "    # Reopen the fully closed package and verify every byte of every expected part."
+    Print #f, "    $archive = [IO.Compression.ZipFile]::OpenRead($ready)"
+    Print #f, "    try {"
+    Print #f, "        if ($archive.Entries.Count -ne $manifest.Count) { throw 'Package part count changed' }"
+    Print #f, "        foreach ($entry in $archive.Entries) {"
+    Print #f, "            $bytes = Read-Part $entry"
+    Print #f, "            $sha = [Security.Cryptography.SHA256]::Create()"
+    Print #f, "            try { $hash = [Convert]::ToBase64String($sha.ComputeHash($bytes)) } finally { $sha.Dispose() }"
+    Print #f, "            if ($manifest[$entry.FullName] -ne $hash) { throw ""Package verification failed: $($entry.FullName)"" }"
+    Print #f, "        }"
+    Print #f, "    } finally { $archive.Dispose() }"
+    Print #f, "    if ((Get-FileHash -LiteralPath $DocumentPath -Algorithm SHA256).Hash -ne $before) { throw 'Original document changed during processing' }"
+    Print #f, "    # Check the result channel before committing; replace and backup are on the same volume."
+    Print #f, "    [IO.File]::WriteAllText($ResultPath, 'PREPARED', [Text.Encoding]::ASCII)"
+    Print #f, "    [IO.File]::Replace($ready, $DocumentPath, $recovery)"
+    Print #f, "    $committed = $true"
+    Print #f, "    [IO.File]::WriteAllText($ResultPath, ('OK=' + $removed), [Text.Encoding]::ASCII)"
+    Print #f, "    exit 0"
+    Print #f, "} catch {"
+    Print #f, "    $failure = $_.Exception.Message"
+    Print #f, "    if ($committed) {"
+    Print #f, "        try { [IO.File]::Replace($recovery, $DocumentPath, $ready) }"
+    Print #f, "        catch { $failure += '; rollback failed, recovery copy: ' + $recovery }"
+    Print #f, "    }"
+    Print #f, "    [IO.File]::WriteAllText($ResultPath, ('ERROR=' + $failure), [Text.Encoding]::Unicode)"
+    Print #f, "    exit 1"
+    Print #f, "} finally {"
+    Print #f, "    if ($readyOwned -and (Test-Path -LiteralPath $ready)) {"
+    Print #f, "        try { [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile($ready, 'OnlyErrorDialogs', 'SendToRecycleBin') } catch { }"
+    Print #f, "    }"
+    Print #f, "}"
     Close #f
     WriteStripScript = True
     Exit Function
-
 Failed:
     On Error Resume Next
     Close #f
-    On Error GoTo 0
-    WriteStripScript = False
 End Function
 
-' 调用 cscript 处理，返回是否成功
+' 同步调用隔离的处理进程；策略禁止 PowerShell 时回退 Word API
 Private Function RunStripScript(ByVal scriptPath As String, ByVal docPath As String, _
                                 ByVal workDir As String, ByVal resultPath As String, _
                                 ByRef removed As Long, ByRef errText As String) As Boolean
     Dim shell As Object
     Dim cmd As String
     Dim exitCode As Long
-    Dim outputPath As String
-
-    On Error Resume Next
+    Dim fso As Object
+    Dim resultFile As Object
+    On Error GoTo Failed
     Set shell = CreateObject("WScript.Shell")
-    If shell Is Nothing Then
-        errText = "无法创建 WScript.Shell"
-        Exit Function
-    End If
-
-    outputPath = workDir & "\console.txt"
-    cmd = "cmd /c cscript.exe //nologo """ & scriptPath & """ """ & docPath & """ """ & workDir & """ > """ & outputPath & """ 2>&1"
+    cmd = "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File """ & scriptPath & _
+          """ -DocumentPath """ & docPath & """ -WorkDirectory """ & workDir & """ -ResultPath """ & resultPath & """"
     exitCode = shell.Run(cmd, 0, True)
-    If Err.Number <> 0 Then
-        errText = "调用 cscript 失败：" & Err.Description
-        Err.Clear
-        Exit Function
+    If exitCode = 0 Then
+        removed = ReadRemovedCount(resultPath)
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        Set resultFile = fso.OpenTextFile(resultPath, 1)
+        RunStripScript = (Left$(resultFile.ReadAll, 3) = "OK=")
+        resultFile.Close
+    Else
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        If fso.FileExists(resultPath) Then
+            Set resultFile = fso.OpenTextFile(resultPath, 1, False, -1)
+            errText = resultFile.ReadAll
+            resultFile.Close
+        Else
+            errText = "处理程序未完成，退出码 " & exitCode
+        End If
     End If
-
-    removed = ReadRemovedCount(outputPath)
-    RunStripScript = (exitCode = 0)
-    If Not RunStripScript Then
-        errText = ReadErrorText(outputPath)
-        If Len(errText) = 0 Then errText = "cscript 退出码 " & exitCode
-    End If
-    On Error GoTo 0
+    Exit Function
+Failed:
+    errText = Err.Description
 End Function
 
 ' 从输出中读取 OK=n
