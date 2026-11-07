@@ -35,8 +35,6 @@ Assert-True ($moduleText.Contains("Private Function ChooseConvertOption(ByVal di
     "Module should implement ChooseConvertOption dialog."
 Assert-True ($moduleText.Contains("SetAllFieldsLocked doc, True")) `
     "Module should lock fields before WYSIWYG export."
-Assert-True ($moduleText.Contains("SetAllFieldsLocked doc, False")) `
-    "Module should unlock fields after WYSIWYG export."
 Assert-True ($macroRegistryText.Contains("BatchConvertWordToPDF")) `
     "Macro registry should register BatchConvertWordToPDF."
 

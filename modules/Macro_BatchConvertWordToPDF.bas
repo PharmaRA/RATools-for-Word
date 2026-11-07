@@ -178,10 +178,11 @@ End Function
 Private Sub ConvertActiveDocument(ByRef session As ConvertSession)
     Dim doc As Document
     Dim pdfFileName As String
-    Dim wasLocked As Boolean
+    Dim fieldStates As Collection
+    Dim exportErrorNumber As Long
+    Dim exportErrorDescription As String
 
     Set doc = ActiveDocument
-    wasLocked = False
     On Error GoTo ActiveDocError
 
     If doc.Path = "" Then
@@ -195,8 +196,8 @@ Private Sub ConvertActiveDocument(ByRef session As ConvertSession)
     ' 根据选项执行转换前处理
     If session.updateType = 1 Then
         ' 所见即所得：锁定全部域
-        SetAllFieldsLocked doc, True
-        wasLocked = True
+        Set fieldStates = CaptureFieldLockStates(doc)
+        LockCapturedFields fieldStates
     ElseIf session.updateType = 2 Then
         ' 仅刷新页码
         RefreshTableOfContents doc, 2
@@ -209,11 +210,10 @@ Private Sub ConvertActiveDocument(ByRef session As ConvertSession)
 
     SafeExportAsPDF doc, pdfFileName
 
-    ' 所见即所得：导出完成后恢复解除域锁定
-    If wasLocked Then
-        SetAllFieldsLocked doc, False
-        wasLocked = False
+    If Not RestoreFieldLockStates(fieldStates) Then
+        Err.Raise vbObjectError + 2301, , "PDF 已导出，但部分域的原始锁定状态无法恢复，请检查文档。"
     End If
+    Set fieldStates = Nothing
 
     session.successCount = session.successCount + 1
     session.lastOutputPath = pdfFileName
@@ -221,15 +221,16 @@ Private Sub ConvertActiveDocument(ByRef session As ConvertSession)
     Exit Sub
 
 ActiveDocError:
-    If wasLocked Then
-        SetAllFieldsLocked doc, False
-        wasLocked = False
+    exportErrorNumber = Err.Number
+    exportErrorDescription = GetFriendlyErrorMessage(exportErrorNumber, Err.Description)
+    If Not RestoreFieldLockStates(fieldStates) Then
+        exportErrorDescription = exportErrorDescription & vbCrLf & "部分域的原始锁定状态无法恢复，请检查文档。"
     End If
     Application.ScreenUpdating = False
     session.failCount = session.failCount + 1
     session.processLog = session.processLog & "[失败] " & doc.Name & " - 原因: " & _
-        GetFriendlyErrorMessage(Err.Number, Err.Description) & vbCrLf
-    MsgBox "转换失败：" & GetFriendlyErrorMessage(Err.Number, Err.Description), vbCritical, DIALOG_TITLE
+        exportErrorDescription & vbCrLf
+    MsgBox "转换失败：" & exportErrorDescription, vbCritical, DIALOG_TITLE
 End Sub
 
 ' ==================== 处理单个文件 ====================
@@ -291,6 +292,68 @@ Finally:
     Set doc = Nothing
     DoEvents
 End Sub
+
+Private Sub RememberFieldLock(ByVal states As Collection, ByVal fld As Field)
+    Dim state As New Collection
+    state.Add fld
+    state.Add CBool(fld.Locked)
+    states.Add state
+End Sub
+
+Private Function CaptureFieldLockStates(ByVal doc As Document) As Collection
+    Dim states As New Collection
+    Dim story As Range
+    Dim fld As Field
+    Dim shape As Shape
+    Dim text As Range
+    ' Capture the entire snapshot before locking, including duplicate exposures
+    ' through StoryRanges and Shapes: every snapshot then has the original value.
+    For Each story In doc.StoryRanges
+        Do
+            For Each fld In story.Fields
+                RememberFieldLock states, fld
+            Next fld
+            Set story = story.NextStoryRange
+        Loop While Not story Is Nothing
+    Next story
+    For Each shape In doc.Shapes
+        Set text = Nothing
+        On Error Resume Next
+        Set text = shape.TextFrame.TextRange
+        On Error GoTo 0
+        If Not text Is Nothing Then
+            For Each fld In text.Fields
+                RememberFieldLock states, fld
+            Next fld
+        End If
+    Next shape
+    Set CaptureFieldLockStates = states
+End Function
+
+Private Sub LockCapturedFields(ByVal states As Collection)
+    Dim state As Collection
+    Dim fld As Field
+    For Each state In states
+        Set fld = state(1)
+        fld.Locked = True
+    Next state
+End Sub
+
+Private Function RestoreFieldLockStates(ByVal states As Collection) As Boolean
+    Dim state As Collection
+    Dim fld As Field
+    RestoreFieldLockStates = True
+    If states Is Nothing Then Exit Function
+    On Error Resume Next
+    For Each state In states
+        Err.Clear
+        Set fld = state(1)
+        fld.Locked = CBool(state(2))
+        If Err.Number <> 0 Then RestoreFieldLockStates = False
+    Next state
+    Err.Clear
+    On Error GoTo 0
+End Function
 
 ' ==================== 辅助函数：批量锁定/解锁全部域 ====================
 Public Sub SetAllFieldsLocked(doc As Document, ByVal lockState As Boolean)

@@ -25,7 +25,7 @@
 | R05 | P1 | `Core_Session.bas`：Save 错误吞掉后仍不保存关闭；清理/边距调用方报成功 | 保存失败返回失败并保留修改；批处理统计准确；正常保存及用户已有文档行为不退化 | 修复中，未提交；Word 许可错误阻断回归，review 待办见下 |
 | R06 | P1 | `scripts/RATools.Build.psm1`：先删除旧 dotm 再解压校验，允许目标等于 SafeRoot | 坏包/中断保留旧目录；拒绝根目录、输入包位于替换目标、链接目标；成功替换可恢复且不用物理删除 | 已修复，构建回归和 review 通过 |
 | R07 | P1 | `Macro_BatchConvertWordToPDF.bas`：同主文件名不同扩展名输出到同一 PDF | 批次内冲突和已有输出不无提示覆盖；每个成功结果对应独立有效 PDF | 已修复，真实导出及竞争发布回归、review 通过 |
-| R08 | P2 | 同模块：导出结束统一解锁全部域 | 混合 Locked 状态在成功和异常路径均恢复，覆盖正文/页眉/文本框 | 待处理 |
+| R08 | P2 | 同模块：导出结束统一解锁全部域 | 混合 Locked 状态在成功和异常路径均恢复，覆盖正文/页眉/文本框 | 已修复，真实 Word 回归和 review 通过 |
 | R09 | P2 | `Macro_RemoveUnusedStyles.bas`：只在正文检查样式是否使用 | 页眉/页脚/脚注/文本框使用中的样式保留；真正未用样式正常清理 | 待处理 |
 | R10 | P2 | `Macro_ReviewerFilter.bas`：正文修订计数为零提前返回 | 只有页眉或页脚修订且零批注时仍列出审阅者；无标记文档仍返回空 | 待处理 |
 | R11 | P2 | `Macro_BatchRenameFiles.bas`：大小写重命名将源文件自身判为冲突 | `Report.DOCX` 改为 `report.docx` 不加后缀；真正冲突仍不覆盖 | 待处理 |
@@ -117,3 +117,13 @@ Microsoft 文档确认 [CopyHere 不通知复制完成](https://learn.microsoft.
 - `PdfOutputSafety.Tests.ps1` 退出 0：原 PDF 哈希不变、两份源文档生成独立有效 PDF、报告路径准确；同名目录保持、竞争者抢占文件保持、真实发布重试生成有效 PDF。
 - `BatchConvertWordToPDF.Tests.ps1` 原有回归退出 0；`review_batch` 独立只读 review 通过。
 - 验证通过 ConvertActiveDocument 覆盖共用导出函数；未声称动态覆盖非冲突发布失败和临时回收失败，这两条异常路径仅经源码 review。
+- 独立提交：`0464d38`。
+
+### R08：逐域恢复原锁定状态
+
+- 真实 Word 失败复现：默认导出后原先锁定的正文域被解锁。
+- 先完整捕获各 Field 对象及 Locked 布尔值，再锁定；成功及异常都逐项恢复。恢复前保存原始错误；恢复不完整计失败并提示。
+- `PdfFieldState.Tests.ps1` 退出 0：真实 PDF 成功导出和注入导出失败后，正文混合状态、页眉锁定、文本框未锁定均恢复；错误信息保持。
+- review 发现并修复可映射错误吞掉恢复警告：先转换导出错误再附加恢复警告。复合失败测试注入恢复结果 False，旧消息顺序 RED、修复后 GREEN；不宣称验证了 Word Locked 赋值实际抛错。
+- `PdfOutputSafety.Tests.ps1` 与原 `BatchConvertWordToPDF.Tests.ps1` 回归通过。去掉旧测试中强制要求全量解锁的源码断言，保留辅助函数行为测试。
+- `review_batch` 独立复查通过；未改批量导出中原有文档所有权行为。
