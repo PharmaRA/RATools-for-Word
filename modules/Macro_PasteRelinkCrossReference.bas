@@ -57,12 +57,14 @@ Public Sub Core_PasteRelinkCrossReference()
     Dim captions As Collection
     Dim screenUpdating As Boolean
     Dim undoStarted As Boolean
+    Dim ambiguousCaptions As Boolean
 
     If Application.Documents.Count = 0 Then
         ReportError "当前没有打开的文档。"
         Exit Sub
     End If
 
+    mLastErrorMessage = vbNullString
     Set doc = ActiveDocument
     Set sel = Selection
 
@@ -93,7 +95,7 @@ Public Sub Core_PasteRelinkCrossReference()
         Set pastedFields = CollectPastedFields(pastedRange)
         Set captions = CollectPastedCaptions(doc, pastedRange)
         If captions.Count > 0 Then
-            RelinkPastedReferences doc, pastedRange, captions, pastedFields
+            RelinkPastedReferences doc, pastedRange, captions, pastedFields, ambiguousCaptions
         End If
 
         ' 单个域更新失败不影响整体：内容已经粘贴好了
@@ -103,6 +105,7 @@ Public Sub Core_PasteRelinkCrossReference()
     On Error GoTo 0
     FinishUndoRecord undoStarted
     Application.ScreenUpdating = screenUpdating
+    If ambiguousCaptions Then ReportError "存在标签和描述相同的多个题注，相关引用保留原目标。请手动确认这些引用。"
     Exit Sub
 
 PasteFailed:
@@ -251,33 +254,91 @@ End Function
 
 ' 匹配粘贴出来的题注：标签与描述都相同才认领，避免把指向别的题注的引用误接过来。
 ' 粘贴出来的题注是原题注的完整拷贝，描述文字必然一致；匹配不到时宁可不动。
-Private Function MatchPastedCaption(ByVal captions As Collection, ByVal used As Object, _
-                                    ByVal labelName As String, ByVal descText As String) As Variant
-    Dim i As Long
+Private Function CaptionMatchKey(ByVal labelName As String, ByVal descText As String) As String
+    CaptionMatchKey = labelName & ChrW$(0) & NormalizeText(descText)
+End Function
+
+Private Function IndexPastedCaptions(ByVal captions As Collection) As Object
+    Dim result As Object
+    Dim candidates As Collection
     Dim item As Variant
+    Dim key As String
+    Set result = CreateObject("Scripting.Dictionary")
+    result.CompareMode = vbTextCompare
+    For Each item In captions
+        key = CaptionMatchKey(CStr(item(0)), CStr(item(1)))
+        If Not result.Exists(key) Then
+            Set candidates = New Collection
+            result.Add key, candidates
+        End If
+        Set candidates = result(key)
+        candidates.Add item
+    Next item
+    Set IndexPastedCaptions = result
+End Function
 
-    MatchPastedCaption = Empty
-    If captions Is Nothing Then Exit Function
-
-    For i = 1 To captions.Count
-        item = captions(i)
-        If Not used.Exists(CStr(item(2))) Then
-            If StrComp(CStr(item(0)), labelName, vbTextCompare) = 0 Then
-                If StrComp(NormalizeText(CStr(item(1))), NormalizeText(descText), vbTextCompare) = 0 Then
-                    used.Add CStr(item(2)), True
-                    MatchPastedCaption = item
-                    Exit Function
+Private Function IndexSourceCaptionIdentities(ByVal doc As Document, ByVal pastedRange As Range, _
+                                               ByVal captionIndex As Object) As Object
+    Dim result As Object
+    Dim identities As Object
+    Dim fld As Field
+    Dim para As Paragraph
+    Dim labelName As String
+    Dim descText As String
+    Dim key As String
+    Set result = CreateObject("Scripting.Dictionary")
+    result.CompareMode = vbTextCompare
+    ' Source uniqueness must include unreferenced captions too: an external REF
+    ' must not steal a copied caption merely because its own text is identical.
+    For Each fld In doc.Fields
+        If fld.Type = wdFieldSequence Then
+            If fld.Code.Start < pastedRange.Start Or fld.Code.Start >= pastedRange.End Then
+                labelName = GetSequenceLabel(fld)
+                Set para = doc.Range(fld.Code.Start, fld.Result.End).Paragraphs(1)
+                descText = GetCaptionDescription(doc, para.Range.Start, para.Range.End, fld.Result.End)
+                key = CaptionMatchKey(labelName, descText)
+                If captionIndex.Exists(key) Then
+                    If Not result.Exists(key) Then
+                        Set identities = CreateObject("Scripting.Dictionary")
+                        result.Add key, identities
+                    End If
+                    Set identities = result(key)
+                    identities(CStr(para.Range.Start)) = True
                 End If
             End If
         End If
-    Next i
+    Next fld
+    Set IndexSourceCaptionIdentities = result
+End Function
+
+Private Function MatchPastedCaption(ByVal captionIndex As Object, ByVal used As Object, _
+                                    ByVal labelName As String, ByVal descText As String, _
+                                    ByRef ambiguousCaptions As Boolean) As Variant
+    Dim candidates As Collection
+    Dim item As Variant
+    Dim key As String
+    MatchPastedCaption = Empty
+    key = CaptionMatchKey(labelName, descText)
+    If Not captionIndex.Exists(key) Then Exit Function
+    Set candidates = captionIndex(key)
+    ' Check uniqueness before considering claims; a previously used candidate
+    ' must not make an originally ambiguous group look unique.
+    If candidates.Count <> 1 Then
+        ambiguousCaptions = True
+        Exit Function
+    End If
+    item = candidates(1)
+    If used.Exists(CStr(item(2))) Then Exit Function
+    used.Add CStr(item(2)), True
+    MatchPastedCaption = item
 End Function
 
 
 ' ==================== 重连引用 ====================
 
 Private Sub RelinkPastedReferences(ByVal doc As Document, ByVal pastedRange As Range, _
-                                   ByVal captions As Collection, ByVal fields As Collection)
+                                   ByVal captions As Collection, ByVal fields As Collection, _
+                                    ByRef ambiguousCaptions As Boolean)
     Dim fld As Field
     Dim refCount As Long
     Dim oldName As String
@@ -289,6 +350,8 @@ Private Sub RelinkPastedReferences(ByVal doc As Document, ByVal pastedRange As R
     Dim pendingNames As New Collection
     Dim pendingIndex As Long
     Dim names As Variant
+    Dim captionIndex As Object
+    Dim sourceIdentities As Object
 
     If fields Is Nothing Then Exit Sub
 
@@ -302,6 +365,8 @@ Private Sub RelinkPastedReferences(ByVal doc As Document, ByVal pastedRange As R
     Set cache = CreateObject("Scripting.Dictionary")
     Set used = CreateObject("Scripting.Dictionary")
     Set claimed = CreateObject("Scripting.Dictionary")
+    Set captionIndex = IndexPastedCaptions(captions)
+    Set sourceIdentities = IndexSourceCaptionIdentities(doc, pastedRange, captionIndex)
 
     For Each fld In fields
         If fld.Type = wdFieldRef Or fld.Type = wdFieldPageRef Then
@@ -310,7 +375,7 @@ Private Sub RelinkPastedReferences(ByVal doc As Document, ByVal pastedRange As R
                 If cache.Exists(oldName) Then
                     newName = CStr(cache(oldName))
                 Else
-                    newName = BuildRelinkedBookmark(doc, pastedRange, captions, used, claimed, oldName)
+                    newName = BuildRelinkedBookmark(doc, pastedRange, captionIndex, sourceIdentities, used, claimed, oldName, ambiguousCaptions)
                     cache.Add oldName, newName
                 End If
 
@@ -333,8 +398,9 @@ End Sub
 
 ' 为一条引用找到粘贴出来的对应题注并新建书签；不需要/无法重连时返回空串
 Private Function BuildRelinkedBookmark(ByVal doc As Document, ByVal pastedRange As Range, _
-                                       ByVal captions As Collection, ByVal used As Object, _
-                                       ByVal claimed As Object, ByVal oldName As String) As String
+                                       ByVal captionIndex As Object, ByVal sourceIdentities As Object, _
+                                       ByVal used As Object, ByVal claimed As Object, ByVal oldName As String, _
+                                       ByRef ambiguousCaptions As Boolean) As String
     Dim bmRange As Range
     Dim srcPara As Paragraph
     Dim srcLabel As String
@@ -369,7 +435,17 @@ Private Function BuildRelinkedBookmark(ByVal doc As Document, ByVal pastedRange 
         target = claimed(CStr(srcPara.Range.Start))
     Else
         srcDesc = GetCaptionDescription(doc, srcPara.Range.Start, srcPara.Range.End, seqEnd)
-        target = MatchPastedCaption(captions, used, srcLabel, srcDesc)
+        Dim sourceKey As String
+        Dim identities As Object
+        sourceKey = CaptionMatchKey(srcLabel, srcDesc)
+        If sourceIdentities.Exists(sourceKey) Then
+            Set identities = sourceIdentities(sourceKey)
+            If identities.Count <> 1 Then
+                ambiguousCaptions = True
+                Exit Function
+            End If
+        End If
+        target = MatchPastedCaption(captionIndex, used, srcLabel, srcDesc, ambiguousCaptions)
         If IsEmpty(target) Then Exit Function
         claimed.Add CStr(srcPara.Range.Start), target
     End If

@@ -45,6 +45,66 @@ try {
     [void]$doc.Undo()
     Assert-True ($doc.Content.Text -eq $sourceText) 'One undo must restore the original document text'
     Write-Host 'PASS variable-length reference names preserve all caption targets and undo'
+    $doc.Close(0); $doc = $null
+    foreach ($description in @(' Same description', '')) {
+        $doc = $word.Documents.Add()
+        [void]$doc.VBProject.VBComponents.Import((Join-Path $repo 'modules\Macro_PasteRelinkCrossReference.bas'))
+        $word.Run('EnablePasteRelinkQuietMode')
+        $sel = $word.Selection
+        $sel.TypeText('Reverse references: ')
+        $sel.TypeParagraph()
+        $sel.InsertCaption('Table', $description) | Out-Null
+        $sel.TypeParagraph()
+        $sel.InsertCaption('Table', $description) | Out-Null
+        $sel.TypeParagraph()
+        foreach ($index in @(2,1)) {
+            $position = $doc.Paragraphs.Item(1).Range.End - 1
+            $doc.Range($position,$position).InsertCrossReference('Table',3,$index,$true) | Out-Null
+            $position = $doc.Paragraphs.Item(1).Range.End - 1
+            $doc.Range($position,$position).Text = ' / '
+        }
+        [void]$doc.Fields.Update()
+        $sourceReferences = @($doc.Fields | Where-Object { $_.Type -eq 3 } | ForEach-Object { $_.Code.Text.Trim() })
+        $doc.Range(0,$doc.Paragraphs.Item(3).Range.End).Select()
+        $sel.Copy()
+        Start-Sleep -Milliseconds 250
+        $sel.SetRange($doc.Content.End-1,$doc.Content.End-1)
+        $word.Run('Core_PasteRelinkCrossReference')
+        $references = @($doc.Fields | Where-Object { $_.Type -eq 3 })
+        Assert-True ($references[2].Code.Text.Trim() -eq $sourceReferences[0]) 'Ambiguous reversed reference must retain its original target'
+        Assert-True ($references[3].Code.Text.Trim() -eq $sourceReferences[1]) 'Ambiguous second reference must retain its original target'
+        Assert-True (-not [string]::IsNullOrEmpty($word.Run('GetLastPasteRelinkErrorForTest'))) 'Ambiguous matching must report that references were retained'
+        Write-Host "PASS ambiguous captions retained with notice (description length $($description.Length))"
+        $doc.Close(0); $doc = $null
+    }
+    $doc = $word.Documents.Add()
+    [void]$doc.VBProject.VBComponents.Import((Join-Path $repo 'modules\Macro_PasteRelinkCrossReference.bas'))
+    $word.Run('EnablePasteRelinkQuietMode')
+    $sel = $word.Selection
+    $sel.InsertCaption('Table', ' Shared description') | Out-Null
+    $sel.TypeParagraph()
+    $sel.TypeText('References: ')
+    $sel.TypeParagraph()
+    $sel.InsertCaption('Table', ' Shared description') | Out-Null
+    $sel.TypeParagraph()
+    foreach ($index in @(1,2)) {
+        $position = $doc.Paragraphs.Item(2).Range.End - 1
+        $doc.Range($position,$position).InsertCrossReference('Table',3,$index,$true) | Out-Null
+        $position = $doc.Paragraphs.Item(2).Range.End - 1
+        $doc.Range($position,$position).Text = ' / '
+    }
+    [void]$doc.Fields.Update()
+    $originalRefs = @($doc.Fields | Where-Object { $_.Type -eq 3 } | ForEach-Object { $_.Code.Text.Trim() })
+    $doc.Range($doc.Paragraphs.Item(2).Range.Start,$doc.Paragraphs.Item(3).Range.End).Select()
+    $sel.Copy()
+    Start-Sleep -Milliseconds 250
+    $sel.SetRange($doc.Content.End-1,$doc.Content.End-1)
+    $word.Run('Core_PasteRelinkCrossReference')
+    $refs = @($doc.Fields | Where-Object { $_.Type -eq 3 })
+    Assert-True ($refs[2].Code.Text.Trim() -eq $originalRefs[0]) 'External same-description source must not claim the single pasted caption'
+    Assert-True ($refs[3].Code.Text.Trim() -eq $originalRefs[1]) 'Ambiguous source identity must preserve the second target'
+    Assert-True (-not [string]::IsNullOrEmpty($word.Run('GetLastPasteRelinkErrorForTest'))) 'Source ambiguity must report a notice'
+    Write-Host 'PASS multiple source identities cannot claim one pasted caption'
 } finally {
     if ($null -ne $doc) { $doc.Close(0) }
     Stop-RAToolsWordSession -Word $word
