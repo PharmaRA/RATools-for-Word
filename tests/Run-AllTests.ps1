@@ -9,6 +9,7 @@ $ErrorActionPreference = "Stop"
 # 测试清单。RequiresCom 标记该脚本是否需要 Word COM 自动化。
 $suites = @(
     @{ Name = "BuildRATools";            File = "BuildRATools.Tests.ps1";            RequiresCom = $false },
+    @{ Name = "BuildSafety";             File = "BuildSafety.Tests.ps1";             RequiresCom = $false },
     @{ Name = "VersionConsistency";      File = "VersionConsistency.Tests.ps1";      RequiresCom = $false },
     @{ Name = "RibbonCallbacks";         File = "RibbonCallbacks.Tests.ps1";         RequiresCom = $false },
     @{ Name = "QuickToolbarWindow";      File = "QuickToolbarWindow.Tests.ps1";      RequiresCom = $false },

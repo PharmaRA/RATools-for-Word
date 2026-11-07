@@ -1,4 +1,4 @@
-#requires -version 5.1
+﻿#requires -version 5.1
 
 [CmdletBinding()]
 param(
@@ -117,10 +117,6 @@ if ([string]::IsNullOrWhiteSpace($OutputPath)) {
 }
 
 $outputFullPath = [System.IO.Path]::GetFullPath($OutputPath)
-$outputDirectory = Split-Path -Parent $outputFullPath
-if (-not (Test-Path -LiteralPath $outputDirectory -PathType Container)) {
-    New-Item -ItemType Directory -Path $outputDirectory | Out-Null
-}
 
 $workRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("RATools_Build_" + [guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Path $workRoot | Out-Null
@@ -160,11 +156,7 @@ try {
         Expand-RAToolsDotmToDirectory -PackagePath $workingPackagePath -TargetDirectory $layout.DotmDirectory -SafeRoot $layout.RepoRoot | Out-Null
     }
 
-    if (Test-Path -LiteralPath $outputFullPath) {
-        Remove-Item -LiteralPath $outputFullPath -Force
-    }
-
-    Copy-Item -LiteralPath $workingPackagePath -Destination $outputFullPath -Force
+    Publish-RAToolsPackageFile -PackagePath $workingPackagePath -DestinationPath $outputFullPath | Out-Null
     Write-Host "Built dotm: $outputFullPath"
 }
 finally {
@@ -172,6 +164,6 @@ finally {
         Write-Host "Keeping work directory: $workRoot"
     }
     else {
-        Remove-Item -LiteralPath $workRoot -Recurse -Force
+        Move-RAToolsToRecycleBin -Path $workRoot -SafeRoot ([System.IO.Path]::GetTempPath())
     }
 }

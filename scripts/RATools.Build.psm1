@@ -194,39 +194,128 @@ function New-RAToolsDotmFromDirectory {
     $destinationFull = Get-RAToolsFullPath -Path $DestinationPath
     $destinationParent = Split-Path -Parent $destinationFull
 
-    if (-not (Test-Path -LiteralPath $destinationParent -PathType Container)) {
-        New-Item -ItemType Directory -Path $destinationParent | Out-Null
+    Assert-RAToolsNoLinks $sourceFull -Recurse
+    Assert-RAToolsNoLinks $destinationFull
+    if ($destinationFull.StartsWith($sourceFull.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) {
+        throw 'Package output cannot be inside its source directory.'
     }
-
-    if (Test-Path -LiteralPath $destinationFull) {
-        Remove-Item -LiteralPath $destinationFull -Force
-    }
-
+    [void][IO.Directory]::CreateDirectory($destinationParent)
+    $packageStage = Join-Path $destinationParent ('.ratools-build-' + [guid]::NewGuid().ToString('N'))
     Add-Type -AssemblyName System.IO.Compression
     Add-Type -AssemblyName System.IO.Compression.FileSystem
-    $archive = [System.IO.Compression.ZipFile]::Open(
-        $destinationFull,
-        [System.IO.Compression.ZipArchiveMode]::Create
-    )
-
     try {
-        Get-ChildItem -LiteralPath $sourceFull -Recurse -File |
-            Sort-Object -Property FullName |
-            ForEach-Object {
-                $entryName = (ConvertTo-RAToolsRelativePath -Root $sourceFull -Path $_.FullName) -replace "\\", "/"
-                [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
-                    $archive,
-                    $_.FullName,
-                    $entryName,
-                    [System.IO.Compression.CompressionLevel]::Optimal
-                ) | Out-Null
-            }
-    }
-    finally {
-        $archive.Dispose()
+        $archive = [System.IO.Compression.ZipFile]::Open($packageStage, [System.IO.Compression.ZipArchiveMode]::Create)
+        try {
+            Get-ChildItem -LiteralPath $sourceFull -Recurse -File -ErrorAction Stop |
+                Sort-Object -Property FullName |
+                ForEach-Object {
+                    $entryName = (ConvertTo-RAToolsRelativePath -Root $sourceFull -Path $_.FullName) -replace "\\", "/"
+                    [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+                        $archive, $_.FullName, $entryName,
+                        [System.IO.Compression.CompressionLevel]::Optimal
+                    ) | Out-Null
+                }
+        } finally { $archive.Dispose() }
+        Publish-RAToolsPackageFile -PackagePath $packageStage -DestinationPath $destinationFull | Out-Null
+    } finally {
+        if (Test-Path -LiteralPath $packageStage) {
+            try { Move-RAToolsToRecycleBin $packageStage -SafeRoot $destinationParent }
+            catch { Write-Warning "Package staging file retained: $packageStage" }
+        }
     }
 
     return $destinationFull
+}
+
+function Assert-RAToolsNoLinks {
+    param([Parameter(Mandatory)][string]$Path, [switch]$Recurse)
+    $cursor = Get-RAToolsFullPath $Path
+    while (-not [string]::IsNullOrWhiteSpace($cursor)) {
+        if (Test-Path -LiteralPath $cursor) {
+            $item = Get-Item -LiteralPath $cursor -Force -ErrorAction Stop
+            if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -or
+                ($null -ne $item.PSObject.Properties['LinkType'] -and $item.LinkType)) {
+                throw "Refusing to operate on linked path: $cursor"
+            }
+        }
+        $cursor = Split-Path -Parent $cursor
+    }
+    if ($Recurse -and (Test-Path -LiteralPath $Path -PathType Container)) {
+        $pending = [Collections.Generic.Stack[string]]::new()
+        $pending.Push((Get-RAToolsFullPath $Path))
+        while ($pending.Count -gt 0) {
+            foreach ($item in Get-ChildItem -LiteralPath $pending.Pop() -Force -ErrorAction Stop) {
+                if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -or
+                    ($null -ne $item.PSObject.Properties['LinkType'] -and $item.LinkType)) {
+                    throw "Refusing to operate on linked content: $($item.FullName)"
+                }
+                if ($item.PSIsContainer) { $pending.Push($item.FullName) }
+            }
+        }
+    }
+}
+
+function Assert-RAToolsStrictChild {
+    param([string]$Root, [string]$Path)
+    $full = Assert-RAToolsPathInsideRoot -Root $Root -Path $Path
+    $rootFull = (Get-RAToolsFullPath $Root).TrimEnd('\', '/')
+    if ($full.TrimEnd('\', '/').Equals($rootFull, [StringComparison]::OrdinalIgnoreCase)) {
+        throw 'The safe root itself cannot be replaced or recycled.'
+    }
+    return $full
+}
+
+function Move-RAToolsToRecycleBin {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Path, [Parameter(Mandatory)][string]$SafeRoot)
+    $full = Assert-RAToolsStrictChild -Root $SafeRoot -Path $Path
+    if (-not (Test-Path -LiteralPath $full)) { return }
+    Assert-RAToolsNoLinks -Path $full -Recurse
+    Add-Type -AssemblyName Microsoft.VisualBasic
+    if (Test-Path -LiteralPath $full -PathType Container) {
+        [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteDirectory($full, 'OnlyErrorDialogs', 'SendToRecycleBin')
+    } else {
+        [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile($full, 'OnlyErrorDialogs', 'SendToRecycleBin')
+    }
+}
+
+function Publish-RAToolsPackageFile {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$PackagePath, [Parameter(Mandatory)][string]$DestinationPath)
+    $source = (Resolve-Path -LiteralPath $PackagePath).Path
+    $target = Get-RAToolsFullPath $DestinationPath
+    $parent = Split-Path -Parent $target
+    if (Test-Path -LiteralPath $target -PathType Container) { throw 'Package destination must be a file path.' }
+    Assert-RAToolsNoLinks $source
+    Assert-RAToolsNoLinks $target
+    if ($source.Equals($target, [StringComparison]::OrdinalIgnoreCase)) { throw 'Source and destination must differ.' }
+    [void](Assert-RAToolsStrictChild $parent $target)
+    [void][IO.Directory]::CreateDirectory($parent)
+    $stage = Join-Path $parent ('.ratools-file-' + [guid]::NewGuid().ToString('N'))
+    $backup = $null
+    try {
+        [IO.File]::Copy($source, $stage, $false)
+        if ((Get-FileHash -LiteralPath $stage).Hash -ne (Get-FileHash -LiteralPath $source).Hash) { throw 'Package copy verification failed.' }
+        if (Test-Path -LiteralPath $target) {
+            $backupRoot = Join-Path $parent 'backups'
+            Assert-RAToolsNoLinks $backupRoot
+            [void][IO.Directory]::CreateDirectory($backupRoot)
+            $backup = Join-Path $backupRoot ((Split-Path -Leaf $target) + '.' + [guid]::NewGuid().ToString('N') + '.bak')
+            [void](Assert-RAToolsStrictChild $parent $backup)
+            Move-Item -LiteralPath $target -Destination $backup -ErrorAction Stop
+        }
+        try { Move-Item -LiteralPath $stage -Destination $target -ErrorAction Stop }
+        catch {
+            if ($backup -and -not (Test-Path -LiteralPath $target)) { Move-Item -LiteralPath $backup -Destination $target -ErrorAction Stop }
+            throw
+        }
+    } finally {
+        if (Test-Path -LiteralPath $stage) {
+            try { Move-RAToolsToRecycleBin $stage -SafeRoot $parent }
+            catch { Write-Warning "Temporary package retained: $stage" }
+        }
+    }
+    return $target
 }
 
 function Expand-RAToolsDotmToDirectory {
@@ -246,22 +335,50 @@ function Expand-RAToolsDotmToDirectory {
     }
 
     $packageFull = (Resolve-Path -LiteralPath $PackagePath).Path
-    $targetFull = Get-RAToolsFullPath -Path $TargetDirectory
-
-    if (-not [string]::IsNullOrWhiteSpace($SafeRoot)) {
-        $targetFull = Assert-RAToolsPathInsideRoot -Root $SafeRoot -Path $targetFull -Description "dotm extraction target"
+    $targetFull = Get-RAToolsFullPath $TargetDirectory
+    if ($targetFull -eq [IO.Path]::GetPathRoot($targetFull)) { throw 'A filesystem root cannot be replaced.' }
+    $targetFull = $targetFull.TrimEnd('\', '/')
+    if ([string]::IsNullOrWhiteSpace($SafeRoot)) { $SafeRoot = Split-Path -Parent $targetFull }
+    $targetFull = Assert-RAToolsStrictChild -Root $SafeRoot -Path $targetFull
+    if ($packageFull.Equals($targetFull, [StringComparison]::OrdinalIgnoreCase) -or
+        $packageFull.StartsWith($targetFull + '\', [StringComparison]::OrdinalIgnoreCase)) {
+        throw 'The input package cannot be inside the directory being replaced.'
     }
-
-    if (Test-Path -LiteralPath $targetFull) {
-        Remove-Item -LiteralPath $targetFull -Recurse -Force
-    }
-
-    New-Item -ItemType Directory -Path $targetFull | Out-Null
-
-    Add-Type -AssemblyName System.IO.Compression
+    Assert-RAToolsNoLinks $packageFull
+    Assert-RAToolsNoLinks $targetFull -Recurse
+    $parent = Split-Path -Parent $targetFull
+    [void][IO.Directory]::CreateDirectory($parent)
+    $stage = Join-Path $parent ('.ratools-stage-' + [guid]::NewGuid().ToString('N'))
+    [void](Assert-RAToolsStrictChild $SafeRoot $stage)
+    $backup = $null
     Add-Type -AssemblyName System.IO.Compression.FileSystem
-    [System.IO.Compression.ZipFile]::ExtractToDirectory($packageFull, $targetFull)
-    [void](Test-RAToolsDotmDirectory -Path $targetFull -ThrowOnFailure)
+    try {
+        [IO.Compression.ZipFile]::ExtractToDirectory($packageFull, $stage)
+        [void](Test-RAToolsDotmDirectory -Path $stage -ThrowOnFailure)
+        Assert-RAToolsNoLinks $stage -Recurse
+        if (Test-Path -LiteralPath $targetFull) {
+            $backupRoot = Join-Path (Get-RAToolsFullPath $SafeRoot) 'backups'
+            if ($backupRoot.Equals($targetFull, [StringComparison]::OrdinalIgnoreCase) -or
+                $backupRoot.StartsWith($targetFull + '\', [StringComparison]::OrdinalIgnoreCase)) {
+                throw 'Target cannot contain its recovery directory.'
+            }
+            Assert-RAToolsNoLinks $backupRoot
+            [void][IO.Directory]::CreateDirectory($backupRoot)
+            $backup = Join-Path $backupRoot ((Split-Path -Leaf $targetFull) + '.' + [guid]::NewGuid().ToString('N'))
+            [void](Assert-RAToolsStrictChild $SafeRoot $backup)
+            Move-Item -LiteralPath $targetFull -Destination $backup -ErrorAction Stop
+        }
+        try { Move-Item -LiteralPath $stage -Destination $targetFull -ErrorAction Stop }
+        catch {
+            if ($backup -and -not (Test-Path -LiteralPath $targetFull)) { Move-Item -LiteralPath $backup -Destination $targetFull -ErrorAction Stop }
+            throw
+        }
+    } finally {
+        if (Test-Path -LiteralPath $stage) {
+            try { Move-RAToolsToRecycleBin $stage -SafeRoot $SafeRoot }
+            catch { Write-Warning "Extraction staging directory retained: $stage" }
+        }
+    }
 
     return $targetFull
 }
@@ -597,6 +714,8 @@ function Import-RAToolsDataFile {
 }
 
 Export-ModuleMember -Function @(
+    "Move-RAToolsToRecycleBin",
+    "Publish-RAToolsPackageFile",
     "Import-RAToolsDataFile",
     "Assert-RAToolsPathInsideRoot",
     "Get-RAToolsProjectLayout",

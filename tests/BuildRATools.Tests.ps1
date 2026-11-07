@@ -125,7 +125,7 @@ Run-Test "Get-RAToolsVbaSourceFiles returns importable files in stable order" {
         Assert-Equal "userforms\frmAbout.frm" $relativePaths[3] "Only .frm should be imported for user forms."
     }
     finally {
-        Remove-Item -LiteralPath $root -Recurse -Force
+        Move-RAToolsToRecycleBin -Path $root -SafeRoot ([System.IO.Path]::GetTempPath())
     }
 }
 
@@ -150,7 +150,7 @@ Run-Test "New-RAToolsDotmFromDirectory writes package contents at zip root" {
         }
     }
     finally {
-        Remove-Item -LiteralPath $root -Recurse -Force
+        Move-RAToolsToRecycleBin -Path $root -SafeRoot ([System.IO.Path]::GetTempPath())
     }
 }
 
@@ -170,7 +170,7 @@ Run-Test "Expand-RAToolsDotmToDirectory replaces stale target contents" {
         Assert-True (-not (Test-Path -LiteralPath (Join-Path $targetPath "stale.txt"))) "Expansion should remove stale target files."
     }
     finally {
-        Remove-Item -LiteralPath $root -Recurse -Force
+        Move-RAToolsToRecycleBin -Path $root -SafeRoot ([System.IO.Path]::GetTempPath())
     }
 }
 
@@ -184,7 +184,7 @@ Run-Test "Assert-RAToolsPathInsideRoot rejects paths outside safe root" {
         } "Path outside the safe root should be rejected."
     }
     finally {
-        Remove-Item -LiteralPath $root -Recurse -Force
+        Move-RAToolsToRecycleBin -Path $root -SafeRoot ([System.IO.Path]::GetTempPath())
     }
 }
 
@@ -207,7 +207,7 @@ Run-Test "Get-RAToolsLatestChangelogVersion reads the first changelog heading" {
         Assert-Equal "v9.8.7" $version "Latest changelog version should come from the first version heading."
     }
     finally {
-        Remove-Item -LiteralPath $root -Recurse -Force
+        Move-RAToolsToRecycleBin -Path $root -SafeRoot ([System.IO.Path]::GetTempPath())
     }
 }
 
@@ -232,7 +232,7 @@ Private Const GITHUB_REPOSITORY_URL As String = "https://github.com/PharmaRA/RAT
         Assert-True ($updatedText.Contains('GITHUB_REPOSITORY_URL')) "Other module constants should be preserved."
     }
     finally {
-        Remove-Item -LiteralPath $root -Recurse -Force
+        Move-RAToolsToRecycleBin -Path $root -SafeRoot ([System.IO.Path]::GetTempPath())
     }
 }
 
@@ -266,7 +266,7 @@ Private Const PROMPT_TEXT As String = "发现新版本，是否前往下载？"
         Assert-True ($utf8Decoded.Contains([char]0xFFFD)) "File should be GBK on disk, not UTF-8."
     }
     finally {
-        Remove-Item -LiteralPath $root -Recurse -Force
+        Move-RAToolsToRecycleBin -Path $root -SafeRoot ([System.IO.Path]::GetTempPath())
     }
 }
 
@@ -296,7 +296,7 @@ Run-Test "Clear-RAToolsPackageMetadata removes personal document properties" {
         Assert-True (-not $appXml.OuterXml.Contains("Private Company")) "App properties should not contain private company text."
     }
     finally {
-        Remove-Item -LiteralPath $root -Recurse -Force
+        Move-RAToolsToRecycleBin -Path $root -SafeRoot ([System.IO.Path]::GetTempPath())
     }
 }
 
