@@ -51,6 +51,11 @@ Private Declare PtrSafe Function GetParent Lib "user32" ( _
     ByVal hWnd As LongPtr) As LongPtr
 Private Declare PtrSafe Function GetWindowRect Lib "user32" ( _
     ByVal hWnd As LongPtr, ByRef windowRect As WINDOWRECT) As Long
+Private Declare PtrSafe Function GetWindowThreadProcessId Lib "user32" ( _
+    ByVal hWnd As LongPtr, ByRef processId As Long) As Long
+Private Declare PtrSafe Function GetClassName Lib "user32" Alias "GetClassNameA" ( _
+    ByVal hWnd As LongPtr, ByVal className As String, ByVal maxCount As Long) As Long
+Private Declare PtrSafe Function GetCurrentProcessId Lib "kernel32" () As Long
 Private Const MAX_TOOLTIP_WIDTH As Long = 400
 Private Const MAX_TOOLTIP_HEIGHT As Long = 60
 
@@ -231,14 +236,26 @@ ErrH:
     EnsureTooltipOnTop = False
 End Function
 
-' 气泡属于本窗体：类名以 "F3 Tooltip" 开头，且根 owner 是窗体本身
-' 或窗体的某个后代窗口（MSForms 气泡由内部容器窗口 owner，owner 链根是窗体）。
+' 仅匹配当前 Word 进程的 MSForms 提示窗口，再按窗体矩形筛选。
 Private Function IsTooltipOfForm(ByVal tooltipHandle As LongPtr, _
                                  ByVal formHandle As LongPtr) As Boolean
     Dim tipRect As WINDOWRECT
     Dim formRect As WINDOWRECT
+    Dim tooltipProcess As Long
+    Dim formProcess As Long
+    Dim className As String
+    Dim classLength As Long
 
     On Error GoTo ErrH
+    If GetWindowThreadProcessId(tooltipHandle, tooltipProcess) = 0 Then Exit Function
+    If GetWindowThreadProcessId(formHandle, formProcess) = 0 Then Exit Function
+    If tooltipProcess <> GetCurrentProcessId() Or formProcess <> tooltipProcess Then Exit Function
+    className = String$(256, vbNullChar)
+    classLength = GetClassName(tooltipHandle, className, Len(className))
+    If classLength = 0 Then Exit Function
+    className = Left$(className, classLength)
+    If StrComp(Left$(className, Len("F3 Tooltip")), "F3 Tooltip", vbTextCompare) <> 0 Then Exit Function
+
 
     ' 气泡是小尺寸窗口；先按尺寸过滤掉窗体本身、容器与普通窗口。
     If GetWindowRect(tooltipHandle, tipRect) = 0 Then Exit Function
@@ -246,7 +263,7 @@ Private Function IsTooltipOfForm(ByVal tooltipHandle As LongPtr, _
     If tipRect.Bottom - tipRect.Top > MAX_TOOLTIP_HEIGHT Then Exit Function
 
     ' 气泡的 owner 是悬浮窗之外的窗口（实测），但显示时必与窗体矩形重叠；
-    ' 用矩形相交判定归属，绕开 owner 链不可靠的问题。
+    ' 已确认进程及提示类名后，用矩形相交进一步限定候选。
     If GetWindowRect(formHandle, formRect) = 0 Then Exit Function
     If tipRect.Right <= formRect.Left Then Exit Function
     If tipRect.Left >= formRect.Right Then Exit Function

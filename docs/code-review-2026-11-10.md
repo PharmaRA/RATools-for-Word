@@ -29,7 +29,7 @@
 | R09 | P2 | `Macro_RemoveUnusedStyles.bas`：只在正文检查样式是否使用 | 页眉/页脚/脚注/文本框使用中的样式保留；真正未用样式正常清理 | 已修复，真实 Word 回归和 review 通过 |
 | R10 | P2 | `Macro_ReviewerFilter.bas`：正文修订计数为零提前返回 | 只有页眉或页脚修订且零批注时仍列出审阅者；无标记文档仍返回空 | 已修复，真实 Word 三例和 review 通过 |
 | R11 | P2 | `Macro_BatchRenameFiles.bas`：大小写重命名将源文件自身判为冲突 | `Report.DOCX` 改为 `report.docx` 不加后缀；真正冲突仍不覆盖 | 已修复，真实文件回归和 review 通过 |
-| R12 | P2 | `Core_Window.bas`：仅凭尺寸和矩形相交判定 tooltip，桌面窗口可能误置顶 | 外部进程/非提示窗口被排除；真实 Word tooltip 能置顶且不抢焦点 | 待处理 |
+| R12 | P2 | `Core_Window.bas`：仅凭尺寸和矩形相交判定 tooltip，桌面窗口可能误置顶 | 外部进程/非提示窗口被排除；合法 tooltip 能置顶且不抢焦点 | 已修复，实际 Win32 窗口回归和 review 通过；视觉限制见下 |
 | R13 | P2 | `Install-RAToolsBuildHook.ps1`：构建版本来自未暂存 CHANGELOG | 未暂存/部分暂存 CHANGELOG 不产生版本不一致的提交；完整暂存正常 | 待处理 |
 
 ## 审阅证据与限制
@@ -153,3 +153,12 @@ Microsoft 文档确认 [CopyHere 不通知复制完成](https://learn.microsoft.
 - `RenamePathSafety.Tests.ps1` 退出 0：调用完整宏，验证准确文件名、数量、三个文件内容，以及 A B.DOCX 与既有 a-b.docx 冲突时生成 a-b_1.docx。
 - 原 `BatchRenameFiles.Tests.ps1` 的 10 个字符串清洗用例通过；`review_ui` 只读 review 通过。
 - 运行范围为普通 Windows 不区分大小写目录。目录名称冲突、复制回退失败和启用大小写敏感目录未单独实测。
+- 独立提交：`af0f8c3`。
+
+### R12：校验提示窗口身份
+
+- 实际 Win32 窗口 RED：Word 内普通 STATIC 窗口因几何条件符合被判为提示。
+- 修复先确认候选及窗体均属于当前 Word 进程，再检查 F3 Tooltip 类名前缀；最后才检查尺寸和矩形相交，API 失败拒绝候选。
+- `TooltipIdentity.Tests.ps1` 退出 0：当前进程普通窗口、外部进程同 tooltip 类名前缀窗口被排除；合法合成提示经实际枚举/SetWindowPos 置顶，其余测试窗口不置顶且前台焦点不变。仅替换窗体发现入口，测试窗口均在屏幕外且不激活。
+- `QuickToolbarWindow.Tests.ps1` 原有 74 条断言通过；`review_ui` 只读 review 通过，声明按 VBA7 LongPtr/Long 类型审阅。
+- 未验证真实 MSForms 提示出现时机和视觉效果，也未分别运行 32/64 位 Office；合成窗口身份测试不替代这些人工兼容性检查。
