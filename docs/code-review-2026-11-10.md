@@ -26,7 +26,7 @@
 | R06 | P1 | `scripts/RATools.Build.psm1`：先删除旧 dotm 再解压校验，允许目标等于 SafeRoot | 坏包/中断保留旧目录；拒绝根目录、输入包位于替换目标、链接目标；成功替换可恢复且不用物理删除 | 已修复，构建回归和 review 通过 |
 | R07 | P1 | `Macro_BatchConvertWordToPDF.bas`：同主文件名不同扩展名输出到同一 PDF | 批次内冲突和已有输出不无提示覆盖；每个成功结果对应独立有效 PDF | 已修复，真实导出及竞争发布回归、review 通过 |
 | R08 | P2 | 同模块：导出结束统一解锁全部域 | 混合 Locked 状态在成功和异常路径均恢复，覆盖正文/页眉/文本框 | 已修复，真实 Word 回归和 review 通过 |
-| R09 | P2 | `Macro_RemoveUnusedStyles.bas`：只在正文检查样式是否使用 | 页眉/页脚/脚注/文本框使用中的样式保留；真正未用样式正常清理 | 待处理 |
+| R09 | P2 | `Macro_RemoveUnusedStyles.bas`：只在正文检查样式是否使用 | 页眉/页脚/脚注/文本框使用中的样式保留；真正未用样式正常清理 | 已修复，真实 Word 回归和 review 通过 |
 | R10 | P2 | `Macro_ReviewerFilter.bas`：正文修订计数为零提前返回 | 只有页眉或页脚修订且零批注时仍列出审阅者；无标记文档仍返回空 | 待处理 |
 | R11 | P2 | `Macro_BatchRenameFiles.bas`：大小写重命名将源文件自身判为冲突 | `Report.DOCX` 改为 `report.docx` 不加后缀；真正冲突仍不覆盖 | 待处理 |
 | R12 | P2 | `Core_Window.bas`：仅凭尺寸和矩形相交判定 tooltip，桌面窗口可能误置顶 | 外部进程/非提示窗口被排除；真实 Word tooltip 能置顶且不抢焦点 | 待处理 |
@@ -127,3 +127,12 @@ Microsoft 文档确认 [CopyHere 不通知复制完成](https://learn.microsoft.
 - review 发现并修复可映射错误吞掉恢复警告：先转换导出错误再附加恢复警告。复合失败测试注入恢复结果 False，旧消息顺序 RED、修复后 GREEN；不宣称验证了 Word Locked 赋值实际抛错。
 - `PdfOutputSafety.Tests.ps1` 与原 `BatchConvertWordToPDF.Tests.ps1` 回归通过。去掉旧测试中强制要求全量解锁的源码断言，保留辅助函数行为测试。
 - `review_batch` 独立复查通过；未改批量导出中原有文档所有权行为。
+- 独立提交：`3ac1420`。
+
+### R09：保护非正文及依赖中的样式
+
+- 真实 Word RED→GREEN：仅用于页眉的样式、页脚表格样式、被使用中派生样式引用的基样式、页眉文本框样式，均先复现误删后修复。
+- 遍历 StoryRanges/NextStoryRange，并显式检查正文、各节页眉页脚 Shapes 及组合/画布。段落/表格直接比较样式，字符样式使用格式查找；单用 Find 在实测页眉中会返回 False，不能据此删除。
+- 基样式只要被其他样式引用就保留（包括未直接应用的派生样式）；任何读取异常保留样式，避免误删。
+- `UnusedStylesSafety.Tests.ps1` 退出 0：正文、两节页眉、页脚、脚注、正文文本框、页眉文本框、字符和表格样式、继承基样式均保留；孤立 Unused-F 被清理。
+- `review_reference` 复查通过。组合/画布递归及异常保留分支未单独运行；保守处理不支持的图形可能留下部分未用样式。

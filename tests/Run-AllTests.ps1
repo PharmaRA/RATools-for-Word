@@ -18,6 +18,7 @@ $suites = @(
     @{ Name = "AcceptFormatRevisions"; File = "AcceptFormatRevisions.Tests.ps1"; RequiresCom = $true },
     @{ Name = "SourceCompile";           File = "SourceCompile.Tests.ps1";           RequiresCom = $true },
     @{ Name = "StyleNameMapping";        File = "StyleNameMapping.Tests.ps1";        RequiresCom = $true },
+    @{ Name = "UnusedStylesSafety";       File = "UnusedStylesSafety.Tests.ps1";       RequiresCom = $true },
     @{ Name = "UpdateChecker";           File = "UpdateChecker.Tests.ps1";           RequiresCom = $true },
     @{ Name = "BatchRenameFiles";        File = "BatchRenameFiles.Tests.ps1";        RequiresCom = $true },
     @{ Name = "NormalizeScientificTerms"; File = "NormalizeScientificTerms.Tests.ps1"; RequiresCom = $true },

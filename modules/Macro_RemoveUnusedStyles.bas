@@ -37,25 +37,12 @@ Sub RemoveUnusedStyles()
             If sty.BuiltIn = False Then
                 
                 ' 创建一个搜索范围，检查样式是否在文档中被实际使用
-                Set rng = doc.Content
-                With rng.Find
-                    .ClearFormatting
-                    .Style = sty.NameLocal
-                    .Format = True
-                    .Execute FindText:="", Format:=True
-                    
-                    ' 如果 .Found 为 False，说明文档没用到这个样式
-                    If .Found = False Then
-                        sty.Delete
-                        ' 如果删除成功（没有报错），计数加1
-                        If Err.Number = 0 Then
-                            deleteCount = deleteCount + 1
-                        Else
-                            ' 清除错误状态
-                            Err.Clear
-                        End If
-                    End If
-                End With
+                If Not IsStyleUsedInDocument(doc, sty.NameLocal) Then
+                    Err.Clear
+                    sty.Delete
+                    If Err.Number = 0 Then deleteCount = deleteCount + 1
+                    Err.Clear
+                End If
             End If
         End If
         
@@ -70,3 +57,89 @@ Sub RemoveUnusedStyles()
     MsgBox "操作完成！共删除了 " & deleteCount & " 个未使用的 '-F' 样式。", vbInformation, "清理完成"
 
 End Sub
+
+
+Private Function IsStyleUsedInDocument(ByVal doc As Document, ByVal styleName As String) As Boolean
+    Dim root As Range
+    Dim story As Range
+    Dim dependent As Style
+    Dim section As Section
+    Dim headerFooter As HeaderFooter
+    ' A failed inspection is not evidence that a style is unused.
+    IsStyleUsedInDocument = True
+    On Error GoTo UnknownUsage
+    ' A base referenced by another style is not unused, even if that descendant
+    ' is not currently applied. Preserve the definition rather than break links.
+    For Each dependent In doc.Styles
+        If StrComp(dependent.NameLocal, styleName, vbTextCompare) <> 0 Then
+            If StrComp(CStr(dependent.BaseStyle), styleName, vbTextCompare) = 0 Then Exit Function
+        End If
+    Next dependent
+    For Each root In doc.StoryRanges
+        Set story = root
+        Do While Not story Is Nothing
+            If RangeUsesNamedStyle(story, styleName) Then Exit Function
+            Set story = story.NextStoryRange
+        Loop
+    Next root
+    If ShapesUseNamedStyle(doc.Shapes, styleName) Then Exit Function
+    For Each section In doc.Sections
+        For Each headerFooter In section.Headers
+            If ShapesUseNamedStyle(headerFooter.Shapes, styleName) Then Exit Function
+        Next headerFooter
+        For Each headerFooter In section.Footers
+            If ShapesUseNamedStyle(headerFooter.Shapes, styleName) Then Exit Function
+        Next headerFooter
+    Next section
+    IsStyleUsedInDocument = False
+UnknownUsage:
+End Function
+
+
+Private Function RangeUsesNamedStyle(ByVal story As Range, ByVal styleName As String) As Boolean
+    Dim paragraph As Paragraph
+    Dim table As Table
+    Dim search As Range
+    RangeUsesNamedStyle = True
+    On Error GoTo UnknownUsage
+            For Each paragraph In story.Paragraphs
+                If StrComp(CStr(paragraph.Style), styleName, vbTextCompare) = 0 Then Exit Function
+            Next paragraph
+            For Each table In story.Tables
+                If StrComp(CStr(table.Style), styleName, vbTextCompare) = 0 Then Exit Function
+            Next table
+            Set search = story.Duplicate
+            With search.Find
+                .ClearFormatting
+                .Text = ""
+                .Style = styleName
+                .Format = True
+                .Forward = True
+                .Wrap = wdFindStop
+                .MatchWildcards = False
+                .MatchCase = False
+                .MatchWholeWord = False
+                .MatchSoundsLike = False
+                .MatchAllWordForms = False
+                If .Execute Then Exit Function
+            End With
+    RangeUsesNamedStyle = False
+UnknownUsage:
+End Function
+
+Private Function ShapesUseNamedStyle(ByVal shapes As Object, ByVal styleName As String) As Boolean
+    Dim shape As Shape
+    ShapesUseNamedStyle = True
+    On Error GoTo UnknownUsage
+    For Each shape In shapes
+        If shape.Type = msoGroup Then
+            If ShapesUseNamedStyle(shape.GroupItems, styleName) Then Exit Function
+        ElseIf shape.Type = msoCanvas Then
+            If ShapesUseNamedStyle(shape.CanvasItems, styleName) Then Exit Function
+        ElseIf shape.TextFrame.HasText <> 0 Then
+            If RangeUsesNamedStyle(shape.TextFrame.TextRange, styleName) Then Exit Function
+        End If
+    Next shape
+    ShapesUseNamedStyle = False
+UnknownUsage:
+End Function
