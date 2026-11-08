@@ -30,12 +30,13 @@ function Assert-True {
 
 Write-Output "Running PowerShell script encoding checks"
 
-# 只检查仓库内的源码：.git 与 .claude（worktree 副本、被 .gitignore 忽略）里的
-# 脚本不是本仓库要维护的内容，历史副本的编码不该让测试失败。
-$scripts = Get-ChildItem -LiteralPath $repoRoot -Recurse -File |
-    Where-Object { @(".ps1", ".psm1", ".psd1") -contains $_.Extension } |
-    Where-Object { $_.FullName -notmatch "\\\.(git|claude)\\" } |
-    Sort-Object FullName
+# 只读取 Git 已跟踪的构建和测试源码，不遍历备份、产物或其他相邻目录。
+$tracked = & git -C $repoRoot ls-files -z -- 'scripts/*.ps1' 'scripts/*.psm1' 'scripts/*.psd1' 'tests/*.ps1'
+if ($LASTEXITCODE -ne 0) { throw 'Could not enumerate tracked build and test scripts.' }
+$scripts = @(([string]::Join("`n", @($tracked)) -split [char]0) |
+    Where-Object { $_.Length -gt 0 } |
+    ForEach-Object { Get-Item -LiteralPath (Join-Path $repoRoot $_) } |
+    Sort-Object FullName)
 
 Assert-True ($scripts.Count -ge 20) "Should find the repository's PowerShell files; found $($scripts.Count)."
 

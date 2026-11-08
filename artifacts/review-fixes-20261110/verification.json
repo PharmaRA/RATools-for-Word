@@ -1,0 +1,21 @@
+{
+  "sourceCommit": "74c4b4f29603cee91868a3d481d5eec02c86790f",
+  "verifiedAt": "2026-11-10T13:21:26.9391907+08:00",
+  "suitesPassed": 29,
+  "suitesFailed": 0,
+  "suitesSkipped": 0,
+  "package": "dist/RATools_review-fixes.dotm",
+  "packageBytes": 328232,
+  "packageSha256": "424C7161A04A561A31A34494E2956B36CD4EAD5D6AAAB53A398F722E53CC8E6A",
+  "packageVerification": {
+    "standardModulesMatched": 30,
+    "sourceComponentsPresent": 36,
+    "wordOpen": true
+  },
+  "preservedOriginalDotm": true,
+  "limitations": [
+    "Word-internal PowerShell launch denied; Word API fallback verified",
+    "Synthetic tooltip identity/raising tested; actual MSForms hover timing and Office bitness matrix not qualified",
+    "Installed pre-commit hook not replaced; generator tested in isolated repository"
+  ]
+}

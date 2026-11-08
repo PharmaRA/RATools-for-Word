@@ -71,7 +71,7 @@ if (-not (Test-Path $modulePath)) {
     throw "Expected VBA module not found: $modulePath"
 }
 
-Remove-Item -LiteralPath $logPath -Force -ErrorAction SilentlyContinue
+Move-RAToolsToRecycleBin -Path $logPath -SafeRoot ([System.IO.Path]::GetTempPath())
 Write-Step "Starting Word COM test"
 
 $word = $null
@@ -232,4 +232,5 @@ finally {
         Write-Step "Quitting Word"
     }
     Stop-RAToolsWordSession -Word $word
+    Move-RAToolsToRecycleBin -Path $logPath -SafeRoot ([System.IO.Path]::GetTempPath())
 }

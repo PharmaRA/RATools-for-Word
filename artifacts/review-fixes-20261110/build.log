@@ -1,0 +1,79 @@
+Creating base package from dotm directory
+Syncing APP_VERSION to v0.8.7
+Starting Word automation
+Opening dotm package: C:\WINDOWS\TEMP\RATools_Build_92103fa886004f2fbd059d3923ffed3e\working.dotm
+Removing VBA component: Core_Files
+Removing VBA component: Core_Session
+Removing VBA component: Core_Text
+Removing VBA component: Core_UI
+Removing VBA component: Core_Window
+Removing VBA component: Engine_Style
+Removing VBA component: Engine_StyleNames
+Removing VBA component: Engine_UpdateChecker
+Removing VBA component: Macro_AcceptFormatRevisions
+Removing VBA component: Macro_AddMissingCaptionLabels
+Removing VBA component: Macro_BatchAcceptAndClean
+Removing VBA component: Macro_BatchAutoFitTables
+Removing VBA component: Macro_BatchConvertWordToPDF
+Removing VBA component: Macro_BatchDetectHighlights
+Removing VBA component: Macro_BatchRenameFiles
+Removing VBA component: Macro_BatchSetMargins
+Removing VBA component: Macro_ConvertHeadingNumbers
+Removing VBA component: Macro_ExtractAbbreviations
+Removing VBA component: Macro_HyperlinksToBlue
+Removing VBA component: Macro_LinkToThePreviousSection
+Removing VBA component: Macro_NormalizeScientificTerms
+Removing VBA component: Macro_PasteRelinkCrossReference
+Removing VBA component: Macro_RemoveUnusedStyles
+Removing VBA component: Macro_RenameCurrentDocument
+Removing VBA component: Macro_ReviewerFilter
+Removing VBA component: UI_MacroRegistry
+Removing VBA component: UI_QuickToolbar
+Removing VBA component: UI_QuickToolbarActions
+Removing VBA component: UI_Ribbon
+Removing VBA component: UI_RibbonCommands
+Removing VBA component: clsAppEvents
+Removing VBA component: clsReviewerItem
+Removing VBA component: frmAbout
+Removing VBA component: frmMacroList
+Removing VBA component: frmQuickToolbar
+Removing VBA component: frmReviewerFilter
+Importing modules\Core_Files.bas
+Importing modules\Core_Session.bas
+Importing modules\Core_Text.bas
+Importing modules\Core_UI.bas
+Importing modules\Core_Window.bas
+Importing modules\Engine_Style.bas
+Importing modules\Engine_StyleNames.bas
+Importing modules\Engine_UpdateChecker.bas
+Importing modules\Macro_AcceptFormatRevisions.bas
+Importing modules\Macro_AddMissingCaptionLabels.bas
+Importing modules\Macro_BatchAcceptAndClean.bas
+Importing modules\Macro_BatchAutoFitTables.bas
+Importing modules\Macro_BatchConvertWordToPDF.bas
+Importing modules\Macro_BatchDetectHighlights.bas
+Importing modules\Macro_BatchRenameFiles.bas
+Importing modules\Macro_BatchSetMargins.bas
+Importing modules\Macro_ConvertHeadingNumbers.bas
+Importing modules\Macro_ExtractAbbreviations.bas
+Importing modules\Macro_HyperlinksToBlue.bas
+Importing modules\Macro_LinkToThePreviousSection.bas
+Importing modules\Macro_NormalizeScientificTerms.bas
+Importing modules\Macro_PasteRelinkCrossReference.bas
+Importing modules\Macro_RemoveUnusedStyles.bas
+Importing modules\Macro_RenameCurrentDocument.bas
+Importing modules\Macro_ReviewerFilter.bas
+Importing modules\UI_MacroRegistry.bas
+Importing modules\UI_QuickToolbar.bas
+Importing modules\UI_QuickToolbarActions.bas
+Importing modules\UI_Ribbon.bas
+Importing modules\UI_RibbonCommands.bas
+Importing class_modules\clsAppEvents.cls
+Importing class_modules\clsReviewerItem.cls
+Importing userforms\frmAbout.frm
+Importing userforms\frmMacroList.frm
+Importing userforms\frmQuickToolbar.frm
+Importing userforms\frmReviewerFilter.frm
+Saving updated dotm
+Clearing document metadata
+Built dotm: C:\Repositories\RATools-for-Word\dist\RATools_review-fixes.dotm

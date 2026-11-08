@@ -1,0 +1,2 @@
+PASS built package opens, 30 standard modules match source, all 36 source components present
+PASS BuiltPackage.Tests

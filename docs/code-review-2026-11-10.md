@@ -3,7 +3,7 @@
 基线：`12e6c4f`，以审阅时工作区为准，含尚未提交的快捷工具栏修改。
 用户要求：先记录发现，再按优先级逐项修复或优化；每项验证并 review 后单独提交。
 
-当前：原 13 项均已修复并分别提交；最终验收中确认 PDF 文档所有权观察为 R14，另行修复并独立提交。整体验证和成品位置见文末。
+当前：原 13 项及最终验收确认的 R14 均已修复、验证、review 并分别提交。最终 29 套测试全部通过，独立插件已重建并核对，证据和成品位置见文末。
 
 ## 执行约束
 
@@ -181,4 +181,16 @@ Microsoft 文档确认 [CopyHere 不通知复制完成](https://learn.microsoft.
 - 真实 Word RED：用户已有 Report.docx 并含未保存编辑，ConvertOneFile 返回后该文档被关闭。
 - 打开前识别并复用已有文档，保留其可见性；仅关闭批处理自行打开的对象。已有文档的默认 WYSIWYG 导出捕获并恢复原域锁状态，异常路径同样恢复并保留原错误信息。
 - `PdfOutputSafety.Tests.ps1` 退出 0：真实导出成功计数 1/0，原文档保持打开、待保存文本一致、混合域锁恢复；注入导出失败计数 0/1，原错误、文档、文本和域锁均保持。
-- `PdfFieldState.Tests.ps1` 回归退出 0；`review_batch` 只读 review 通过。独立成品需在本项提交后重新构建。
+- `PdfFieldState.Tests.ps1` 回归退出 0；`review_batch` 只读 review 通过。独立提交：`74c4b4f`。最终成品已在该提交后重建。
+
+## 最终验收与交付
+
+- 源码修复基线：`74c4b4f`，原 13 项和补充 R14 各自独立提交；文档初始提交 `7b14cc6`。
+- `powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests\Run-AllTests.ps1`：**29 套 PASS，0 FAIL，0 SKIP，退出码 0**。包括全工程 VBA 编译和新增行为回归；日志：[all-tests.log](../artifacts/review-fixes-20261110/all-tests.log)。
+- 验证基础设施：科学术语测试日志使用回收站清理；编码检查仅读取 Git 跟踪的 scripts/tests 源码，避免扫描备份和产物。新成品核对脚本纳入索引后，编码检查对 45 个脚本再次通过。`review_reference` 对这三处工具修改只读 review 通过。
+- 构建命令：`powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\Build-RAToolsDotm.ps1 -AppVersion v0.8.7 -NoSyncDotmDirectory -OutputPath dist\RATools_review-fixes.dotm`，退出码 0；[构建日志](../artifacts/review-fixes-20261110/build.log)。
+- 成品：[RATools_review-fixes.dotm](../dist/RATools_review-fixes.dotm)，328232 字节，SHA256：`424C7161A04A561A31A34494E2956B36CD4EAD5D6AAAB53A398F722E53CC8E6A`。
+- `tests\BuiltPackage.Tests.ps1 -PackagePath dist\RATools_review-fixes.dotm`：退出码 0，Word 能打开；**30 个标准模块规范化代码匹配源码，36 个源码组件全部存在，总组件数符合预期**。仅忽略 Attribute、空行、首尾空白及字符串外的大小写；未声称类/窗体资源逐字节相同。[成品核对日志](../artifacts/review-fixes-20261110/package-verification.log)、[机器可读验收记录](../artifacts/review-fixes-20261110/verification.json)。
+- 本地成品基于当前工作区构建，包含用户原有快捷工具栏修改；这些原有修改没有混入修复提交。原 `dotm/` 保持原有未提交状态，未替换已安装插件、未发布、未推送远端。重要改动的备份保留在 `backups/code-review-2026-11-10/`。
+
+验证边界仍适用：本机 Word 内启动 PowerShell 被拒绝时走已验证的 Word API 回退；真实 MSForms 悬停时机、Office 32/64 位完整矩阵和各项注明的复合故障路径未全部人工资格确认。当前项目既有 pre-commit hook 未重装，R13 交付为已验证的生成器修复。这些限制不替代或否定本次明确列出的已执行验收结果。

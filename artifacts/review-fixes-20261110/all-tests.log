@@ -1,0 +1,289 @@
+
+===== BuildRATools =====
+Running Get-RAToolsVbaSourceFiles returns importable files in stable order
+Running New-RAToolsDotmFromDirectory writes package contents at zip root
+Running Expand-RAToolsDotmToDirectory replaces stale target contents
+Running Assert-RAToolsPathInsideRoot rejects paths outside safe root
+Running Get-RAToolsLatestChangelogVersion reads the first changelog heading
+Running Set-RAToolsAppVersion updates Engine_UpdateChecker APP_VERSION
+Running Set-RAToolsAppVersion preserves GBK Chinese content
+Running Clear-RAToolsPackageMetadata removes personal document properties
+PASS BuildRATools.Tests
+
+===== BuildSafety =====
+PASS broken package preserves original
+PASS incomplete package and unsafe targets preserve originals
+PASS rollback and recoverable successful replacement
+PASS output rollback, backup and failed packing preservation
+PASS fail-closed enumeration and no side effects before rejection
+Creating base package from dotm directory
+Skipping Word VBA import; packaging current dotm content only
+Clearing document metadata
+Syncing dotm directory from generated package
+Built dotm: C:\Repositories\RATools-for-Word\backups\RATools_BuildSafety_9d35ab3e377247a5bb21eff65bb453d3\dist\integrated.dotm
+PASS integrated package build and directory synchronization
+Creating base package from dotm directory
+Skipping Word VBA import; packaging current dotm content only
+Clearing document metadata
+PASS linked paths refused
+PASS BuildSafety.Tests
+
+===== BuildHookSafety =====
+warning: in the working copy of 'CHANGELOG.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'scripts/Build-RAToolsDotm.ps1', LF will be replaced by CRLF the next time Git touches it
+Installed RATools pre-commit build hook: C:\Repositories\RATools-for-Word\backups\RATools_HookSafety_1c25829ecf8a4e4b8e8d6569a525f027\.git\hooks\pre-commit
+warning: in the working copy of 'CHANGELOG.md', LF will be replaced by CRLF the next time Git touches it
+PASS partially staged CHANGELOG rejects before building
+warning: in the working copy of 'CHANGELOG.md', LF will be replaced by CRLF the next time Git touches it
+PASS fully staged version builds
+PASS original VBA staging guard remains effective
+PASS BuildHookSafety.Tests
+
+===== VersionConsistency =====
+Running Changelog top version is a vX.Y.Z tag
+Running APP_VERSION matches changelog version
+Running README current release version matches changelog version
+PASS VersionConsistency.Tests
+
+===== RibbonCallbacks =====
+Ribbon callbacks referenced: 24
+Public subs found: 74
+PASS RibbonCallbacks.Tests
+
+===== QuickToolbarWindow =====
+Running QuickToolbar window-layer checks
+PASS QuickToolbarWindow.Tests (74 assertions)
+
+===== ScriptEncoding =====
+Running PowerShell script encoding checks
+Checked 25 non-ASCII PowerShell file(s) of 44
+PASS ScriptEncoding.Tests (52 assertions)
+
+===== FormatRevisionPath =====
+PASS missing mapping uses current document
+PASS exact mapping uses full relative path
+PASS missing exact file uses current document
+PASS FormatRevisionPath.Tests
+
+===== AcceptFormatRevisions =====
+PASS MalformedXmlPreservesOriginal
+PASS CompletePackageAndContentRevisionsSurvive
+PASS FailedReplacementPreservesOriginal
+PASS ExistingTransactionPreserved
+PASS Word module compile
+Creating Word revision fixture
+Saving Word revision fixture
+Running VBA processor bridge
+LIMITATION Word could not launch processor: UNAVAILABLE=拒绝的权限
+PASS VBA-emitted processor and Word document reopen
+PASS Word fallback after unavailable processor
+PASS Word cancelled save retains open unsaved document
+PASS AcceptFormatRevisions.Tests
+
+===== SourceCompile =====
+Compiling Core_Files
+Compiling Core_Session
+Compiling Core_Text
+Compiling Core_UI
+Compiling Core_Window
+Compiling Engine_Style
+Compiling Engine_StyleNames
+Compiling Engine_UpdateChecker
+Compiling Macro_AcceptFormatRevisions
+Compiling Macro_AddMissingCaptionLabels
+Compiling Macro_BatchAcceptAndClean
+Compiling Macro_BatchAutoFitTables
+Compiling Macro_BatchConvertWordToPDF
+Compiling Macro_BatchDetectHighlights
+Compiling Macro_BatchRenameFiles
+Compiling Macro_BatchSetMargins
+Compiling Macro_ConvertHeadingNumbers
+Compiling Macro_ExtractAbbreviations
+Compiling Macro_HyperlinksToBlue
+Compiling Macro_LinkToThePreviousSection
+Compiling Macro_NormalizeScientificTerms
+Compiling Macro_PasteRelinkCrossReference
+Compiling Macro_RemoveUnusedStyles
+Compiling Macro_RenameCurrentDocument
+Compiling Macro_ReviewerFilter
+Compiling UI_MacroRegistry
+Compiling UI_QuickToolbar
+Compiling UI_QuickToolbarActions
+Compiling UI_Ribbon
+Compiling UI_RibbonCommands
+Compiling class modules and userforms
+PASS SourceCompile.Tests
+
+===== StyleNameMapping =====
+Template styles loaded: 93
+Mapping entries: 45
+PASS StyleNameMapping.Tests
+
+===== UnusedStylesSafety =====
+PASS styles in body, headers, footer, footnote and textbox survive; unused style removed
+PASS UnusedStylesSafety.Tests
+
+===== UpdateChecker =====
+CompareVersions: 10 cases OK
+ExtractJsonStringValue: 4 cases OK
+NormalizeVersion: 4 cases OK
+PASS UpdateChecker.Tests
+
+===== BatchSaveSafety =====
+Creating fixture for Macro_BatchAcceptAndClean
+Saved fixture for Macro_BatchAcceptAndClean
+Running cancelled save for Macro_BatchAcceptAndClean
+PASS Macro_BatchAcceptAndClean reports failure and retains recoverable document
+PASS already-open document retains pending edits and reports failure
+PASS Macro_BatchAcceptAndClean normal save persists changes
+Creating fixture for Macro_BatchSetMargins
+Saved fixture for Macro_BatchSetMargins
+Running cancelled save for Macro_BatchSetMargins
+PASS Macro_BatchSetMargins reports failure and retains recoverable document
+PASS Macro_BatchSetMargins normal save persists changes
+PASS cancelled save keeps pending contents
+PASS cancelled close retains document without forcing hidden automation visible
+PASS partial margin failure retains changes without changing automation visibility
+PASS persistence exception keeps pending content and propagates failure
+PASS BatchSaveSafety.Tests
+
+===== BatchRenameFiles =====
+CleanFileBaseName: 10 cases OK
+PASS BatchRenameFiles.Tests
+
+===== RenamePathSafety =====
+PASS case-only rename and true collision preserve names and contents
+PASS RenamePathSafety.Tests
+
+===== NormalizeScientificTerms =====
+13:16:28 Starting Word COM test
+13:16:28 Creating Word.Application
+13:16:30 Creating document
+13:16:31 Importing VBA module
+13:16:31 Writing full-document test text
+13:16:31 Running NormalizeScientificTermsInRange
+13:16:32 Writing selection test text
+13:16:32 Running NormalizeScientificTermsForCurrentTarget
+13:16:32 PASS NormalizeScientificTerms
+13:16:32 Closing document
+13:16:32 Quitting Word
+
+===== BatchDetectHighlights =====
+PASS BatchDetectHighlights.Tests
+
+===== BatchConvertWordToPDF =====
+Running BatchConvertWordToPDF source structure checks
+Source checks PASS
+SetAllFieldsLocked(True): all story ranges and shapes locked OK
+SetAllFieldsLocked(False): all story ranges and shapes unlocked OK
+PASS BatchConvertWordToPDF.Tests
+
+===== PdfOutputSafety =====
+PASS existing PDF retained and same-basename sources exported separately
+PASS concurrent publication and directory collisions preserve other outputs
+PASS batch export preserves already-open unsaved document
+PASS PdfOutputSafety.Tests
+
+===== PdfFieldState =====
+PASS successful real PDF export restores mixed field states
+PASS failed export restores mixed field states and preserves error
+PASS mapped export error retains partial restoration warning
+PASS PdfFieldState.Tests
+
+===== QuickToolbar =====
+Running QuickToolbar source checks
+Running QuickToolbar Word COM source-import smoke
+PASS QuickToolbar.Tests
+
+===== TooltipIdentity =====
+PASS actual window class/process filtering, tooltip raising and focus preservation
+PASS TooltipIdentity.Tests
+
+===== ReviewerFilter =====
+Running static contract checks
+PASS static contract checks
+Collected authors: Alice|Bob|Carol
+Visible after filter: Alice=True;Bob=False;Carol=False;
+PASS ReviewerFilter.Tests
+
+===== ReviewerStorySafety =====
+PASS Header reviewer collection
+PASS Footer reviewer collection
+PASS Empty reviewer collection
+PASS ReviewerStorySafety.Tests
+
+===== PasteRelinkSafety =====
+PASS variable-length reference names preserve all caption targets and undo
+PASS ambiguous captions retained with notice (description length 17)
+PASS ambiguous captions retained with notice (description length 0)
+PASS multiple source identities cannot claim one pasted caption
+PASS PasteRelinkSafety.Tests
+
+===== PasteRelinkCrossReference =====
+Running PasteRelinkCrossReference source structure checks
+Source checks PASS
+Result text: This is body text, see Table 1.
+Table 1 Example Header
+This is body text, see Table 2.
+Table 2 Example Header
+
+
+COM behavior checks PASS
+PASS PasteRelinkCrossReference.Tests
+===== PasteRelinkCrossReferenceCases =====
+Case 1: paste caption only (no references in block)
+  text: Table 1 Alpha Header
+Table 2 Beta Header Table 3 Beta Header
+
+
+Case 2: entire caption and number-only references
+  text: Table 1 Gamma Header
+Whole: Table 1 Gamma Header / Number: Table 1 Table 2 Gamma Header
+Whole:  Table 2 Gamma Header / Number: Table 2
+
+
+Case 3: block without caption
+Case 4: paste in the middle of the document
+  text: Table 1 Epsilon Header
+See Table 1
+Table 2 Epsilon Header
+See Table 2
+TAIL LINE
+
+PASS PasteRelinkCrossReferenceCases.Tests
+===== ReviewerFormRuntime =====
+Form state: rows=4;allChecked=True;onlyEnabledAtStart=False;onlyEnabledAfterClick=True;bobDoc=False;bobChk=False;aliceDoc=True;allAfterOne=False;bobBack=True;allBack=True;allOffAlice=False;allOffCarol=False;allOffChk2=False;allOnAlice=True;allOnCarol=True;allOnChk=True;onlyAlice=False;onlyBob=False;onlyCarol=True;onlyChk0=False;onlyChk2=True;onlyAll=False;buildsDelta=0;
+PASS ReviewerFormRuntime.Tests
+
+===== Summary =====
+BuildRATools                 PASS
+BuildSafety                  PASS
+BuildHookSafety              PASS
+VersionConsistency           PASS
+RibbonCallbacks              PASS
+QuickToolbarWindow           PASS
+ScriptEncoding               PASS
+FormatRevisionPath           PASS
+AcceptFormatRevisions        PASS
+SourceCompile                PASS
+StyleNameMapping             PASS
+UnusedStylesSafety           PASS
+UpdateChecker                PASS
+BatchSaveSafety              PASS
+BatchRenameFiles             PASS
+RenamePathSafety             PASS
+NormalizeScientificTerms     PASS
+BatchDetectHighlights        PASS
+BatchConvertWordToPDF        PASS
+PdfOutputSafety              PASS
+PdfFieldState                PASS
+QuickToolbar                 PASS
+TooltipIdentity              PASS
+ReviewerFilter               PASS
+ReviewerStorySafety          PASS
+PasteRelinkSafety            PASS
+PasteRelinkCrossReference    PASS
+PasteRelinkCrossReferenceCases PASS
+ReviewerFormRuntime          PASS
+
+PASS Run-AllTests
