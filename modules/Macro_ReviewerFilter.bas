@@ -154,15 +154,6 @@ Public Function CollectReviewerNames(ByVal doc As Document, _
                                     ByRef total As Long) As String()
     Dim authorNames() As String
 
-    ' 没有修订也没有批注时直接返回：大文档上省掉一次整篇 XML 序列化
-    On Error Resume Next
-    If doc.Revisions.count = 0 And doc.Comments.count = 0 Then
-        total = 0
-        Exit Function
-    End If
-    Err.Clear
-    On Error GoTo 0
-
     If CollectReviewerNamesByXml(doc, authorNames, authorCounts, total) Then
         CollectReviewerNames = authorNames
         Exit Function

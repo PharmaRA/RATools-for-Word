@@ -27,7 +27,7 @@
 | R07 | P1 | `Macro_BatchConvertWordToPDF.bas`：同主文件名不同扩展名输出到同一 PDF | 批次内冲突和已有输出不无提示覆盖；每个成功结果对应独立有效 PDF | 已修复，真实导出及竞争发布回归、review 通过 |
 | R08 | P2 | 同模块：导出结束统一解锁全部域 | 混合 Locked 状态在成功和异常路径均恢复，覆盖正文/页眉/文本框 | 已修复，真实 Word 回归和 review 通过 |
 | R09 | P2 | `Macro_RemoveUnusedStyles.bas`：只在正文检查样式是否使用 | 页眉/页脚/脚注/文本框使用中的样式保留；真正未用样式正常清理 | 已修复，真实 Word 回归和 review 通过 |
-| R10 | P2 | `Macro_ReviewerFilter.bas`：正文修订计数为零提前返回 | 只有页眉或页脚修订且零批注时仍列出审阅者；无标记文档仍返回空 | 待处理 |
+| R10 | P2 | `Macro_ReviewerFilter.bas`：正文修订计数为零提前返回 | 只有页眉或页脚修订且零批注时仍列出审阅者；无标记文档仍返回空 | 已修复，真实 Word 三例和 review 通过 |
 | R11 | P2 | `Macro_BatchRenameFiles.bas`：大小写重命名将源文件自身判为冲突 | `Report.DOCX` 改为 `report.docx` 不加后缀；真正冲突仍不覆盖 | 待处理 |
 | R12 | P2 | `Core_Window.bas`：仅凭尺寸和矩形相交判定 tooltip，桌面窗口可能误置顶 | 外部进程/非提示窗口被排除；真实 Word tooltip 能置顶且不抢焦点 | 待处理 |
 | R13 | P2 | `Install-RAToolsBuildHook.ps1`：构建版本来自未暂存 CHANGELOG | 未暂存/部分暂存 CHANGELOG 不产生版本不一致的提交；完整暂存正常 | 待处理 |
@@ -136,3 +136,11 @@ Microsoft 文档确认 [CopyHere 不通知复制完成](https://learn.microsoft.
 - 基样式只要被其他样式引用就保留（包括未直接应用的派生样式）；任何读取异常保留样式，避免误删。
 - `UnusedStylesSafety.Tests.ps1` 退出 0：正文、两节页眉、页脚、脚注、正文文本框、页眉文本框、字符和表格样式、继承基样式均保留；孤立 Unused-F 被清理。
 - `review_reference` 复查通过。组合/画布递归及异常保留分支未单独运行；保守处理不支持的图形可能留下部分未用样式。
+- 独立提交：`0f5916f`。
+
+### R10：收集非正文修订作者
+
+- 真实 Word RED：仅页眉修订且正文修订/批注均为零，返回 0 位作者。
+- 移除只看正文计数的提前返回，保留原 XML 收集和对象模型回退流程。
+- `ReviewerStorySafety.Tests.ps1` 退出 0：仅页眉、仅页脚、无标记分别返回 1/1/0，不输出实际作者信息。
+- `review_ui` 独立只读 review 通过。
