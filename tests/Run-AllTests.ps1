@@ -10,6 +10,7 @@ $ErrorActionPreference = "Stop"
 $suites = @(
     @{ Name = "BuildRATools";            File = "BuildRATools.Tests.ps1";            RequiresCom = $false },
     @{ Name = "BuildSafety";             File = "BuildSafety.Tests.ps1";             RequiresCom = $false },
+    @{ Name = "BuildHookSafety";         File = "BuildHookSafety.Tests.ps1";         RequiresCom = $false },
     @{ Name = "VersionConsistency";      File = "VersionConsistency.Tests.ps1";      RequiresCom = $false },
     @{ Name = "RibbonCallbacks";         File = "RibbonCallbacks.Tests.ps1";         RequiresCom = $false },
     @{ Name = "QuickToolbarWindow";      File = "QuickToolbarWindow.Tests.ps1";      RequiresCom = $false },

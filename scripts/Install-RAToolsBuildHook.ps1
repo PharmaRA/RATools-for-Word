@@ -23,6 +23,7 @@ $sourceDirNames = @(
     (Split-Path -Leaf $layout.UserFormsDirectory)
 )
 $sourceDirsSh = $sourceDirNames -join " "
+$buildInputsSh = "$sourceDirsSh CHANGELOG.md"
 
 $gitDir = (& git -C $RepoRoot rev-parse --git-dir) 2>$null
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($gitDir)) {
@@ -63,14 +64,14 @@ $hookLines = @(
     '  exit 1',
     'fi',
     "",
-    "if ! git diff --quiet -- $sourceDirsSh; then",
-    '  echo "Unstaged VBA source changes found. Stage source files before committing so dotm matches the commit." >&2',
+    "if ! git diff --quiet -- $buildInputsSh; then",
+    '  echo "Unstaged VBA or CHANGELOG changes found. Stage all build inputs so dotm and its version match the commit." >&2',
     '  exit 1',
     'fi',
     "",
-    "untracked_sources=`"`$(git ls-files --others --exclude-standard -- $sourceDirsSh)`"",
+    "untracked_sources=`"`$(git ls-files --others --exclude-standard -- $buildInputsSh)`"",
     'if [ -n "$untracked_sources" ]; then',
-    '  echo "Untracked VBA source files found. Stage or remove them before committing:" >&2',
+    '  echo "Untracked VBA or CHANGELOG inputs found. Stage them before committing:" >&2',
     '  echo "$untracked_sources" >&2',
     '  exit 1',
     'fi',

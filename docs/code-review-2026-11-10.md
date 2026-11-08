@@ -30,7 +30,7 @@
 | R10 | P2 | `Macro_ReviewerFilter.bas`：正文修订计数为零提前返回 | 只有页眉或页脚修订且零批注时仍列出审阅者；无标记文档仍返回空 | 已修复，真实 Word 三例和 review 通过 |
 | R11 | P2 | `Macro_BatchRenameFiles.bas`：大小写重命名将源文件自身判为冲突 | `Report.DOCX` 改为 `report.docx` 不加后缀；真正冲突仍不覆盖 | 已修复，真实文件回归和 review 通过 |
 | R12 | P2 | `Core_Window.bas`：仅凭尺寸和矩形相交判定 tooltip，桌面窗口可能误置顶 | 外部进程/非提示窗口被排除；合法 tooltip 能置顶且不抢焦点 | 已修复，实际 Win32 窗口回归和 review 通过；视觉限制见下 |
-| R13 | P2 | `Install-RAToolsBuildHook.ps1`：构建版本来自未暂存 CHANGELOG | 未暂存/部分暂存 CHANGELOG 不产生版本不一致的提交；完整暂存正常 | 待处理 |
+| R13 | P2 | `Install-RAToolsBuildHook.ps1`：构建版本来自未暂存 CHANGELOG | 未暂存/部分暂存 CHANGELOG 不产生版本不一致的提交；完整暂存正常 | 生成器已修复，真实钩子回归和 review 通过 |
 
 ## 审阅证据与限制
 
@@ -162,3 +162,12 @@ Microsoft 文档确认 [CopyHere 不通知复制完成](https://learn.microsoft.
 - `TooltipIdentity.Tests.ps1` 退出 0：当前进程普通窗口、外部进程同 tooltip 类名前缀窗口被排除；合法合成提示经实际枚举/SetWindowPos 置顶，其余测试窗口不置顶且前台焦点不变。仅替换窗体发现入口，测试窗口均在屏幕外且不激活。
 - `QuickToolbarWindow.Tests.ps1` 原有 74 条断言通过；`review_ui` 只读 review 通过，声明按 VBA7 LongPtr/Long 类型审阅。
 - 未验证真实 MSForms 提示出现时机和视觉效果，也未分别运行 32/64 位 Office；合成窗口身份测试不替代这些人工兼容性检查。
+- 独立提交：`5f6ce77`。
+
+### R13：提交前检查版本输入的暂存一致性
+
+- 临时 Git 仓库安装实际生成钩子，旧版在 CHANGELOG index=v1.1.0、working=v1.2.0 时仍构建，测试 RED。
+- 把 CHANGELOG.md 加入 VBA 输入的未暂存及未跟踪检查，检查在构建之前执行。
+- `BuildHookSafety.Tests.ps1` 退出 0：部分暂存拒绝且不构建；完整暂存成功且构建读取 v1.2.0；VBA 未暂存仍拒绝。构建外部边界替身仅记录调用/输入，Git 检查运行真实钩子。
+- `review_ui` 只读 review 通过。未跟踪 CHANGELOG 分支仅经源码检查，未独立运行。
+- 当前项目实际已安装钩子尚未重装，不能称其保护已更新；本项交付为钩子生成器与回归测试。
