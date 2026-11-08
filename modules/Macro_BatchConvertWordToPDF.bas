@@ -238,6 +238,9 @@ Private Sub ConvertOneFile(ByRef session As ConvertSession, ByVal filePath As St
     Dim doc As Document
     Dim pdfFileName As String
     Dim fileName As String
+    Dim wasAlreadyOpen As Boolean
+    Dim fieldStates As Collection
+    Dim exportErrorDescription As String
 
     fileName = session.fso.GetFileName(filePath)
 
@@ -248,9 +251,15 @@ Private Sub ConvertOneFile(ByRef session As ConvertSession, ByVal filePath As St
     DoEvents
 
     ' 刻意以可见窗口打开：不可见窗口导出会丢失页眉/页脚中的边框线
-    Set doc = Documents.Open(FileName:=filePath, Visible:=True, ReadOnly:=True, AddToRecentFiles:=False)
+    On Error Resume Next
+    Set doc = Documents(filePath)
+    On Error GoTo FileError
+    wasAlreadyOpen = Not doc Is Nothing
+    If Not wasAlreadyOpen Then
+        Set doc = Documents.Open(FileName:=filePath, Visible:=True, ReadOnly:=True, AddToRecentFiles:=False)
+    End If
 
-    doc.ActiveWindow.Visible = True
+    If Not wasAlreadyOpen Then doc.ActiveWindow.Visible = True
     If doc.ActiveWindow.View.Type <> wdPrintView Then
         doc.ActiveWindow.View.Type = wdPrintView
     End If
@@ -258,6 +267,7 @@ Private Sub ConvertOneFile(ByRef session As ConvertSession, ByVal filePath As St
     ' 根据选项执行转换前处理
     If session.updateType = 1 Then
         ' 所见即所得：锁定全部域
+        If wasAlreadyOpen Then Set fieldStates = CaptureFieldLockStates(doc)
         SetAllFieldsLocked doc, True
     ElseIf session.updateType = 2 Then
         ' 仅刷新页码
@@ -272,7 +282,14 @@ Private Sub ConvertOneFile(ByRef session As ConvertSession, ByVal filePath As St
 
     SafeExportAsPDF doc, pdfFileName
 
-    doc.Close SaveChanges:=wdDoNotSaveChanges
+    If wasAlreadyOpen Then
+        If Not RestoreFieldLockStates(fieldStates) Then
+            Err.Raise vbObjectError + 2301, , "PDF 已导出，但部分域的原始锁定状态无法恢复，请检查文档。"
+        End If
+        Set fieldStates = Nothing
+    Else
+        doc.Close SaveChanges:=wdDoNotSaveChanges
+    End If
 
     session.successCount = session.successCount + 1
     session.lastOutputPath = pdfFileName
@@ -280,13 +297,19 @@ Private Sub ConvertOneFile(ByRef session As ConvertSession, ByVal filePath As St
     GoTo Finally
 
 FileError:
+    exportErrorDescription = GetFriendlyErrorMessage(Err.Number, Err.Description)
+    If wasAlreadyOpen Then
+        If Not RestoreFieldLockStates(fieldStates) Then
+            exportErrorDescription = exportErrorDescription & vbCrLf & "部分域的原始锁定状态无法恢复，请检查文档。"
+        End If
+    ElseIf Not doc Is Nothing Then
+        On Error Resume Next
+        doc.Close SaveChanges:=wdDoNotSaveChanges
+        On Error GoTo 0
+    End If
     Application.ScreenUpdating = False
     session.failCount = session.failCount + 1
-    session.processLog = session.processLog & "[失败] " & fileName & " - 原因: " & _
-        GetFriendlyErrorMessage(Err.Number, Err.Description) & vbCrLf
-    If Not doc Is Nothing Then
-        doc.Close SaveChanges:=wdDoNotSaveChanges
-    End If
+    session.processLog = session.processLog & "[失败] " & fileName & " - 原因: " & exportErrorDescription & vbCrLf
 
 Finally:
     Set doc = Nothing

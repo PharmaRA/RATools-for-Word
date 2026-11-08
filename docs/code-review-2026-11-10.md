@@ -3,6 +3,8 @@
 基线：`12e6c4f`，以审阅时工作区为准，含尚未提交的快捷工具栏修改。
 用户要求：先记录发现，再按优先级逐项修复或优化；每项验证并 review 后单独提交。
 
+当前：原 13 项均已修复并分别提交；最终验收中确认 PDF 文档所有权观察为 R14，另行修复并独立提交。整体验证和成品位置见文末。
+
 ## 执行约束
 
 - 不混入原有未提交修改；重要文件先备份到 `backups/code-review-2026-11-10/`。
@@ -31,6 +33,7 @@
 | R11 | P2 | `Macro_BatchRenameFiles.bas`：大小写重命名将源文件自身判为冲突 | `Report.DOCX` 改为 `report.docx` 不加后缀；真正冲突仍不覆盖 | 已修复，真实文件回归和 review 通过 |
 | R12 | P2 | `Core_Window.bas`：仅凭尺寸和矩形相交判定 tooltip，桌面窗口可能误置顶 | 外部进程/非提示窗口被排除；合法 tooltip 能置顶且不抢焦点 | 已修复，实际 Win32 窗口回归和 review 通过；视觉限制见下 |
 | R13 | P2 | `Install-RAToolsBuildHook.ps1`：构建版本来自未暂存 CHANGELOG | 未暂存/部分暂存 CHANGELOG 不产生版本不一致的提交；完整暂存正常 | 生成器已修复，真实钩子回归和 review 通过 |
+| R14 | P1 | 最终验收确认：PDF 批处理关闭用户已打开的未保存文档 | 已有文档仍成功导出，成功/失败均保留正文、待保存状态和原域锁；只关闭本次打开的文档 | 已修复，真实 Word 回归和 review 通过 |
 
 ## 审阅证据与限制
 
@@ -39,7 +42,7 @@
 路径函数的只读实测确认：接受目标等于根目录，拒绝相邻目录。
 Microsoft 文档确认 [CopyHere 不通知复制完成](https://learn.microsoft.com/en-us/windows/win32/shell/folder-copyhere)及 [Document.Revisions.Count 只计正文](https://learn.microsoft.com/en-us/office/vba/api/word.revisions)。
 
-待确认观察：PDF 批处理直接打开并关闭文件，未记录是否为用户已打开的文档。须在涉及 PDF 生命周期的修复中验证；尚未按确定缺陷另行计数。
+原待确认观察“PDF 批处理可能关闭用户已有文档”已在最终验收真实复现，升级为 R14 并修复，见文末。
 
 ## 验证与提交记录
 
@@ -96,6 +99,7 @@ Microsoft 文档确认 [CopyHere 不通知复制完成](https://learn.microsoft.
 - 先前许可报错发生在隐藏自动化被强制显示后的调用中；独立创建/保存通过，修正恢复可见性及测试文件锁处理后整套通过，不再认定为全局许可阻塞。未改 Office 许可设置。
 - `SourceCompile.Tests.ps1` 全部标准模块、类和窗体编译探针退出 0；`review_batch` 最终复查通过。
 - 本项因早先 Word 验收障碍在 R06–R13 后完成，保持独立提交。
+- 独立提交：`09f1811`。
 
 ### R06：可恢复构建发布
 
@@ -171,3 +175,10 @@ Microsoft 文档确认 [CopyHere 不通知复制完成](https://learn.microsoft.
 - 当前项目实际已安装钩子尚未重装，不能称其保护已更新；本项交付为钩子生成器与回归测试。
 
 - R13 独立提交：`5d72eca`。
+
+### R14：PDF 批处理保留用户文档
+
+- 真实 Word RED：用户已有 Report.docx 并含未保存编辑，ConvertOneFile 返回后该文档被关闭。
+- 打开前识别并复用已有文档，保留其可见性；仅关闭批处理自行打开的对象。已有文档的默认 WYSIWYG 导出捕获并恢复原域锁状态，异常路径同样恢复并保留原错误信息。
+- `PdfOutputSafety.Tests.ps1` 退出 0：真实导出成功计数 1/0，原文档保持打开、待保存文本一致、混合域锁恢复；注入导出失败计数 0/1，原错误、文档、文本和域锁均保持。
+- `PdfFieldState.Tests.ps1` 回归退出 0；`review_batch` 只读 review 通过。独立成品需在本项提交后重新构建。
