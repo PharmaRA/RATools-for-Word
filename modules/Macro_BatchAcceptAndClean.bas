@@ -75,7 +75,7 @@ Sub BatchAcceptAndClean()
     EndBatchUI
     If failedCount > 0 Then
         MsgBox "处理完成：成功 " & processedCount & " 个，失败 " & failedCount & _
-               " 个（无法打开，请检查文件是否被占用或有密码）。", vbExclamation, DIALOG_TITLE
+               " 个（打开、处理或保存失败；未保存的文档已保留打开，请检查）。", vbExclamation, DIALOG_TITLE
     ElseIf processedCount > 0 Then
         MsgBox "处理完成！共处理 " & processedCount & " 个文件。", vbInformation, DIALOG_TITLE
     End If
@@ -101,14 +101,10 @@ Private Function ProcessFile(filePath As String) As Boolean
     Call DeepCleanDocument(doc)
 
     If wasAlreadyOpen Then
-        ' 用户自己打开的文档：清理后保存但保持打开状态
-        On Error Resume Next
-        doc.Save
-        On Error GoTo 0
+        ProcessFile = TrySaveDocument(doc)
     Else
-        CloseDocumentQuietly doc, True
+        ProcessFile = CloseDocumentQuietly(doc, True)
     End If
-    ProcessFile = True
 End Function
 
 ' === 清理逻辑（行为敏感区，保持原实现） ===

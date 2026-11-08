@@ -74,7 +74,7 @@ Sub BatchSetMargins()
                Format(Timer - startTime, "0.00") & " 秒。", vbInformation, DIALOG_TITLE
     Else
         MsgBox "处理完成：成功 " & processedCount & " 个，失败 " & failedCount & _
-               " 个（无法打开或被保护，详见后述提示）。", vbExclamation, DIALOG_TITLE
+               " 个（打开、设置或保存失败；未保存的文档已保留打开，请检查）。", vbExclamation, DIALOG_TITLE
     End If
     Exit Sub
 
@@ -103,7 +103,17 @@ Private Function ProcessFile(ByVal filePath As String) As Boolean
     ProcessFile = SetMarginsSafely(doc)
 
     ' 若文档是本过程打开的，保存并关闭；用户已打开的保持原状
-    If Not wasAlreadyOpen Then CloseDocumentQuietly doc, True
+    If Not wasAlreadyOpen Then
+        If ProcessFile Then
+            ProcessFile = CloseDocumentQuietly(doc, True)
+        Else
+            On Error Resume Next
+            If Application.Visible Then
+                If doc.Windows.Count > 0 Then doc.Windows(1).Visible = True
+            End If
+            On Error GoTo 0
+        End If
+    End If
 End Function
 
 ' 处理当前文档对象（检查保护 + 结果提示）
