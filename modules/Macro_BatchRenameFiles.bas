@@ -104,7 +104,8 @@ Sub BatchRenameFiles()
             
             ' ∑¿÷ÿ√˚
             dupCounter = 1
-            Do While fso.FileExists(newPath)
+            Do While fso.FileExists(newPath) Or fso.FolderExists(newPath)
+                If StrComp(fullPath, newPath, vbTextCompare) = 0 Then Exit Do
                 newFileName = cleanName & "_" & dupCounter & extName
                 newPath = targetFolder & newFileName
                 dupCounter = dupCounter + 1
@@ -119,7 +120,7 @@ Sub BatchRenameFiles()
                 renamedCount = renamedCount + 1
             Else
                 Err.Clear
-                fso.CopyFile fullPath, newPath
+                fso.CopyFile fullPath, newPath, False
                 If Err.Number = 0 Then
                     copyCount = copyCount + 1
                 End If

@@ -28,7 +28,7 @@
 | R08 | P2 | 同模块：导出结束统一解锁全部域 | 混合 Locked 状态在成功和异常路径均恢复，覆盖正文/页眉/文本框 | 已修复，真实 Word 回归和 review 通过 |
 | R09 | P2 | `Macro_RemoveUnusedStyles.bas`：只在正文检查样式是否使用 | 页眉/页脚/脚注/文本框使用中的样式保留；真正未用样式正常清理 | 已修复，真实 Word 回归和 review 通过 |
 | R10 | P2 | `Macro_ReviewerFilter.bas`：正文修订计数为零提前返回 | 只有页眉或页脚修订且零批注时仍列出审阅者；无标记文档仍返回空 | 已修复，真实 Word 三例和 review 通过 |
-| R11 | P2 | `Macro_BatchRenameFiles.bas`：大小写重命名将源文件自身判为冲突 | `Report.DOCX` 改为 `report.docx` 不加后缀；真正冲突仍不覆盖 | 待处理 |
+| R11 | P2 | `Macro_BatchRenameFiles.bas`：大小写重命名将源文件自身判为冲突 | `Report.DOCX` 改为 `report.docx` 不加后缀；真正冲突仍不覆盖 | 已修复，真实文件回归和 review 通过 |
 | R12 | P2 | `Core_Window.bas`：仅凭尺寸和矩形相交判定 tooltip，桌面窗口可能误置顶 | 外部进程/非提示窗口被排除；真实 Word tooltip 能置顶且不抢焦点 | 待处理 |
 | R13 | P2 | `Install-RAToolsBuildHook.ps1`：构建版本来自未暂存 CHANGELOG | 未暂存/部分暂存 CHANGELOG 不产生版本不一致的提交；完整暂存正常 | 待处理 |
 
@@ -144,3 +144,12 @@ Microsoft 文档确认 [CopyHere 不通知复制完成](https://learn.microsoft.
 - 移除只看正文计数的提前返回，保留原 XML 收集和对象模型回退流程。
 - `ReviewerStorySafety.Tests.ps1` 退出 0：仅页眉、仅页脚、无标记分别返回 1/1/0，不输出实际作者信息。
 - `review_ui` 独立只读 review 通过。
+- 独立提交：`22ac0ac`。
+
+### R11：大小写重命名排除源文件自身
+
+- 真实 Windows 文件系统 RED→GREEN：Report.DOCX 原来成为 report_1.docx，修后成为准确小写的 report.docx。
+- 冲突循环将同一路径的大小写差异排除，其他文件/目录仍生成后缀；复制回退明确禁止覆盖。
+- `RenamePathSafety.Tests.ps1` 退出 0：调用完整宏，验证准确文件名、数量、三个文件内容，以及 A B.DOCX 与既有 a-b.docx 冲突时生成 a-b_1.docx。
+- 原 `BatchRenameFiles.Tests.ps1` 的 10 个字符串清洗用例通过；`review_ui` 只读 review 通过。
+- 运行范围为普通 Windows 不区分大小写目录。目录名称冲突、复制回退失败和启用大小写敏感目录未单独实测。
