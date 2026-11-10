@@ -70,7 +70,7 @@ Public Sub RefreshTooltipWatch()
 End Sub
 
 ' 按钮统一通过动作键调升本过程（避免窗体复制 Ribbon 业务逻辑）。
-' 单一分发表：19 个动作键与悬浮窗按钮一一对应。
+' 单一分发表：24 个动作键与悬浮窗按钮一一对应。
 Public Sub RunQuickToolbarAction(ByVal actionKey As String)
     DispatchQuickToolbarAction actionKey
     ' 点击悬浮窗按钮会把激活状态移到窗体上，之后用户在正文里的第一次点击
@@ -114,6 +114,8 @@ Private Sub DispatchQuickToolbarAction(ByVal actionKey As String)
             ApplyRAToolsStyle TableTitleStyle()
         Case "style_figure_title"
             ApplyRAToolsStyle FigureTitleStyle()
+        Case "style_body_text"
+            ApplyRAToolsStyle BodyTextStyle()
 
         ' --- Word 内置命令 ---
 
@@ -121,6 +123,10 @@ Private Sub DispatchQuickToolbarAction(ByVal actionKey As String)
             ExecuteQuickToolbarMso "FormatPainter"
         Case "paragraph_settings"
             ExecuteQuickToolbarMso "ParagraphDialog"
+        Case "clear_formatting"
+            ExecuteQuickToolbarMso "ClearFormatting"
+        Case "insert_caption"
+            ExecuteQuickToolbarMso "CaptionInsert"
         Case "insert_cross_reference"
             ExecuteQuickToolbarMso "CrossReferenceInsert"
         Case "update_fields"
@@ -132,6 +138,10 @@ Private Sub DispatchQuickToolbarAction(ByVal actionKey As String)
             TogglePageBreakBefore Nothing
         Case "autofit_table"
             AutoFitTableWindow Nothing
+        Case "text_blue"
+            SetTextBlue Nothing
+        Case "paste_relink_cross_reference"
+            Wrapper_PasteRelinkCrossReference
 
         ' --- 批处理宏 ---
 

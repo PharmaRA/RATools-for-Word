@@ -235,6 +235,10 @@ Public Sub BatchDetectHighlights()
     LastQuickAction = "detect_highlights"
 End Sub
 
+Public Sub Wrapper_PasteRelinkCrossReference()
+    LastQuickAction = "paste_relink_cross_reference"
+End Sub
+
 Public Sub ResetQuickToolbarActionForTest()
     LastQuickAction = vbNullString
     SetQuickToolbarMsoTestMode True
@@ -293,7 +297,7 @@ End Function
     $insideHeight = [double]$formSize[3]
     Assert-True ([Math]::Abs($formWidth - $layoutSpec.ToolbarWidth) -lt 0.5) "Toolbar runtime width should be $($layoutSpec.ToolbarWidth)pt; got $formWidth."
     Assert-True ([Math]::Abs($formHeight - $layoutSpec.ToolbarHeight) -lt 0.5) "Toolbar runtime height should be $($layoutSpec.ToolbarHeight)pt; got $formHeight."
-    Assert-True ($formHeight -lt 200) "Toolbar should remain a compact five-row grid."
+    Assert-True ($formHeight -lt 200) "Toolbar should remain a compact six-row grid."
 
     for ($i = 0; $i -lt $expectedItems.Count; $i++) {
         $item = $expectedItems[$i]

@@ -33,6 +33,7 @@ $suites = @(
     @{ Name = "TooltipIdentity";         File = "TooltipIdentity.Tests.ps1";         RequiresCom = $true },
     @{ Name = "ReviewerFilter";          File = "ReviewerFilter.Tests.ps1";          RequiresCom = $true },
     @{ Name = "ReviewerStorySafety";     File = "ReviewerStorySafety.Tests.ps1";     RequiresCom = $true },
+    @{ Name = "CaptionReferencePair"; File = "CaptionReferencePair.Tests.ps1"; RequiresCom = $true },
     @{ Name = "PasteRelinkSafety"; File = "PasteRelinkSafety.Tests.ps1"; RequiresCom = $true },
     @{ Name = "PasteRelinkCrossReference"; File = "PasteRelinkCrossReference.Tests.ps1"; RequiresCom = $true },
     @{ Name = "PasteRelinkCrossReferenceCases"; File = "PasteRelinkCrossReferenceCases.Tests.ps1"; RequiresCom = $true },

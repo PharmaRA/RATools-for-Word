@@ -117,6 +117,9 @@ Public Function GetMyMacroRegistry() As Variant
                     "粘贴并重连引用", _
                     "粘贴剪贴板内容后，自动把粘贴出的正文里指向题注的交叉引用重新连到粘贴出的新题注，并只更新粘贴范围内的域；一次 Ctrl+Z 可整体撤销。")
                     
+    items.Add Array("Wrapper_GenerateCaptionReferencePair", _
+                    "生成题注与引用", _
+                    "选择或新建题注标签，在正文光标处先生成交叉引用，再生成题注。引用显示标签和编号，可剪切整段后分别移动；一次 Ctrl+Z 可整体撤销。")
     ' 如果以后要加新宏，直接复制粘贴即可，无需修改其他地方
     ' 如果需要control参数的宏，需要下面做一个Wrapper，见下面Wrapper包装器下的内容，同时需要在上面添加
     

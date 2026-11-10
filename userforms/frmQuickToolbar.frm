@@ -1,7 +1,7 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} frmQuickToolbar
    Caption         =   "RATools"
-   ClientHeight    =   2796
+   ClientHeight    =   3360
    ClientLeft      =   108
    ClientTop       =   456
    ClientWidth     =   2460
@@ -18,7 +18,7 @@ Option Explicit
 Private Const SETTINGS_APP As String = "RATools"
 Private Const SETTINGS_SECTION As String = "QuickToolbar"
 Private Const TOOLBAR_WIDTH As Single = 134
-Private Const TOOLBAR_HEIGHT As Single = 168
+Private Const TOOLBAR_HEIGHT As Single = 196
 Private Const BUTTON_TOP As Single = 3
 Private Const BUTTON_WIDTH As Single = 26
 Private Const BUTTON_HEIGHT As Single = 24
@@ -40,17 +40,22 @@ Private Sub UserForm_Initialize()
     ConfigureButton Me.btnUnnumberedHeading2, 1, 1, 4, 5
     ConfigureButton Me.btnUnnumberedHeading3, 1, 2, 4, 6
     ConfigureButton Me.btnUnnumberedHeading4, 1, 3, 4, 7
-    ConfigureButton Me.btnFormatPainter, 2, 0, 4, 8
-    ConfigureButton Me.btnParagraphSettings, 2, 1, 4, 9
-    ConfigureButton Me.btnPageBreakBefore, 2, 2, 4, 10
-    ConfigureButton Me.btnTableTitle, 2, 3, 4, 11
-    ConfigureButton Me.btnFigureTitle, 3, 0, 4, 12
-    ConfigureButton Me.btnAutoFitTable, 3, 1, 4, 13
-    ConfigureButton Me.btnInsertCrossReference, 3, 2, 4, 14
-    ConfigureButton Me.btnUpdateFields, 3, 3, 4, 15
-    ConfigureButton Me.btnHyperlinksFieldsBlue, 4, 0, 3, 16
-    ConfigureButton Me.btnAcceptRevisionsComments, 4, 1, 3, 17
-    ConfigureButton Me.btnDetectHighlights, 4, 2, 3, 18
+    ConfigureButton Me.btnBodyText, 2, 0, 4, 8
+    ConfigureButton Me.btnTableTitle, 2, 1, 4, 9
+    ConfigureButton Me.btnFigureTitle, 2, 2, 4, 10
+    ConfigureButton Me.btnPageBreakBefore, 2, 3, 4, 11
+    ConfigureButton Me.btnFormatPainter, 3, 0, 4, 12
+    ConfigureButton Me.btnParagraphSettings, 3, 1, 4, 13
+    ConfigureButton Me.btnClearFormatting, 3, 2, 4, 14
+    ConfigureButton Me.btnTextBlue, 3, 3, 4, 15
+    ConfigureButton Me.btnAutoFitTable, 4, 0, 4, 16
+    ConfigureButton Me.btnInsertCaption, 4, 1, 4, 17
+    ConfigureButton Me.btnInsertCrossReference, 4, 2, 4, 18
+    ConfigureButton Me.btnUpdateFields, 4, 3, 4, 19
+    ConfigureButton Me.btnPasteRelink, 5, 0, 4, 20
+    ConfigureButton Me.btnHyperlinksFieldsBlue, 5, 1, 4, 21
+    ConfigureButton Me.btnAcceptRevisionsComments, 5, 2, 4, 22
+    ConfigureButton Me.btnDetectHighlights, 5, 3, 4, 23
 
     RestoreToolbarPosition
 End Sub
@@ -97,6 +102,7 @@ Private Function GetButtonTop(ByVal rowIndex As Long) As Single
     GetButtonTop = BUTTON_TOP + rowIndex * BUTTON_ROW_STEP
     If rowIndex >= 2 Then GetButtonTop = GetButtonTop + BUTTON_GROUP_GAP
     If rowIndex >= 4 Then GetButtonTop = GetButtonTop + BUTTON_GROUP_GAP
+    If rowIndex >= 5 Then GetButtonTop = GetButtonTop + BUTTON_GROUP_GAP
 End Function
 
 Private Function HasButtonPicture(ByVal buttonItem As MSForms.Label) As Boolean
@@ -167,25 +173,11 @@ End Sub
 Private Sub btnUnnumberedHeading4_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
     RefreshTooltipWatch
 End Sub
-Private Sub btnFormatPainter_Click()
-    RunQuickToolbarAction "format_painter"
+Private Sub btnBodyText_Click()
+    RunQuickToolbarAction "style_body_text"
 End Sub
 
-Private Sub btnFormatPainter_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
-    RefreshTooltipWatch
-End Sub
-Private Sub btnParagraphSettings_Click()
-    RunQuickToolbarAction "paragraph_settings"
-End Sub
-
-Private Sub btnParagraphSettings_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
-    RefreshTooltipWatch
-End Sub
-Private Sub btnPageBreakBefore_Click()
-    RunQuickToolbarAction "page_break_before"
-End Sub
-
-Private Sub btnPageBreakBefore_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+Private Sub btnBodyText_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
     RefreshTooltipWatch
 End Sub
 Private Sub btnTableTitle_Click()
@@ -202,11 +194,53 @@ End Sub
 Private Sub btnFigureTitle_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
     RefreshTooltipWatch
 End Sub
+Private Sub btnPageBreakBefore_Click()
+    RunQuickToolbarAction "page_break_before"
+End Sub
+
+Private Sub btnPageBreakBefore_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+    RefreshTooltipWatch
+End Sub
+Private Sub btnFormatPainter_Click()
+    RunQuickToolbarAction "format_painter"
+End Sub
+
+Private Sub btnFormatPainter_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+    RefreshTooltipWatch
+End Sub
+Private Sub btnParagraphSettings_Click()
+    RunQuickToolbarAction "paragraph_settings"
+End Sub
+
+Private Sub btnParagraphSettings_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+    RefreshTooltipWatch
+End Sub
+Private Sub btnClearFormatting_Click()
+    RunQuickToolbarAction "clear_formatting"
+End Sub
+
+Private Sub btnClearFormatting_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+    RefreshTooltipWatch
+End Sub
+Private Sub btnTextBlue_Click()
+    RunQuickToolbarAction "text_blue"
+End Sub
+
+Private Sub btnTextBlue_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+    RefreshTooltipWatch
+End Sub
 Private Sub btnAutoFitTable_Click()
     RunQuickToolbarAction "autofit_table"
 End Sub
 
 Private Sub btnAutoFitTable_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+    RefreshTooltipWatch
+End Sub
+Private Sub btnInsertCaption_Click()
+    RunQuickToolbarAction "insert_caption"
+End Sub
+
+Private Sub btnInsertCaption_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
     RefreshTooltipWatch
 End Sub
 Private Sub btnInsertCrossReference_Click()
@@ -221,6 +255,13 @@ Private Sub btnUpdateFields_Click()
 End Sub
 
 Private Sub btnUpdateFields_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+    RefreshTooltipWatch
+End Sub
+Private Sub btnPasteRelink_Click()
+    RunQuickToolbarAction "paste_relink_cross_reference"
+End Sub
+
+Private Sub btnPasteRelink_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
     RefreshTooltipWatch
 End Sub
 Private Sub btnHyperlinksFieldsBlue_Click()
