@@ -1,0 +1,149 @@
+[
+  {
+    "slug": "manual",
+    "label": "手册首页"
+  },
+  {
+    "label": "安装与入门",
+    "items": [
+      {
+        "slug": "manual/installation",
+        "label": "安装、更新与停用"
+      },
+      {
+        "slug": "manual/quick-start",
+        "label": "第一次使用"
+      },
+      {
+        "slug": "manual/interface",
+        "label": "宏管理器、悬浮窗与关于"
+      }
+    ]
+  },
+  {
+    "label": "模板与排版",
+    "items": [
+      {
+        "slug": "manual/templates",
+        "label": "加载中文、英文和自定义模板"
+      },
+      {
+        "slug": "manual/styles",
+        "label": "标题、正文与列表样式"
+      },
+      {
+        "slug": "manual/formatting",
+        "label": "字体与段落操作"
+      },
+      {
+        "slug": "manual/tables-images",
+        "label": "表格与图片"
+      },
+      {
+        "slug": "manual/page-layout",
+        "label": "页面、页眉页脚与页边距"
+      },
+      {
+        "slug": "manual/heading-numbers",
+        "label": "标题自动编号转文本"
+      },
+      {
+        "slug": "manual/unused-styles",
+        "label": "清理未使用的模板样式"
+      }
+    ]
+  },
+  {
+    "label": "题注与引用",
+    "items": [
+      {
+        "slug": "manual/references",
+        "label": "题注、交叉引用与目录基础"
+      },
+      {
+        "slug": "manual/caption-pairs",
+        "label": "生成题注与引用"
+      },
+      {
+        "slug": "manual/paste-relink",
+        "label": "粘贴并重连引用"
+      },
+      {
+        "slug": "manual/field-format",
+        "label": "链接标蓝与域格式保护"
+      }
+    ]
+  },
+  {
+    "label": "审阅与清理",
+    "items": [
+      {
+        "slug": "manual/review",
+        "label": "修订、批注与按审阅者筛选"
+      },
+      {
+        "slug": "manual/accept-format-revisions",
+        "label": "接受格式修订"
+      },
+      {
+        "slug": "manual/clean-documents",
+        "label": "批量接受修订并删除批注"
+      },
+      {
+        "slug": "manual/highlights",
+        "label": "批量检测高亮内容"
+      }
+    ]
+  },
+  {
+    "label": "文件与批量处理",
+    "items": [
+      {
+        "slug": "manual/batch-basics",
+        "label": "批量模式与保存规则"
+      },
+      {
+        "slug": "manual/pdf-export",
+        "label": "Word 批量转 PDF"
+      },
+      {
+        "slug": "manual/batch-rename",
+        "label": "批量修改文件名"
+      },
+      {
+        "slug": "manual/current-file",
+        "label": "重命名当前文件与打开文件夹"
+      }
+    ]
+  },
+  {
+    "label": "文本工具",
+    "items": [
+      {
+        "slug": "manual/abbreviations",
+        "label": "提取缩略语"
+      },
+      {
+        "slug": "manual/scientific-terms",
+        "label": "标准化科学术语下标"
+      }
+    ]
+  },
+  {
+    "label": "实用教程",
+    "items": [
+      {
+        "slug": "manual/workflows",
+        "label": "常见工作流程"
+      },
+      {
+        "slug": "manual/faq",
+        "label": "常见问题"
+      },
+      {
+        "slug": "manual/customization",
+        "label": "自定义模板与扩展宏"
+      }
+    ]
+  }
+]

@@ -1,238 +1,51 @@
-<div align="center"> <img src="_image/logo.png" alt="Logo" width="400"/> <h3>RATools for Word - 专为药品注册（RA）打造的 Word 效率插件</h3> <p>基于实战经验开发，提升申报资料编写效率，助力注册申报工作更上一层楼。</p> </div>
+<div align="center">
+  <img src="_image/logo.png" alt="RATools for Word" width="320" />
+  <h1>RATools for Word</h1>
+  <p>面向药品注册资料编写的 Word 效率插件</p>
+</div>
 
+把样式排版、题注引用、审阅清理和批量文件处理集中到 Word 的 RATools 选项卡，减少重复操作。插件使用 `.dotm`，中文和英文样式使用 `.dotx` 模板。
 
+**[下载插件](https://github.com/PharmaRA/RATools-for-Word/releases) · [完整使用手册](docs/manual/index.md) · [安装指南](docs/manual/installation.md) · [常见问题](docs/manual/faq.md)**
 
-## 📖 项目简介
+## 可以用来做什么
 
-本插件基于 `.dotm`（启用宏的模板）定义功能核心，并通过 `.dotx` 文件管理样式模板。旨在解决药品RA人在文档编写中频繁切换选项卡、格式调整繁琐等痛点。
+| 使用需求 | 主要功能 | 详细教程 |
+| --- | --- | --- |
+| 统一文档格式 | 中英文模板、编号/无编号标题 1–9、正文及列表样式、字体段落快捷操作 | [模板与样式](docs/manual/templates.md) |
+| 整理图表和页面 | 表格文字样式、表格自动调整、图片段落、页边距、页眉页脚链接 | [表格图片](docs/manual/tables-images.md)、[页面布局](docs/manual/page-layout.md) |
+| 管理题注与引用 | 生成题注及引用、粘贴并重连引用、恢复题注标签、目录、链接标蓝与域格式保护 | [题注与引用](docs/manual/references.md) |
+| 审阅和制作清洁稿 | 按审阅者筛选、仅接受格式修订、批量接受全部修订并删除批注、高亮检测报告 | [审阅指南](docs/manual/review.md) |
+| 批量处理文件 | Word 转 PDF、规范文件名、批量设置页边距、重命名当前文件 | [批量模式与保存规则](docs/manual/batch-basics.md) |
+| 整理文本与样式 | 提取缩略语、科学术语下标、标题编号转文本、未使用样式清理 | [全部宏功能](docs/manual/interface.md) |
 
-当前发布版本：`v0.8.8`。
+还提供可搜索的宏管理器和六行四列快捷悬浮窗。每个功能的入口、操作步骤、结果和限制见使用手册。
 
-本版新增「生成题注与引用」：先生成交叉引用，再生成题注；引用默认标准蓝色，更新域时保留格式。同时调整「引用」组按钮布局，并将快捷悬浮窗扩充为六行四列。完整变更见 [CHANGELOG](CHANGELOG.md#v088)。
+## 开始使用
 
-**主要特性：**
+1. 从 [Releases](https://github.com/PharmaRA/RATools-for-Word/releases) 下载 `.dotm` 插件和所需 `.dotx` 模板，放到同一个专用目录，例如 `D:\RATools`。
+2. 按[图文安装指南](docs/manual/installation.md)设置 Word 启动位置和受信任位置，然后重新启动 Word。
+3. 打开普通文档，在 RATools 的“加载”下拉菜单选择中文或英文模板，再应用需要的样式。
+4. 按[第一次使用](docs/manual/quick-start.md)完成一份带标题、题注和引用的练习文档。
 
-- **实战导向**：功能源于开发者在注册申报过程中的长期实践，精准解决痛点。
-- **兼容性**：已在 Windows 10 / 11系统下的 Microsoft 365 Word环境中测试通过，理论上支持Office 2010之后的至今所有Word版本（请自行测试）。
-- **持续迭代**：后续将根据实际需求，持续添加更多便捷功能。
+日常写作请打开普通文档，无需双击 `.dotm`。批量工具是否写回原文件各不相同，运行前先阅读对应的保存规则。
 
-<div align="center"> <img src="_image/0.png" width=100%/> </div>
+## 环境与版本
 
-## 🧱 项目结构与开发说明
+- 项目已有使用说明所列环境为 **Windows 10/11 + Microsoft 365 桌面版 Word**。
+- 其他 Office 版本的完整兼容性需另行验证；网页版 Word、Mac Word 和 WPS 不属于已确认的运行环境。
+- 当前源码版本标识为 **v0.8.8**。下载时以 Releases 附件与发布说明为准，已加载插件的版本可在“关于”中查看。
+- 版本变化见 [CHANGELOG](CHANGELOG.md)。
 
-本项目结构如下：
+## 使用手册与开发文档
 
-- `dotm/`：存放 `.dotm` 插件解包后的主要内容，包括 `vbaProject.bin`、Ribbon XML、自定义图片资源等，是插件的核心载体。
-- `modules/`：存放从 `vbaProject.bin` 导出的标准模块代码（`.bas`），便于阅读、搜索和版本对比。
-- `class_modules/`：存放从 `vbaProject.bin` 导出的类模块代码（`.cls`），主要用于事件和对象封装。
-- `userforms/`：存放从 `vbaProject.bin` 导出的窗体文件（`.frm/.frx`），用于宏管理器等界面功能。
-- `template/`：存放可供插件加载的 Word 样式模板（`.dotx`），用于统一文档格式。
+- [完整使用手册](docs/manual/index.md)：安装、每项功能、常见工作流程和排错。仓库内 Markdown 可直接阅读。
+- [自定义模板与扩展宏](docs/manual/customization.md)：调整 `.dotx` 样式或添加自己的宏。
+- [开发文档索引](docs/README.md)：源码编码、构建测试、发布与维护说明。
+- [文档站构建与发布](docs/docs-site.md)：Astro Starlight 本地预览及 GitHub Pages 配置。站点部署后地址为 `https://PharmaRA.github.io/RATools-for-Word/`；当前分支尚未发布。
 
-为避免源码与实际插件内容不一致，推荐使用“源码优先”的本地构建流程：
+项目采用源码优先流程：VBA 标准模块、类和窗体分别位于 `modules/`、`class_modules/`、`userforms/`；`dotm/` 为插件解包内容，`template/` 为样式模板。参与开发前请阅读[编码契约](docs/vba-source-encoding.md)与[构建测试指南](docs/local-dotm-build-testing.md)。
 
-- 日常开发优先直接修改 `modules/`、`class_modules/`、`userforms/` 中的源码文件。
-- 修改完成后运行 `powershell -ExecutionPolicy Bypass -File scripts\Build-RAToolsDotm.ps1`。
-- 构建脚本会以当前 `dotm/` 为模板基底，先按 `CHANGELOG.md` 顶部版本同步 `Engine_UpdateChecker.bas` 中的 `APP_VERSION`，再自动把源码导入 VBA 工程，清理作者、最后修改者、公司等文档元数据，保存新的 `.dotm`，同步回 `dotm/`，并生成 `dist/RATools_local.dotm`。
-- 如需在提交前自动同步，可运行 `powershell -ExecutionPolicy Bypass -File scripts\Install-RAToolsBuildHook.ps1` 安装本地 `pre-commit` hook。hook 会要求相关 VBA 源码先暂存，避免提交中的源码和 `dotm/` 不一致；卸载可运行同一脚本并加上 `-Uninstall`。
+## 反馈
 
-原有流程仍然保留：如果你仍然在 Word 的 VBA 编辑器中修改主程序，可以保存 `.dotm` 后手动解包回 `dotm/`；远程发布工作流仍会基于 `dotm/` 打包发布。
-
-> 注意：本地源码导入依赖 Word COM 自动化，需要在 Word 信任中心启用“信任对 VBA 项目对象模型的访问”。
-
-## ⚙️ 安装与配置
-
-为了确保插件正常运行，请严格按照以下步骤进行配置。
-
-### 1. 下载与文件准备
-
-- 前往 [Releases](https://github.com/PharmaRA/RATools-for-Word/releases) 下载最新的 `.dotm` 和 `.dotx` 文件。
-- **创建目录**：建议在 D 盘根目录创建`RATools`文件夹，将 `.dotx` 和 `.dotm` 放入其中
-
-> **注意**：您也可以自定义文件路径，但后续步骤需对应修改路径配置。本文档以推荐路径 `D:\RATools` 为例。
-
-<div align="center"> <img src="_image/folder.png" width=75%/> </div>
-
-### 2. 配置 Word 启动路径
-
-1. 打开 Word，点击左上角 **「文件」** -> **「选项」**。
-
-   <div align="center"> <img src="_image/1.png" width=25%/> <img src="_image/2.png" width=25%/> </div> 
-
-2. 在弹出的对话框中点击 **「高级」**，向下滑动至“常规”栏目，点击 **「文件位置」**。
-
-   <div align="center"> <img src="_image/3.png" width=100%/> </div> 
-
-3. 选中 **「启动」** 项，点击“修改”，选择存放 `RAtools.dotm` 的文件夹路径（例如：`D:\RATools`）。
-
-<div align="center"> <img src="_image/4.png" width=75%/> </div>
-
-### 3. 添加受信任位置
-
-为防止宏被系统安全策略拦截，需将插件目录设为受信任位置：
-
-1. 在 Word 选项对话框左侧，选择 **「信任中心」** -> **「信任中心设置」**。
-
-   <div align="center"> <img src="_image/5.png" width=75%/> </div> 
-
-2. 选择 **「受信任位置」**，点击 **「添加新位置」**。
-
-   <div align="center"> <img src="_image/6.png" width=100%/> </div> 
-
-3. 点击 **「浏览」**，选择插件文件夹路径（`D:\RATools`），确认无误后点击 **「确定」** 保存所有设置。
-
-<div align="center"> <img src="_image/7.png" width=50%/> </div>
-<div align="center">  <img src="_image/8.png" width=100%/> </div>
-
-## 🚀 使用指南
-
-### 加载模板
-
-配置成功后，打开或新建Word文件，顶部会出现 **「RATools」** 选项卡（请不要双击 `.dotm` 新建文件）。
-
-1. 点击 **「点击加载」** 按钮即可挂载模板样式（每个文件仅首次需要进行加载）。
-
-   <div align="center"> <img src="_image/9.png" width=100%/> </div> 
-
-2. 在v0.5.0的更新中，加入了中英文模版功能，目前挂载模版逻辑如下：
-
-   - 如果 `RAtools.dotm` 同目录下仅存在 `master-template-cn.dotx` 或 `master-template-en.dotx` 中的一个，默认挂载该模版中的样式。
-
-     <div align="center"> <img src="_image/10_1.png" width=40%/> </div>
-
-   - 如果 `RAtools.dotm` 同目录下同时存在 `master-template-cn.dotx` 和 `master-template-en.dotx` ，会弹出对话框选择需要挂载的模板或自行选择其他模板文件。
-
-     <div align="center"> <img src="_image/10_2.png" width=40%/> </div>
-
-   - 如果 `RAtools.dotm` 同目录下不存在任何模板文件，会弹出对话框进行模版文件选择。
-
-     <div align="center"> <img src="_image/10_3.png" width=40%/> </div>
-
-3. 成功加载后将提示 **「操作完成」**。
-
-### 功能模块详解
-
-当前版本集成了三大核心模块：
-
-#### 1. 样式快速应用
-
-基于 `.dotx` 定义的标准样式模板，提供一键应用预设样式功能，统一文档格式标准。
-
-#### 2. 常用选项
-
-将分散在 Word 不同选项卡中的高频功能（如字体、段落等）聚合至同一面板，减少鼠标点击与页面切换，显著提升操作流。
-
-Ribbon 的「宏列表」区域提供快捷悬浮窗入口。悬浮窗不会阻塞文档编辑，可拖动到合适位置，并会记住上次位置。界面复用 Ribbon 中相同功能的按钮图标，以紧凑、精确居中的分组多列图标块呈现，鼠标悬停可查看功能名称及操作说明。当前悬浮窗提供编号标题 1-4、无编号标题 1-4、正文、表标题、图标题、段前分页、格式刷、段落设置、清除格式、设为蓝色、根据窗口自动调整表格、插入题注、插入交叉引用、更新域、粘贴并重连引用，以及「超链接和域批量设置为蓝色」「接受修订并删除批注」「检测高亮内容」三个宏的快捷入口。
-
-在功能区单独的「关于」项下，可打开关于对话框，查看当前版本、访问 GitHub/Gitee 仓库，并手动检查更新；发现新版本后，可选择前往 GitHub 或 Gitee 的 Release 详情页进行更新。
-
-#### 3. 增强型宏工具
-
-内置宏列表对话框，比 Word 原生界面更清晰直观，同时在v0.5.1版本中添加了搜索功能。目前已内置以下宏：
-
-| **功能名称**                       | **说明**                                                     |
-| ---------------------------------- | ------------------------------------------------------------ |
-| **超链接和域批量设置为蓝色**       | 智能遍历文档，将所有超链接和域（REF/PAGEREF等）的颜色设置为蓝色，但在处理过程中会自动排除图表题注和页码。（如有 Bug 欢迎反馈） |
-| ~~**域格式保护**~~                 | ~~扫描全文或选区内的引用域，自动添加 \* MERGEFORMAT 开关，防止更新域后格式丢失。~~<br />调整为通过功能区按钮实现 |
-| **Word批量转PDF**                  | 批量将单个或多个Word转为PDF，支持锁定域所见即所得、仅刷新页码或刷新整个目录，并通过Word标题创建PDF书签。     |
-| **批量修改文件名**                 | 批量修改文件名<br/>1. 仅保留汉字、字母、数字、中划线和下划线<br/>2. 字母/数字间的空格改为中划线，汉字与字符间的空格（以及其他剩余空格）直接删除，其他非法字符替换为中划线 "-"<br/>3. 支持“文件夹模式”和“多文件选择模式”<br/>4. 如果文件被占用无法重命名，自动创建改名后的副本 |
-| **标题自动编号转文本**             | 将文档中所有标题（大纲 1-9 级）的自动编号转换为固定的静态文本。 |
-| **重命名当前文件**                 | 无需关闭文件，直接重命名当前文件。                           |
-| **一键设置页边距**                 | 一键将单个或多个文件页面上、下、左、右的页边距设置为 2.54厘米（即标准的 1 英寸）。 |
-| **一键表格自动调整**               | 将文档中所有表格批量设置为“根据窗口自动调整”                 |
-| **批量接受修订并删除批注**         | 批量将单个或多个文档的tracking版转换为clean版，接受所有修订并停止修订同时删除文档中的所有批注。 |
-| **页眉和页脚设置为“链接到前一节”** | 遍历文档中除第一节以外的所有节，将所有页眉和页脚设置为“链接到前一节”。 |
-| **清理未使用的模板样式**           | 一键清理文档中所有未被使用的自定义样式（仅针对以 -F 结尾的样式），保持文档整洁。 |
-| **批量检测高亮内容**               | 批量检测文档是否有突出显示颜色的内容，以便在最终clean前进行调整。 |
-| **提取缩略语**                     | 利用Word内置的通配符功能提取全大写英文缩略语。               |
-| **按审阅者筛选**                   | 打开审阅者面板，勾选要显示的批注与修订作者，勾选立即生效；支持「全部审阅者」一键全选/全不选，选中某位后点「只看此人」即可一键只看他。 |
-| **粘贴并重连引用**                 | 一步完成「粘贴 → 重连交叉引用 → 更新域」。粘贴带题注和交叉引用的段落后，粘贴出的正文里指向题注的引用会自动改指粘贴出的新题注（表 1 → 表 2），原文不受影响，一次 Ctrl+Z 可整体撤销。 |
-| **生成题注与引用**                 | 选择或新建 Word 题注标签，在正文光标处先生成交叉引用，再生成题注。引用仅显示标签和编号，记住上次成功使用的标签，一次 Ctrl+Z 可整体撤销。 |
-
-### 生成题注与引用
-
-在 RATools 功能区的「引用」组或「宏列表」中点击「生成题注与引用」。选择已有的题注标签（例如「表」「图」「Table」「Figure」），也可以通过「新建标签」输入自定义标签。填写题注文字后点击「生成」，即可得到相邻两段，例如：
-
-```text
-表 1
-表 1 稳定性试验结果
-```
-
-第一段是真正的交叉引用，仅显示标签和编号，可按 Word 的超链接方式跳转；第二段是使用 Word 原生编号的题注。题注文字可以留空，稍后补充；标签沿用 Word 的编号设置，中英文标签不会自动互换。新建的标签在点击「生成」时才注册，取消窗口不会插入内容或注册暂存标签。
-
-新生成的交叉引用默认为标准蓝色（RGB 0、0、255），并自动加入 `\* MERGEFORMAT` 保留域结果格式。更新域时，编号正常变化，同时保留引用的颜色和字体格式。
-
-需要分别放置时，请用 **Ctrl+X / Ctrl+V 剪切整段题注或引用**，保留域与书签，不要只复制显示出来的文字。调整顺序后更新域；引用出现在题注前方时，必要时再次更新域。多组同名题注各自关联，互不串引用。复制已有整组内容时仍使用「粘贴并重连引用」。
-
-初版支持可编辑文档的正文普通插入点；请取消文字选区，并将光标放在表格、页眉页脚和现有域之外。一次 Ctrl+Z 可撤销整组生成。
-
-## ⬆️ 进阶用法
-
-### 1. 修改.dotx文件实现样式自定义
-
-RATools 的样式应用功能依赖于底层的 `.dotx` 模板文件。如果你有独特的样式偏好（如特定的字体、字号或段落间距），可以通过修改模板来实现，从而满足自己独特的样式偏好：
-
-1. 根据你的使用环境，在Word中打开 `master-template-cn.dotx`（中文）或 `master-template-en.dotx`（英文）。
-
-   <div align="center"> <img src="_image/11_1.png" width=40%/> </div>
-   <div align="center"> <img src="_image/11_2.png" width=100%/> </div>
-
-2. 打开 `.dotx` 模板文件后，在Word的「样式」面板中，找到并修改你想要调整的带-F后缀的样式（例如 「正文-F」等）。
-
-   <div align="center"> <img src="_image/11_3.png" width=100%/> </div>
-
-3. 保存并关闭模板文件。
-
-之后使用RATools的样式功能时，插件将自动应用你自定义后的格式标准。
-
-### 2. 创建属于自己的宏并添加至宏列表中
-
-RATools 支持扩展。如果你具备 VBA 开发能力，可以将自己的常用脚本集成到宏列表工具中：
-
-#### 方式一：源码优先（推荐开发者使用）
-
-1. **编写宏代码**：在 `modules/` 目录下新建模块文件（例如 `Macro_MyMacro.bas`），或在现有业务模块中编写无参的 `Public Sub` 过程。
-2. **注册宏信息**：打开 `modules/UI_MacroRegistry.bas`，在 `GetMyMacroRegistry` 函数中添加一行注册项：
-   ```vba
-   items.Add Array("你的宏过程名", _
-                   "列表显示的中文名称", _
-                   "下方显示的详细功能说明")
-   ```
-3. **一键构建**：在项目根目录下运行本地构建脚本：
-   ```powershell
-   powershell -ExecutionPolicy Bypass -File scripts\Build-RAToolsDotm.ps1
-   ```
-   构建脚本会自动将源码同步编译至 `dist/RATools_local.dotm` 与 `dotm/` 目录。将生成的 `.dotm` 部署至 `D:\RATools` 即可。
-
-#### 方式二：直接在 Word VBA 编辑器中修改（免构建环境）
-
-1. 打开 RATools 的主程序文件（`.dotm`），注意不要直接打开正在被 Word 占用的 `D:\RATools` 中的文件，建议复制到其他临时路径打开。
-
-   <div align="center"> <img src="_image/12_1.png" width=100%/> </div>
-
-2. 按 `Alt + F11` 进入 VBA 编辑器。
-
-3. 在工程资源管理器中右键点击「RATools」，选择“插入” -> “模块”，创建一个新的模块。
-
-   <div align="center"> <img src="_image/12_2.png" width=40%/> </div>
-
-4. 编写你的 `Public Sub` 过程（宏代码）。
-
-5. 在 **`UI_MacroRegistry`** 模块中，找到 `GetMyMacroRegistry` 函数，在末尾处添加你所创建宏的注册信息：
-   ```vba
-   items.Add Array("你的宏过程名", "列表显示的中文名称", "下方显示的详细功能说明")
-   ```
-
-6. 测试无误后保存代码，并将保存后的 `.dotm` 文件移动覆盖至 `D:\RATools`（操作前请注意备份）。
-
-> **💡 编写与注册说明**：
-> - 宏列表通过 `Application.Run` 按过程名动态执行，因此自定义宏必须是**标准模块中的无参 `Public Sub`**。
-> - 过程无需与注册表放在同一模块中，跨模块调用均可被正确识别。
-> - 若调用的宏需要参数（例如 Ribbon 按钮回调的 `control As IRibbonControl`），请编写一个无参的包装过程（如 `Sub Wrapper_MyMacro()`）进行封装后再注册。
-
-## 📝 交流与反馈
-
-如果您在使用过程中遇到问题或有新的功能建议，欢迎提交 Issue 或联系开发者。
-
-## 📅 更新日志
-
-查看版本更新历史，请参阅 [CHANGELOG](https://github.com/PharmaRA/RATools-for-Word/blob/main/CHANGELOG.md)。
+问题或建议可提交到 [Issues](https://github.com/PharmaRA/RATools-for-Word/issues)。请注明插件版本、Word 版本、功能名称及复现步骤；示例文档请先移除敏感内容。

@@ -1,0 +1,35 @@
+---
+const base = '/RATools-for-Word';
+const groups = [
+  { title: '从安装到第一篇文档', links: [['安装、更新与停用', 'installation'], ['第一次使用', 'quick-start'], ['宏管理器、悬浮窗与关于', 'interface'], ['常见工作流程', 'workflows']] },
+  { title: '把格式统一到模板', links: [['加载中文、英文和自定义模板', 'templates'], ['标题、正文与列表样式', 'styles'], ['字体与段落操作', 'formatting'], ['表格与图片', 'tables-images'], ['页面、页眉页脚与页边距', 'page-layout'], ['标题自动编号转文本', 'heading-numbers']] },
+  { title: '题注、引用与域', links: [['题注、交叉引用与目录基础', 'references'], ['生成题注与引用', 'caption-pairs'], ['粘贴并重连引用', 'paste-relink'], ['链接标蓝与域格式保护', 'field-format']] },
+  { title: '审阅与文件批处理', links: [['修订、批注与按审阅者筛选', 'review'], ['接受格式修订', 'accept-format-revisions'], ['批量接受修订并删除批注', 'clean-documents'], ['批量检测高亮内容', 'highlights'], ['Word 批量转 PDF', 'pdf-export'], ['批量修改文件名', 'batch-rename']] },
+  { title: '文本工具与自定义', links: [['提取缩略语', 'abbreviations'], ['标准化科学术语下标', 'scientific-terms'], ['清理未使用的模板样式', 'unused-styles'], ['重命名当前文件与打开文件夹', 'current-file'], ['自定义模板与扩展宏', 'customization'], ['常见问题', 'faq']] },
+];
+---
+
+<section class="section map-section" aria-labelledby="map-title">
+  <div class="section-heading compact">
+    <p class="eyebrow">完整目录</p>
+    <h2 id="map-title">想找的功能，都在这里</h2>
+    <p>共 28 个章节，覆盖 103 个功能区动作、17 个注册宏和 24 个快捷悬浮窗动作。</p>
+  </div>
+  <div class="map-grid">
+    {groups.map((group) => (
+      <div class="map-column">
+        <h3>{group.title}</h3>
+        <ul>{group.links.map(([label, slug]) => <li><a href={`${base}/manual/${slug}/`}>{label}</a></li>)}</ul>
+      </div>
+    ))}
+  </div>
+</section>
+
+<footer class="home-footer">
+  <div class="footer-brand"><strong>RATools for Word</strong><span>面向药品注册资料编写的 Word 效率插件</span></div>
+  <div class="footer-links">
+    <a href="https://github.com/PharmaRA/RATools-for-Word/releases">下载插件</a>
+    <a href={`${base}/manual/faq/`}>常见问题</a>
+    <a href="https://github.com/PharmaRA/RATools-for-Word">GitHub</a>
+  </div>
+</footer>
