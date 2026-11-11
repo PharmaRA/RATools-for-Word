@@ -1,0 +1,34 @@
+---
+import DefaultHeader from '@astrojs/starlight/components/Header.astro';
+import ThemeSelect from '@astrojs/starlight/components/ThemeSelect.astro';
+
+const { hasSidebar } = Astro.locals.starlightRoute;
+---
+
+<div class="site-header-row">
+	<div class="site-header-main">
+		<DefaultHeader />
+	</div>
+	{!hasSidebar && (
+		<div class="md:sl-hidden print:hidden mobile-theme-select">
+			<ThemeSelect />
+		</div>
+	)}
+</div>
+
+<style>
+	.site-header-row {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+		height: 100%;
+	}
+	.site-header-main {
+		flex: 1;
+		min-width: 0;
+		height: 100%;
+	}
+	.mobile-theme-select {
+		flex-shrink: 0;
+	}
+</style>

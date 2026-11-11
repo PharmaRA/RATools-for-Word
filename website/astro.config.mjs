@@ -20,6 +20,9 @@ export default defineConfig({
       locales: { root: { label: '简体中文', lang: 'zh-CN' } },
       social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/PharmaRA/RATools-for-Word' }],
       customCss: ['./src/styles/theme.css'],
+      components: {
+        Header: './src/components/SiteHeader.astro',
+      },
       sidebar,
       pagefind: true,
       tableOfContents: { minHeadingLevel: 2, maxHeadingLevel: 3 },
