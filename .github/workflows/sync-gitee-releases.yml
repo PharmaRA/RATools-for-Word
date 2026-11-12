@@ -48,7 +48,28 @@ jobs:
         if: steps.check.outputs.enabled == 'true'
         id: gitee_user
         run: |
-          LOGIN=$(curl -fsSL -H "Authorization: Bearer ${GITEE_TOKEN}" "https://gitee.com/api/v5/user" | python3 -c "import sys, json; print(json.load(sys.stdin)['login'])")
+          set -euo pipefail
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+          RESP=""
+          for attempt in 1 2 3 4 5; do
+            EXTRA_FLAGS="--http1.1"
+            if [ "$attempt" -ge 3 ]; then
+              EXTRA_FLAGS="--http1.1 --tlsv1.2"
+            fi
+            if RESP=$(curl -fsSL $EXTRA_FLAGS --connect-timeout 15 --max-time 45 -A "$UA" -H "Authorization: Bearer ${GITEE_TOKEN}" "https://gitee.com/api/v5/user"); then
+              break
+            fi
+            echo "Attempt $attempt to query Gitee /api/v5/user failed; retrying in $((attempt * 2))s..." >&2
+            sleep $((attempt * 2))
+          done
+
+          if [ -z "$RESP" ]; then
+            echo "::error::Failed to reach Gitee API after 5 attempts. Running TLS diagnostic (no token):"
+            curl -vI --http1.1 --tlsv1.2 --connect-timeout 15 --max-time 20 -A "$UA" "https://gitee.com/api/v5/user" || true
+            exit 1
+          fi
+
+          LOGIN=$(printf '%s' "$RESP" | python3 -c "import sys, json; print(json.load(sys.stdin)['login'])")
           if [ -z "$LOGIN" ]; then
             echo "::error::Failed to resolve Gitee login from GITEE_TOKEN."
             exit 1
@@ -70,10 +91,20 @@ jobs:
           printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$GITEE_TOKEN"\n' > "$ASKPASS_SCRIPT"
           chmod +x "$ASKPASS_SCRIPT"
 
-          GIT_TERMINAL_PROMPT=0 GIT_ASKPASS="$ASKPASS_SCRIPT" \
-            git push --prune "https://${GITEE_AUTH_USER}@gitee.com/${GITEE_OWNER}/${GITEE_REPO}.git" \
-            "+refs/heads/*:refs/heads/*" \
-            "+refs/tags/*:refs/tags/*"
+          git config http.version HTTP/1.1
+          git config http.postBuffer 524288000
+
+          for attempt in 1 2 3; do
+            if GIT_TERMINAL_PROMPT=0 GIT_ASKPASS="$ASKPASS_SCRIPT" \
+              git push --prune "https://${GITEE_AUTH_USER}@gitee.com/${GITEE_OWNER}/${GITEE_REPO}.git" \
+              "+refs/heads/*:refs/heads/*" \
+              "+refs/tags/*:refs/tags/*"; then
+              exit 0
+            fi
+            echo "git push attempt $attempt failed; retrying in $((attempt * 3))s..." >&2
+            sleep $((attempt * 3))
+          done
+          exit 1
 
       - name: Install Python dependencies
         if: steps.check.outputs.enabled == 'true'

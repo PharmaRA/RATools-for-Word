@@ -4,10 +4,37 @@ import sys
 import time
 import tempfile
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 GITHUB_API_BASE = "https://api.github.com"
 GITEE_API_BASE = "https://gitee.com/api/v5"
 GITEE_MAX_ASSET_BYTES = 100 * 1024 * 1024  # 100 MB community/standard single asset limit
+DEFAULT_UA = (
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+)
+
+
+def build_session() -> requests.Session:
+    session = requests.Session()
+    retry = Retry(
+        total=5,
+        connect=5,
+        read=5,
+        status=5,
+        backoff_factor=1.5,
+        status_forcelist=(429, 500, 502, 503, 504),
+        allowed_methods=("GET", "POST"),
+        raise_on_status=False,
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount("https://", adapter)
+    session.headers.update({"User-Agent": DEFAULT_UA})
+    return session
+
+
+SESSION = build_session()
 
 
 def require_env(name: str) -> str:
@@ -28,7 +55,7 @@ def fetch_github_releases(repo_full_name: str, github_token: str) -> list[dict]:
     releases = []
     page = 1
     while True:
-        resp = requests.get(
+        resp = SESSION.get(
             f"{GITHUB_API_BASE}/repos/{repo_full_name}/releases",
             headers=headers,
             params={"per_page": 100, "page": page},
@@ -49,7 +76,7 @@ def fetch_gitee_releases(owner: str, repo: str, token: str) -> dict[str, dict]:
     releases_by_tag: dict[str, dict] = {}
     page = 1
     while True:
-        resp = requests.get(
+        resp = SESSION.get(
             f"{GITEE_API_BASE}/repos/{owner}/{repo}/releases",
             params={"access_token": token, "per_page": 100, "page": page},
             timeout=30,
@@ -84,7 +111,7 @@ def create_gitee_release(
         "body": body.strip() if body and body.strip() else "-",
         "target_commitish": target_commitish or "main",
     }
-    resp = requests.post(
+    resp = SESSION.post(
         f"{GITEE_API_BASE}/repos/{owner}/{repo}/releases",
         data=payload,
         timeout=30,
@@ -99,7 +126,7 @@ def download_github_asset(url: str, github_token: str, dest_path: str) -> None:
     if github_token:
         headers["Authorization"] = f"Bearer {github_token}"
 
-    with requests.get(url, headers=headers, stream=True, timeout=120) as resp:
+    with SESSION.get(url, headers=headers, stream=True, timeout=120) as resp:
         resp.raise_for_status()
         with open(dest_path, "wb") as f:
             for chunk in resp.iter_content(chunk_size=64 * 1024):
@@ -121,7 +148,7 @@ def upload_gitee_asset(
     for attempt in range(1, max_retries + 1):
         try:
             with open(file_path, "rb") as f:
-                resp = requests.post(
+                resp = SESSION.post(
                     url,
                     data={"access_token": token},
                     files={"file": (filename, f, "application/octet-stream")},
