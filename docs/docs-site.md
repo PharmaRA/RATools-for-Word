@@ -64,7 +64,18 @@ npm run preview -- --host 127.0.0.1 --port 4321
 4. 等待 build 和 deploy 两个任务完成，通过 deploy 的环境链接访问网站。
 5. 检查安装页、一个复杂功能页和中文搜索，确认后再对外分发站点链接。
 
-本配置的目标地址是 `https://PharmaRA.github.io/RATools-for-Word/`。这只是部署目标；创建配置文件并不证明网站已经上线。以后每次需要更新线上手册，都在 main 上手动运行同一工作流。
+本配置默认目标地址是 `https://PharmaRA.github.io/RATools-for-Word/`。若需挂载到统一门户仓库（例如 `PharmaRA/RATools` 的 `https://ratools.qzz.io/word/`），可在构建与校验时通过环境变量覆盖站点域名与挂载前缀：
+
+```powershell
+$env:DOCS_SITE = "https://ratools.qzz.io"
+$env:DOCS_BASE = "/word"
+cd website
+npm run build
+cd ..
+.\.venv-docs\Scripts\python.exe scripts/docs/check_docs.py --site-dir website/dist --base-path /word
+```
+
+`sync_starlight.py`、`astro.config.mjs` 及首页组件均自动读取 `DOCS_SITE` / `DOCS_BASE`（`import.meta.env.BASE_URL`）。这只是部署配置；创建配置并不证明网站已经上线。以后每次需要更新线上手册，都在 main 上手动运行对应发布工作流。
 
 发布使用 GitHub Pages 工件，不向 `gh-pages` 分支强推，不修改插件发布工作流。相关机制见 [GitHub Pages 官方工作流说明](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)。
 

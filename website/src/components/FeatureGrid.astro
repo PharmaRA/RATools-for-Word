@@ -1,5 +1,5 @@
 ---
-const base = '/RATools-for-Word';
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
 const features = [
   { icon: 'template', label: '模板与排版', title: '整套资料，一次对齐', text: '加载中文或英文模板，编号标题、正文、列表、表格和页面设置都沿同一套样式走。', href: `${base}/manual/templates/`, link: '从模板开始' },

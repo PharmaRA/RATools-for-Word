@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import argparse
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -11,9 +13,13 @@ ROOT = Path(__file__).resolve().parents[2]
 MANUAL = ROOT / "docs/manual"
 TARGET = ROOT / "website/src/content/docs/manual"
 SIDEBAR = ROOT / "website/src/data/sidebar.json"
-BASE = "/RATools-for-Word/manual"
 LINK = re.compile(r"\]\((?!https?://|mailto:|#)([^)#]+)\.md(#[^)]+)?\)")
 ANCHOR = re.compile(r"^<a id=\"([^\"]+)\"></a>\r?\n(##[^\r\n]+)", re.MULTILINE)
+
+
+def normalize_base(raw: str) -> str:
+    cleaned = raw.strip().strip("/")
+    return f"/{cleaned}" if cleaned else ""
 
 
 def sidebar_slugs(nodes):
@@ -44,12 +50,12 @@ def description(text: str) -> str:
     return "RATools for Word 使用手册章节。"
 
 
-def rewrite_links(text: str) -> str:
+def rewrite_links(text: str, base_manual: str) -> str:
     def replace(match: re.Match[str]) -> str:
         page = match.group(1).strip()
         fragment = match.group(2) or ""
         slug = Path(page).stem
-        target = f"{BASE}/" if slug == "index" else f"{BASE}/{slug}/"
+        target = f"{base_manual}/" if slug == "index" else f"{base_manual}/{slug}/"
         return f"]({target}{fragment})"
 
     return LINK.sub(replace, text)
@@ -65,7 +71,16 @@ def rewrite_code_languages(text: str) -> str:
     return text.replace("```vba", "```vb")
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--base-path",
+        default=os.environ.get("DOCS_BASE", "/RATools-for-Word"),
+        help="Site base path prefix (default: $DOCS_BASE or /RATools-for-Word)",
+    )
+    args = parser.parse_args(argv)
+    base_manual = f"{normalize_base(args.base_path)}/manual"
+
     pages = sorted(MANUAL.glob("*.md"))
     expected = {"manual" if p.name == "index.md" else f"manual/{p.stem}" for p in pages}
     sidebar = json.loads(SIDEBAR.read_text(encoding="utf-8"))
@@ -111,7 +126,7 @@ def main() -> int:
         title = read_title(source)
         desc = description(source).replace('"', "'")
         body = re.sub(r"^#\s+.+\r?\n", "", source, count=1, flags=re.MULTILINE).lstrip("\r\n")
-        rewritten = embed_anchors(rewrite_code_languages(rewrite_links(body)))
+        rewritten = embed_anchors(rewrite_code_languages(rewrite_links(body, base_manual)))
         edit = f"https://github.com/PharmaRA/RATools-for-Word/edit/main/docs/manual/{page.name}"
         front = "---\n" f'title: "{title}"\n' f'description: "{desc}"\n' f'editUrl: "{edit}"\n' "---\n\n"
         (TARGET / page.name).write_text(front + rewritten, encoding="utf-8")

@@ -6,9 +6,14 @@ const sidebar = JSON.parse(
   readFileSync(new URL('./src/data/sidebar.json', import.meta.url), 'utf8')
 );
 
+const site = process.env.DOCS_SITE || 'https://PharmaRA.github.io';
+const rawBase = process.env.DOCS_BASE ?? '/RATools-for-Word';
+const trimmedBase = rawBase.replace(/^\/+|\/+$/g, '');
+const base = trimmedBase ? `/${trimmedBase}` : '/';
+
 export default defineConfig({
-  site: 'https://PharmaRA.github.io',
-  base: '/RATools-for-Word',
+  site,
+  base,
   trailingSlash: 'always',
   integrations: [
     starlight({

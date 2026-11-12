@@ -1,5 +1,5 @@
 ---
-const base = '/RATools-for-Word';
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const groups = [
   { title: '从安装到第一篇文档', links: [['手册首页与总览', ''], ['安装、更新与停用', 'installation'], ['第一次使用', 'quick-start'], ['宏管理器、悬浮窗与关于', 'interface'], ['常见工作流程', 'workflows']] },
   { title: '把格式统一到模板', links: [['加载中文、英文和自定义模板', 'templates'], ['标题、正文与列表样式', 'styles'], ['字体与段落操作', 'formatting'], ['表格与图片', 'tables-images'], ['页面、页眉页脚与页边距', 'page-layout'], ['标题自动编号转文本', 'heading-numbers'], ['清理未使用的模板样式', 'unused-styles']] },
@@ -28,6 +28,7 @@ const groups = [
 <footer class="home-footer">
   <div class="footer-brand"><strong>RATools for Word</strong><span>面向药品注册资料编写的 Word 效率插件</span></div>
   <div class="footer-links">
+    <a href="https://ratools.qzz.io/">RATools 门户</a>
     <a href="https://github.com/PharmaRA/RATools-for-Word/releases">下载插件</a>
     <a href={`${base}/manual/faq/`}>常见问题</a>
     <a href="https://github.com/PharmaRA/RATools-for-Word">GitHub</a>
