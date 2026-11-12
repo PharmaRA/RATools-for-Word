@@ -50,8 +50,8 @@ Run-Test "APP_VERSION matches changelog version" {
 Run-Test "README current release version matches changelog version" {
     # README.md 为 UTF-8 无 BOM，PowerShell 5.1 需显式指定编码
     $readme = [System.IO.File]::ReadAllText($readmePath, [System.Text.Encoding]::UTF8)
-    $match = [Regex]::Match($readme, '当前发布版本：`(v\d+\.\d+\.\d+)`')
-    Assert-True $match.Success "README current-release line not found (expected 当前发布版本：`vX.Y.Z`)"
+    $match = [Regex]::Match($readme, '当前源码版本标识为\s+\*\*(v\d+\.\d+\.\d+)\*\*')
+    Assert-True $match.Success "README current-release line not found (expected 当前源码版本标识为 **vX.Y.Z**)"
     Assert-True ($match.Groups[1].Value -eq $changelogVersion) `
         "README version <$($match.Groups[1].Value)> does not match changelog <$changelogVersion>"
 }
