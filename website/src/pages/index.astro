@@ -1,0 +1,25 @@
+---
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import HomeHero from '../components/HomeHero.astro';
+import FeatureGrid from '../components/FeatureGrid.astro';
+import StartSection from '../components/StartSection.astro';
+import ManualMap from '../components/ManualMap.astro';
+---
+
+<StarlightPage
+  frontmatter={{
+    title: 'RATools for Word 使用手册',
+    description: '面向药品注册资料编写的 Word 效率插件：模板排版、题注引用、审阅清理与批量文件处理的中文使用手册。',
+    template: 'splash',
+    hero: undefined,
+    pagefind: true,
+  }}
+  hasSidebar={false}
+>
+  <div class="home-shell not-content">
+    <HomeHero />
+    <FeatureGrid />
+    <StartSection />
+    <ManualMap />
+  </div>
+</StarlightPage>

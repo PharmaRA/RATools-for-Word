@@ -3,3 +3,14 @@
 /.claude
 /test_files
 /backups
+/.venv-docs/
+/site/
+/artifacts/docs/
+/scripts/docs/__pycache__/
+
+/website/node_modules/
+/website/dist/
+/website/.astro/
+
+/website/src/content/docs/manual/
+/website/public/manual/assets/

@@ -1,0 +1,728 @@
+{
+  "ribbon": {
+    "id:btnLogo": {
+      "label": "加载",
+      "action": "AttachTemplate",
+      "target": "templates.md#load-template"
+    },
+    "id:btnAttachCN": {
+      "label": "加载中文模板 (CN)",
+      "action": "AttachTemplateCN",
+      "target": "templates.md#load-template"
+    },
+    "id:btnAttachEN": {
+      "label": "加载英文模板 (EN)",
+      "action": "AttachTemplateEN",
+      "target": "templates.md#load-template"
+    },
+    "id:btnAttachCustom": {
+      "label": "浏览其他模板...",
+      "action": "AttachTemplateCustom",
+      "target": "templates.md#load-template"
+    },
+    "id:btnNH1": {
+      "label": "标题1-F",
+      "action": "btnStyle_Click",
+      "target": "styles.md#numbered-headings"
+    },
+    "id:btnNH2": {
+      "label": "标题2-F",
+      "action": "btnStyle_Click",
+      "target": "styles.md#numbered-headings"
+    },
+    "id:btnNH3": {
+      "label": "标题3-F",
+      "action": "btnStyle_Click",
+      "target": "styles.md#numbered-headings"
+    },
+    "id:btnNH4": {
+      "label": "标题4-F",
+      "action": "btnStyle_Click",
+      "target": "styles.md#numbered-headings"
+    },
+    "id:btnNH5": {
+      "label": "标题5-F",
+      "action": "btnStyle_Click",
+      "target": "styles.md#numbered-headings"
+    },
+    "id:btnNH6": {
+      "label": "标题6-F",
+      "action": "btnStyle_Click",
+      "target": "styles.md#numbered-headings"
+    },
+    "id:btnNH7": {
+      "label": "标题7-F",
+      "action": "btnStyle_Click",
+      "target": "styles.md#numbered-headings"
+    },
+    "id:btnNH8": {
+      "label": "标题8-F",
+      "action": "btnStyle_Click",
+      "target": "styles.md#numbered-headings"
+    },
+    "id:btnNH9": {
+      "label": "标题9-F",
+      "action": "btnStyle_Click",
+      "target": "styles.md#numbered-headings"
+    },
+    "id:btnUNH1": {
+      "label": "无编号标题1-F",
+      "action": "btnStyle_Click",
+      "target": "styles.md#unnumbered-headings"
+    },
+    "id:btnUNH2": {
+      "label": "无编号标题2-F",
+      "action": "btnStyle_Click",
+      "target": "styles.md#unnumbered-headings"
+    },
+    "id:btnUNH3": {
+      "label": "无编号标题3-F",
+      "action": "btnStyle_Click",
+      "target": "styles.md#unnumbered-headings"
+    },
+    "id:btnUNH4": {
+      "label": "无编号标题4-F",
+      "action": "btnStyle_Click",
+      "target": "styles.md#unnumbered-headings"
+    },
+    "id:btnUNH5": {
+      "label": "无编号标题5-F",
+      "action": "btnStyle_Click",
+      "target": "styles.md#unnumbered-headings"
+    },
+    "id:btnUNH6": {
+      "label": "无编号标题6-F",
+      "action": "btnStyle_Click",
+      "target": "styles.md#unnumbered-headings"
+    },
+    "id:btnUNH7": {
+      "label": "无编号标题7-F",
+      "action": "btnStyle_Click",
+      "target": "styles.md#unnumbered-headings"
+    },
+    "id:btnUNH8": {
+      "label": "无编号标题8-F",
+      "action": "btnStyle_Click",
+      "target": "styles.md#unnumbered-headings"
+    },
+    "id:btnUNH9": {
+      "label": "无编号标题9-F",
+      "action": "btnStyle_Click",
+      "target": "styles.md#unnumbered-headings"
+    },
+    "mso:ClearFormatting": {
+      "label": "",
+      "action": "ClearFormatting",
+      "target": "formatting.md#font-tools"
+    },
+    "mso:FormatPainter": {
+      "label": "",
+      "action": "FormatPainter",
+      "target": "formatting.md#font-tools"
+    },
+    "mso:PasteSpecialDialog": {
+      "label": "",
+      "action": "PasteSpecialDialog",
+      "target": "formatting.md#font-tools"
+    },
+    "mso:Subscript": {
+      "label": "",
+      "action": "Subscript",
+      "target": "formatting.md#font-tools"
+    },
+    "mso:FontColorPicker": {
+      "label": "",
+      "action": "FontColorPicker",
+      "target": "formatting.md#font-tools"
+    },
+    "id:btnTextBlue": {
+      "label": "设为蓝色",
+      "action": "SetTextBlue",
+      "target": "formatting.md#font-tools"
+    },
+    "mso:Superscript": {
+      "label": "",
+      "action": "Superscript",
+      "target": "formatting.md#font-tools"
+    },
+    "mso:TextHighlightColorPicker": {
+      "label": "",
+      "action": "TextHighlightColorPicker",
+      "target": "formatting.md#font-tools"
+    },
+    "mso:FontDialog": {
+      "label": "",
+      "action": "FontDialog",
+      "target": "formatting.md#font-tools"
+    },
+    "mso:ChangeCaseGallery": {
+      "label": "",
+      "action": "ChangeCaseGallery",
+      "target": "formatting.md#font-tools"
+    },
+    "id:sbAlignBtn": {
+      "label": "",
+      "action": "AlignCenter_Click",
+      "target": "formatting.md#paragraph-tools"
+    },
+    "id:sbLeft": {
+      "label": "左对齐",
+      "action": "AlignLeft_Click",
+      "target": "formatting.md#paragraph-tools"
+    },
+    "id:sbCenter": {
+      "label": "居中",
+      "action": "AlignCenter_Click",
+      "target": "formatting.md#paragraph-tools"
+    },
+    "id:sbRight": {
+      "label": "右对齐",
+      "action": "AlignRight_Click",
+      "target": "formatting.md#paragraph-tools"
+    },
+    "id:sbJustify": {
+      "label": "两端对齐",
+      "action": "AlignJustify_Click",
+      "target": "formatting.md#paragraph-tools"
+    },
+    "mso:LineSpacingGallery": {
+      "label": "",
+      "action": "LineSpacingGallery",
+      "target": "formatting.md#paragraph-tools"
+    },
+    "mso:ParagraphDialog": {
+      "label": "",
+      "action": "ParagraphDialog",
+      "target": "formatting.md#paragraph-tools"
+    },
+    "id:btnPageBreakBefore": {
+      "label": "段前分页",
+      "action": "TogglePageBreakBefore",
+      "target": "formatting.md#page-break-before"
+    },
+    "id:btnBS1": {
+      "label": "标题居中-F",
+      "action": "btnStyle_Click",
+      "target": "styles.md#basic-styles"
+    },
+    "id:btnBS2": {
+      "label": "标题左对齐-F",
+      "action": "btnStyle_Click",
+      "target": "styles.md#basic-styles"
+    },
+    "id:btnBS3": {
+      "label": "目录标题-F",
+      "action": "btnStyle_Click",
+      "target": "styles.md#basic-styles"
+    },
+    "id:btnBS4": {
+      "label": "正文-F",
+      "action": "btnStyle_Click",
+      "target": "styles.md#basic-styles"
+    },
+    "id:btnBS5": {
+      "label": "正文无缩进-F",
+      "action": "btnStyle_Click",
+      "target": "styles.md#basic-styles"
+    },
+    "id:btnBS6": {
+      "label": "正文无间距-F",
+      "action": "btnStyle_Click",
+      "target": "styles.md#basic-styles"
+    },
+    "id:btnFootNoteStyle": {
+      "label": "脚注-F",
+      "action": "btnStyle_Click",
+      "target": "styles.md#basic-styles"
+    },
+    "id:btnStylePane": {
+      "label": "样式窗格",
+      "action": "ShowStylePane",
+      "target": "styles.md#basic-styles"
+    },
+    "id:btnT1": {
+      "label": "表头左对齐-F",
+      "action": "btnStyle_Click",
+      "target": "tables-images.md#table-styles"
+    },
+    "id:btnT2": {
+      "label": "表头居中-F",
+      "action": "btnStyle_Click",
+      "target": "tables-images.md#table-styles"
+    },
+    "id:btnT3": {
+      "label": "表头右对齐-F",
+      "action": "btnStyle_Click",
+      "target": "tables-images.md#table-styles"
+    },
+    "id:btnT4": {
+      "label": "表格文本左对齐-F",
+      "action": "btnStyle_Click",
+      "target": "tables-images.md#table-styles"
+    },
+    "id:btnT5": {
+      "label": "表格文本居中-F",
+      "action": "btnStyle_Click",
+      "target": "tables-images.md#table-styles"
+    },
+    "id:btnT6": {
+      "label": "表格文本右对齐-F",
+      "action": "btnStyle_Click",
+      "target": "tables-images.md#table-styles"
+    },
+    "id:btnT7": {
+      "label": "表格文本无间距-F",
+      "action": "btnStyle_Click",
+      "target": "tables-images.md#table-styles"
+    },
+    "id:btnT8": {
+      "label": "表格注释-F",
+      "action": "btnStyle_Click",
+      "target": "tables-images.md#table-styles"
+    },
+    "id:btnT9": {
+      "label": "表格编号列表-F",
+      "action": "btnStyle_Click",
+      "target": "tables-images.md#table-styles"
+    },
+    "mso:TableInsertGallery": {
+      "label": "",
+      "action": "TableInsertGallery",
+      "target": "tables-images.md#table-tools"
+    },
+    "id:btnT10": {
+      "label": "表格项目符号列表-F",
+      "action": "btnStyle_Click",
+      "target": "tables-images.md#table-styles"
+    },
+    "mso:TableBordersMenu": {
+      "label": "",
+      "action": "TableBordersMenu",
+      "target": "tables-images.md#table-tools"
+    },
+    "mso:TableRepeatHeaderRows": {
+      "label": "",
+      "action": "TableRepeatHeaderRows",
+      "target": "tables-images.md#table-tools"
+    },
+    "mso:TableSplitTable": {
+      "label": "",
+      "action": "TableSplitTable",
+      "target": "tables-images.md#table-tools"
+    },
+    "id:btnT11": {
+      "label": "表标题-F",
+      "action": "btnStyle_Click",
+      "target": "tables-images.md#table-styles"
+    },
+    "id:btnAutoFit": {
+      "label": "根据窗口调整",
+      "action": "AutoFitTableWindow",
+      "target": "tables-images.md#table-tools"
+    },
+    "id:btnF1": {
+      "label": "图片-F",
+      "action": "btnStyle_Click",
+      "target": "tables-images.md#images"
+    },
+    "mso:TextWrappingInLineWithText": {
+      "label": "",
+      "action": "TextWrappingInLineWithText",
+      "target": "tables-images.md#images"
+    },
+    "id:btnF2": {
+      "label": "图标题-F",
+      "action": "btnStyle_Click",
+      "target": "tables-images.md#images"
+    },
+    "id:btnNum": {
+      "label": "编号列表-F",
+      "action": "btnStyle_Click",
+      "target": "styles.md#lists"
+    },
+    "id:btnBul": {
+      "label": "项目符号列表-F",
+      "action": "btnStyle_Click",
+      "target": "styles.md#lists"
+    },
+    "id:btnRefList": {
+      "label": "参考文献列表-F",
+      "action": "btnStyle_Click",
+      "target": "styles.md#lists"
+    },
+    "mso:NumberingRestart": {
+      "label": "",
+      "action": "NumberingRestart",
+      "target": "styles.md#lists"
+    },
+    "mso:IndentIncreaseWord": {
+      "label": "",
+      "action": "IndentIncreaseWord",
+      "target": "styles.md#lists"
+    },
+    "mso:IndentDecreaseWord": {
+      "label": "",
+      "action": "IndentDecreaseWord",
+      "target": "styles.md#lists"
+    },
+    "mso:TableOfContentsDialog": {
+      "label": "",
+      "action": "TableOfContentsDialog",
+      "target": "references.md#contents"
+    },
+    "mso:TableOfContentsUpdate": {
+      "label": "",
+      "action": "TableOfContentsUpdate",
+      "target": "references.md#contents"
+    },
+    "mso:TableOfFiguresInsert": {
+      "label": "",
+      "action": "TableOfFiguresInsert",
+      "target": "references.md#contents"
+    },
+    "mso:TableOfFiguresUpdate": {
+      "label": "",
+      "action": "TableOfFiguresUpdate",
+      "target": "references.md#contents"
+    },
+    "mso:HyperlinkInsert": {
+      "label": "",
+      "action": "HyperlinkInsert",
+      "target": "references.md#links-notes"
+    },
+    "mso:CaptionInsert": {
+      "label": "",
+      "action": "CaptionInsert",
+      "target": "references.md#caption-reference"
+    },
+    "mso:CrossReferenceInsert": {
+      "label": "",
+      "action": "CrossReferenceInsert",
+      "target": "references.md#caption-reference"
+    },
+    "id:btnAddMissingCaptionLabels": {
+      "label": "恢复题注标签",
+      "action": "Wrapper_AddMissingCaptionLabels",
+      "target": "references.md#restore-labels"
+    },
+    "id:btnGenerateCaptionReferencePair": {
+      "label": "生成题注与引用",
+      "action": "GenerateCaptionReferencePair",
+      "target": "caption-pairs.md"
+    },
+    "id:btnPasteRelinkCrossReference": {
+      "label": "粘贴并重连引用",
+      "action": "PasteRelinkCrossReference",
+      "target": "paste-relink.md"
+    },
+    "mso:BookmarkInsert": {
+      "label": "",
+      "action": "BookmarkInsert",
+      "target": "references.md#links-notes"
+    },
+    "mso:FootnoteInsert": {
+      "label": "",
+      "action": "FootnoteInsert",
+      "target": "references.md#links-notes"
+    },
+    "mso:EndnoteInsertWord": {
+      "label": "",
+      "action": "EndnoteInsertWord",
+      "target": "references.md#links-notes"
+    },
+    "mso:FieldsUpdate": {
+      "label": "",
+      "action": "FieldsUpdate",
+      "target": "references.md#update-fields"
+    },
+    "id:btnHeaderStyle": {
+      "label": "页眉-F",
+      "action": "btnStyle_Click",
+      "target": "page-layout.md#layout-tools"
+    },
+    "id:btnFooterStyle": {
+      "label": "页脚-F",
+      "action": "btnStyle_Click",
+      "target": "page-layout.md#layout-tools"
+    },
+    "mso:PageBreakInsertWord": {
+      "label": "",
+      "action": "PageBreakInsertWord",
+      "target": "page-layout.md#layout-tools"
+    },
+    "mso:SectionBreakInsert": {
+      "label": "",
+      "action": "SectionBreakInsert",
+      "target": "page-layout.md#layout-tools"
+    },
+    "mso:PageSetupDialog": {
+      "label": "",
+      "action": "PageSetupDialog",
+      "target": "page-layout.md#layout-tools"
+    },
+    "mso:InsertAlignmentTab": {
+      "label": "",
+      "action": "InsertAlignmentTab",
+      "target": "page-layout.md#layout-tools"
+    },
+    "mso:ReviewNewComment": {
+      "label": "",
+      "action": "ReviewNewComment",
+      "target": "review.md#review-tools"
+    },
+    "mso:ReviewTrackChanges": {
+      "label": "",
+      "action": "ReviewTrackChanges",
+      "target": "review.md#review-tools"
+    },
+    "id:btnAcceptFormatRevisions": {
+      "label": "接受格式修订",
+      "action": "AcceptFormatRevisions",
+      "target": "accept-format-revisions.md"
+    },
+    "id:btnReviewerFilter": {
+      "label": "按审阅者筛选",
+      "action": "ShowReviewerFilter",
+      "target": "review.md#reviewer-filter"
+    },
+    "id:btnShowMacros": {
+      "label": "",
+      "action": "ShowMacroListWindow",
+      "target": "interface.md#macro-manager"
+    },
+    "id:btnQuickToolbar": {
+      "label": "快捷悬浮窗",
+      "action": "ToggleQuickToolbar",
+      "target": "interface.md#quick-toolbar"
+    },
+    "id:btnOpenFolder": {
+      "label": "打开所在文件夹",
+      "action": "OpenDocumentFolder",
+      "target": "current-file.md#open-folder"
+    },
+    "id:btnRenameCurrentDocument": {
+      "label": "重命名当前文件",
+      "action": "Wrapper_RenameCurrentDocument",
+      "target": "current-file.md#rename-current"
+    },
+    "id:btnProtectFieldFormat": {
+      "label": "保护域代码格式",
+      "action": "ProtectFieldFormat",
+      "target": "field-format.md#protect-format"
+    },
+    "id:btnAbout": {
+      "label": "",
+      "action": "Wrapper_ShowAbout",
+      "target": "interface.md#about-update"
+    }
+  },
+  "macros": {
+    "SetHyperlinksAndFieldsToBlue": {
+      "label": "超链接和域批量设置为蓝色",
+      "action": "SetHyperlinksAndFieldsToBlue",
+      "target": "field-format.md#blue-links"
+    },
+    "BatchConvertWordToPDF": {
+      "label": "Word批量转PDF",
+      "action": "BatchConvertWordToPDF",
+      "target": "pdf-export.md"
+    },
+    "BatchRenameFiles": {
+      "label": "批量修改文件名",
+      "action": "BatchRenameFiles",
+      "target": "batch-rename.md"
+    },
+    "ConvertHeadingNumbers": {
+      "label": "标题自动编号转文本",
+      "action": "ConvertHeadingNumbers",
+      "target": "heading-numbers.md"
+    },
+    "RenameCurrentDocument": {
+      "label": "重命名当前文件",
+      "action": "RenameCurrentDocument",
+      "target": "current-file.md#rename-current"
+    },
+    "BatchSetMargins": {
+      "label": "批量设置页边距",
+      "action": "BatchSetMargins",
+      "target": "page-layout.md#batch-margins"
+    },
+    "BatchAutoFitTablesToWindow": {
+      "label": "一键表格自动调整",
+      "action": "BatchAutoFitTablesToWindow",
+      "target": "tables-images.md#autofit-all"
+    },
+    "BatchAcceptAndClean": {
+      "label": "批量接受修订并删除批注",
+      "action": "BatchAcceptAndClean",
+      "target": "clean-documents.md"
+    },
+    "LinkToThePreviousSection": {
+      "label": "页眉和页脚设置为“链接到前一节”",
+      "action": "LinkToThePreviousSection",
+      "target": "page-layout.md#link-sections"
+    },
+    "RemoveUnusedStyles": {
+      "label": "清理未使用的模板样式",
+      "action": "RemoveUnusedStyles",
+      "target": "unused-styles.md"
+    },
+    "BatchDetectHighlights": {
+      "label": "批量检测高亮内容",
+      "action": "BatchDetectHighlights",
+      "target": "highlights.md"
+    },
+    "ExtractAbbreviations": {
+      "label": "提取缩略语",
+      "action": "ExtractAbbreviations",
+      "target": "abbreviations.md"
+    },
+    "NormalizeScientificTerms": {
+      "label": "标准化科学术语下标",
+      "action": "NormalizeScientificTerms",
+      "target": "scientific-terms.md"
+    },
+    "Wrapper_AcceptFormatRevisions": {
+      "label": "接受格式修订",
+      "action": "Wrapper_AcceptFormatRevisions",
+      "target": "accept-format-revisions.md"
+    },
+    "Wrapper_ShowReviewerFilter": {
+      "label": "按审阅者筛选",
+      "action": "Wrapper_ShowReviewerFilter",
+      "target": "review.md#reviewer-filter"
+    },
+    "Wrapper_PasteRelinkCrossReference": {
+      "label": "粘贴并重连引用",
+      "action": "Wrapper_PasteRelinkCrossReference",
+      "target": "paste-relink.md"
+    },
+    "Wrapper_GenerateCaptionReferencePair": {
+      "label": "生成题注与引用",
+      "action": "Wrapper_GenerateCaptionReferencePair",
+      "target": "caption-pairs.md"
+    }
+  },
+  "toolbar": {
+    "style_heading1": {
+      "label": "",
+      "action": "style_heading1",
+      "target": "styles.md#numbered-headings"
+    },
+    "style_heading2": {
+      "label": "",
+      "action": "style_heading2",
+      "target": "styles.md#numbered-headings"
+    },
+    "style_heading3": {
+      "label": "",
+      "action": "style_heading3",
+      "target": "styles.md#numbered-headings"
+    },
+    "style_heading4": {
+      "label": "",
+      "action": "style_heading4",
+      "target": "styles.md#numbered-headings"
+    },
+    "style_unnumbered_heading1": {
+      "label": "",
+      "action": "style_unnumbered_heading1",
+      "target": "styles.md#unnumbered-headings"
+    },
+    "style_unnumbered_heading2": {
+      "label": "",
+      "action": "style_unnumbered_heading2",
+      "target": "styles.md#unnumbered-headings"
+    },
+    "style_unnumbered_heading3": {
+      "label": "",
+      "action": "style_unnumbered_heading3",
+      "target": "styles.md#unnumbered-headings"
+    },
+    "style_unnumbered_heading4": {
+      "label": "",
+      "action": "style_unnumbered_heading4",
+      "target": "styles.md#unnumbered-headings"
+    },
+    "style_body_text": {
+      "label": "",
+      "action": "style_body_text",
+      "target": "styles.md#basic-styles"
+    },
+    "style_table_title": {
+      "label": "",
+      "action": "style_table_title",
+      "target": "tables-images.md#table-styles"
+    },
+    "style_figure_title": {
+      "label": "",
+      "action": "style_figure_title",
+      "target": "tables-images.md#images"
+    },
+    "page_break_before": {
+      "label": "",
+      "action": "page_break_before",
+      "target": "formatting.md#page-break-before"
+    },
+    "format_painter": {
+      "label": "",
+      "action": "format_painter",
+      "target": "formatting.md#font-tools"
+    },
+    "paragraph_settings": {
+      "label": "",
+      "action": "paragraph_settings",
+      "target": "formatting.md#paragraph-tools"
+    },
+    "clear_formatting": {
+      "label": "",
+      "action": "clear_formatting",
+      "target": "formatting.md#font-tools"
+    },
+    "text_blue": {
+      "label": "",
+      "action": "text_blue",
+      "target": "formatting.md#font-tools"
+    },
+    "autofit_table": {
+      "label": "",
+      "action": "autofit_table",
+      "target": "tables-images.md#table-tools"
+    },
+    "insert_caption": {
+      "label": "",
+      "action": "insert_caption",
+      "target": "references.md#caption-reference"
+    },
+    "insert_cross_reference": {
+      "label": "",
+      "action": "insert_cross_reference",
+      "target": "references.md#caption-reference"
+    },
+    "update_fields": {
+      "label": "",
+      "action": "update_fields",
+      "target": "references.md#update-fields"
+    },
+    "paste_relink_cross_reference": {
+      "label": "",
+      "action": "paste_relink_cross_reference",
+      "target": "paste-relink.md"
+    },
+    "hyperlinks_fields_blue": {
+      "label": "",
+      "action": "hyperlinks_fields_blue",
+      "target": "field-format.md#blue-links"
+    },
+    "accept_revisions_comments": {
+      "label": "",
+      "action": "accept_revisions_comments",
+      "target": "clean-documents.md"
+    },
+    "detect_highlights": {
+      "label": "",
+      "action": "detect_highlights",
+      "target": "highlights.md"
+    }
+  }
+}

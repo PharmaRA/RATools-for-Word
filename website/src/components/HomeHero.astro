@@ -1,0 +1,55 @@
+---
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+
+<section class="hero" aria-labelledby="hero-heading">
+  <div class="hero-copy">
+    <p class="eyebrow"><span class="eyebrow-dot"></span> Windows · Microsoft Word · 注册资料排版</p>
+    <h2 id="hero-heading" class="hero-heading">把重复排版交给工具，<br /><em>把时间留给内容。</em></h2>
+    <p class="lede">
+      RATools for Word 把样式、题注引用、审阅清理和批量文件处理收进一个功能区。
+      一套中文或英文模板，从章节标题一路整理到可交付的 PDF。
+    </p>
+    <div class="actions">
+      <a class="button button-primary" href={`${base}/manual/installation/`}>
+        开始安装 <span aria-hidden="true">→</span>
+      </a>
+      <a class="button button-ghost" href={`${base}/manual/`}>浏览使用手册</a>
+    </div>
+    <dl class="stats" aria-label="手册覆盖范围">
+      <div><dt>103</dt><dd>功能区动作</dd></div>
+      <div><dt>17</dt><dd>注册宏</dd></div>
+      <div><dt>24</dt><dd>悬浮窗动作</dd></div>
+      <div><dt>28</dt><dd>手册章节</dd></div>
+    </dl>
+  </div>
+
+  <div class="hero-art" aria-hidden="true">
+    <div class="art-window art-window-back">
+      <div class="window-bar"><i></i><i></i><i></i><span>审阅与清理</span></div>
+      <div class="mini-lines"><b></b><b></b><b></b><b></b><b></b></div>
+    </div>
+    <div class="art-window art-window-main">
+      <div class="window-bar"><i></i><i></i><i></i><span>RATools练习.docx</span></div>
+      <div class="paper">
+        <div class="paper-kicker">稳定性研究</div>
+        <div class="paper-title">1. 样品与检测方法</div>
+        <div class="paper-copy"></div>
+        <div class="paper-copy short"></div>
+        <div class="paper-figure"><span class="figure-label">图 1  样品稳定性趋势</span></div>
+        <div class="paper-caption"><span>图 1</span> 不同时间点的检测结果</div>
+        <div class="paper-copy"></div>
+        <div class="paper-copy tiny"></div>
+      </div>
+    </div>
+    <div class="art-panel">
+      <div class="panel-title">RATools</div>
+      <div class="panel-row active"><span class="panel-icon">⌘</span> 生成题注与引用</div>
+      <div class="panel-row"><span class="panel-icon">Aa</span> 标题1-F</div>
+      <div class="panel-row"><span class="panel-icon">◫</span> 接受格式修订</div>
+      <div class="panel-row"><span class="panel-icon">↗</span> Word 批量转 PDF</div>
+    </div>
+    <span class="spark spark-one"></span>
+    <span class="spark spark-two"></span>
+  </div>
+</section>

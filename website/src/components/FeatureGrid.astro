@@ -1,0 +1,33 @@
+---
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+const features = [
+  { icon: 'template', label: '模板与排版', title: '整套资料，一次对齐', text: '加载中文或英文模板，编号标题、正文、列表、表格和页面设置都沿同一套样式走。', href: `${base}/manual/templates/`, link: '从模板开始' },
+  { icon: 'caption', label: '题注与引用', title: '图表编号与交叉引用', text: '成对生成题注和正文引用，复制粘贴后重连目标，更新域后仍能保持正确指向。', href: `${base}/manual/caption-pairs/`, link: '生成题注' },
+  { icon: 'review', label: '审阅与清理', title: '把审阅意见收敛成清洁稿', text: '按审阅者筛选，保留文字修改、先接受格式变化，再批量清理批注和可见高亮。', href: `${base}/manual/review/`, link: '查看审阅流程' },
+  { icon: 'batch', label: '文件与批量', title: '一次处理一组文件', text: '批量转 PDF、规范文件名、统一页边距。处理模式、保存位置和失败报告都先讲清楚。', href: `${base}/manual/batch-basics/`, link: '了解批量规则' },
+  { icon: 'text', label: '文本工具', title: '术语、缩略语与编号', text: '提取英文缩略语，批量整理科学术语下标，把标题自动编号固定成可交付的文本。', href: `${base}/manual/abbreviations/`, link: '打开文本工具' },
+  { icon: 'quick', label: '快捷入口', title: '常用动作放在手边', text: '可搜索的宏管理器，加上六行四列快捷悬浮窗，让高频操作不必层层翻菜单。', href: `${base}/manual/interface/`, link: '认识工作界面' },
+];
+---
+
+<section class="section features" aria-labelledby="features-title">
+  <div class="section-heading">
+    <p class="eyebrow">按工作场景进入</p>
+    <h2 id="features-title">从一份空白文档，到一份可提交的资料</h2>
+    <p>手册按真实工作路径组织。每个按钮都写明入口、处理范围、保存方式和限制。</p>
+  </div>
+  <div class="feature-grid">
+    {features.map((feature) => (
+      <a class="feature-card" href={feature.href}>
+        <span class="feature-top">
+          <span class={`feature-icon icon-${feature.icon}`} aria-hidden="true"></span>
+          <span class="feature-label">{feature.label}</span>
+        </span>
+        <span class="feature-title">{feature.title}</span>
+        <span class="feature-text">{feature.text}</span>
+        <span class="feature-link">{feature.link} <span aria-hidden="true">↗</span></span>
+      </a>
+    ))}
+  </div>
+</section>
