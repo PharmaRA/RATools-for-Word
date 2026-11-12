@@ -1,0 +1,63 @@
+name: Sync Code to Gitee
+
+on:
+  push:
+  delete:
+  workflow_dispatch:
+
+concurrency:
+  group: sync-gitee-code
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync-code:
+    runs-on: ubuntu-latest
+    env:
+      GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+      GITEE_OWNER: ${{ vars.GITEE_OWNER || github.repository_owner }}
+      GITEE_REPO: ${{ vars.GITEE_REPO || github.event.repository.name }}
+
+    steps:
+      - name: Check Gitee token
+        id: check
+        run: |
+          if [ -z "$GITEE_TOKEN" ]; then
+            echo "::notice::GITEE_TOKEN secret is not configured; skipping Gitee code sync."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Resolve Gitee authenticated user
+        if: steps.check.outputs.enabled == 'true'
+        id: gitee_user
+        run: |
+          LOGIN=$(curl -fsSL -H "Authorization: Bearer ${GITEE_TOKEN}" "https://gitee.com/api/v5/user" | python3 -c "import sys, json; print(json.load(sys.stdin)['login'])")
+          if [ -z "$LOGIN" ]; then
+            echo "::error::Failed to resolve Gitee login from GITEE_TOKEN."
+            exit 1
+          fi
+          echo "login=${LOGIN}" >> "$GITHUB_OUTPUT"
+
+      - name: Mirror branches and tags to Gitee
+        if: steps.check.outputs.enabled == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITEE_AUTH_USER: ${{ steps.gitee_user.outputs.login }}
+        run: |
+          set -euo pipefail
+
+          git clone --bare "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "${RUNNER_TEMP}/mirror.git"
+          cd "${RUNNER_TEMP}/mirror.git"
+
+          ASKPASS_SCRIPT="${RUNNER_TEMP}/gitee-askpass.sh"
+          printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$GITEE_TOKEN"\n' > "$ASKPASS_SCRIPT"
+          chmod +x "$ASKPASS_SCRIPT"
+
+          GIT_TERMINAL_PROMPT=0 GIT_ASKPASS="$ASKPASS_SCRIPT" \
+            git push --prune "https://${GITEE_AUTH_USER}@gitee.com/${GITEE_OWNER}/${GITEE_REPO}.git" \
+            "+refs/heads/*:refs/heads/*" \
+            "+refs/tags/*:refs/tags/*"
