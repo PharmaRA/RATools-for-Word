@@ -14,7 +14,25 @@ function Assert-True($condition, $message) {
 function New-Package($path, [bool]$badXml) {
     $zip = [IO.Compression.ZipFile]::Open($path, 'Create')
     try {
-        $document = '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:pPr><w:pPrChange w:id="1"/></w:pPr><w:r><w:rPr><w:rPrChange w:id="2"/></w:rPr><w:t>Keep text</w:t></w:r><w:ins w:id="3"><w:r><w:t>Keep insertion</w:t></w:r></w:ins></w:p></w:body></w:document>'
+        $document = '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>' +
+            '<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/><w:numberingChange w:id="10" w:original="%1."/></w:numPr><w:rPr><w:ins w:id="99"/></w:rPr><w:pPrChange w:id="1"/></w:pPr>' +
+            '<w:r><w:rPr><w:rPrChange w:id="2"/></w:rPr><w:t>Keep text</w:t></w:r>' +
+            '<w:ins w:id="3"><w:r><w:t>Keep insertion</w:t></w:r></w:ins></w:p>' +
+            '<w:tbl><w:tblPr><w:tblPrChange w:id="11"><w:tblPr/></w:tblPrChange></w:tblPr>' +
+            '<w:tblGrid><w:gridCol w:w="2000"/><w:tblGridChange w:id="12"><w:tblGrid/></w:tblGridChange></w:tblGrid>' +
+            '<w:tr><w:tblPrEx><w:tblPrExChange w:id="13"><w:tblPrEx/></w:tblPrExChange></w:tblPrEx>' +
+            '<w:trPr><w:ins w:id="98"/><w:trPrChange w:id="14"><w:trPr/></w:trPrChange></w:trPr>' +
+            '<w:tc><w:tcPr><w:tcPrChange w:id="15"><w:tcPr/></w:tcPrChange></w:tcPr><w:p><w:r><w:t>Cell</w:t></w:r></w:p></w:tc></w:tr></w:tbl>' +
+            '<w:p><w:r><w:fldChar w:fldCharType="begin"/></w:r>' +
+            '<w:ins w:id="16"><w:r><w:instrText> DATE \@ "yyyy-MM-dd" </w:instrText></w:r></w:ins>' +
+            '<w:del w:id="17"><w:r><w:delInstrText> DATE </w:delInstrText></w:r></w:del>' +
+            '<w:ins w:id="18"><w:r><w:rPr/></w:r></w:ins>' +
+            '<w:r><w:fldChar w:fldCharType="separate"/></w:r>' +
+            '<w:ins w:id="19"><w:r><w:t>Keep result</w:t></w:r></w:ins>' +
+            '<w:r><w:fldChar w:fldCharType="end"/></w:r>' +
+            '<w:ins w:id="20"><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText> PAGE </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>1</w:t></w:r><w:r><w:fldChar w:fldCharType="end"/></w:r></w:ins></w:p>' +
+            '<w:sectPr><w:sectPrChange w:id="21"><w:sectPr/></w:sectPrChange></w:sectPr>' +
+            '</w:body></w:document>'
         if ($badXml) { $document = '<w:document broken' }
         $parts = @{
             '[Content_Types].xml' = '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"/>'
@@ -66,10 +84,15 @@ function Invoke-Processor($name, [bool]$badXml, [bool]$lockTarget = $false, [boo
             Assert-True ($zip.Entries.Count -eq 5) 'All package parts must survive'
             $reader = [IO.StreamReader]::new($zip.GetEntry('word/document.xml').Open())
             try { [xml]$xml = $reader.ReadToEnd() } finally { $reader.Dispose() }
-            Assert-True ($xml.SelectNodes("//*[local-name()='rPrChange' or local-name()='pPrChange']").Count -eq 0) 'Format changes must be accepted'
-            Assert-True ($xml.SelectNodes("//*[local-name()='ins']").Count -eq 1) 'Content revision must survive'
+            Assert-True ($xml.SelectNodes("//*[local-name()='rPrChange' or local-name()='pPrChange' or local-name()='tblPrChange' or local-name()='tblGridChange' or local-name()='tblPrExChange' or local-name()='trPrChange' or local-name()='tcPrChange' or local-name()='sectPrChange' or local-name()='numberingChange']").Count -eq 0) 'All format changes must be accepted'
+            $remainingInsIds = @($xml.SelectNodes("//*[local-name()='ins']") | ForEach-Object { $_.GetAttribute('id', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main') })
+            Assert-True (($remainingInsIds -join ',') -eq '99,3,98,19,20') "Content and whole-field insertions must survive; got: $($remainingInsIds -join ',')"
+            Assert-True ($xml.SelectNodes("//*[local-name()='del']").Count -eq 0) 'Field code deletion must be accepted'
+            Assert-True ($xml.SelectNodes("//*[local-name()='delInstrText']").Count -eq 0) 'Deleted field code instruction must be removed'
+            $instrText = (@($xml.SelectNodes("//*[local-name()='instrText']") | ForEach-Object { $_.InnerText }) -join '|')
+            Assert-True ($instrText -eq ' DATE \@ "yyyy-MM-dd" | PAGE ') "Accepted and preserved field codes must survive: $instrText"
             $wordText = (@($xml.SelectNodes("//*[local-name()='t']") | ForEach-Object { $_.InnerText }) -join '')
-            Assert-True ($wordText -eq 'Keep textKeep insertion') "Word text must survive: $wordText"
+            Assert-True ($wordText -eq 'Keep textKeep insertionCellKeep result1') "Word text must survive: $wordText"
             $reader = [IO.StreamReader]::new($zip.GetEntry('word/header1.xml').Open())
             try { [xml]$headerXml = $reader.ReadToEnd() } finally { $reader.Dispose() }
             Assert-True ($headerXml.SelectNodes("//*[local-name()='pPrChange']").Count -eq 0) 'Header formatting revision must be accepted'
@@ -119,12 +142,44 @@ try {
             Write-Host 'Creating Word revision fixture'
             $realDoc = $word.Documents.Add()
             try {
-                $realDoc.Content.Text = 'Original text'
+                $realDoc.Content.Text = "Original text`r`n"
+                $tblRange = $realDoc.Content; $tblRange.Collapse(0)
+                $tbl = $realDoc.Tables.Add($tblRange, 2, 2)
+                $tbl.Cell(1, 1).Range.Text = 'A1'
+                $tbl.Cell(1, 2).Range.Text = 'B1'
+                $tbl.Cell(2, 1).Range.Text = 'A2'
+                $tbl.Cell(2, 2).Range.Text = 'B2'
+                $fldRange = $realDoc.Content; $fldRange.Collapse(0)
+                $fldRange.InsertAfter("`r`nRef: ")
+                $fldRange.Collapse(0)
+                $realDoc.Bookmarks.Add('bm1', $realDoc.Paragraphs[1].Range) | Out-Null
+                $fld = $realDoc.Fields.Add($fldRange, 3, 'bm1 \h', $true)
+                $hlRange = $realDoc.Content; $hlRange.Collapse(0)
+                $hlRange.InsertAfter("`r`nLink: ")
+                $hlRange.Collapse(0)
+                $hl = $realDoc.Hyperlinks.Add($hlRange, 'https://a.example.com', $null, $null, 'Click')
+
                 $realDoc.TrackRevisions = $true
+                # Formatting, table, section, and field code revisions (must all be accepted)
                 $realDoc.Range(0, 8).Font.Bold = 1
+                $realDoc.Paragraphs[1].Format.SpaceAfter = 12
+                $tbl.Borders.Enable = 1
+                $tbl.Cell(1, 1).Shading.BackgroundPatternColor = 13434879
+                $tbl.Rows[1].Height = 30
+                $tbl.Columns[1].Width = 120
+                $realDoc.PageSetup.TopMargin = 85
+                $fld.Code.Text = $fld.Code.Text + ' \* MERGEFORMAT '
+                $hl.Address = 'https://b.example.com'
+                # Content revisions (must all survive)
                 $realDoc.Range(13, 13).InsertAfter(' inserted text')
+                $tbl.Cell(2, 2).Range.Text = 'B2 edited'
+                $newFldRange = $realDoc.Content; $newFldRange.Collapse(0)
+                $newFldRange.InsertAfter("`r`nNew: ")
+                $newFldRange.Collapse(0)
+                [void]$realDoc.Fields.Add($newFldRange, -1, 'PAGE', $true)
+
                 $expectedText = $realDoc.Content.Text
-                Assert-True ($realDoc.Revisions.Count -ge 2) 'Fixture must contain format and content revisions'
+                Assert-True ($realDoc.Revisions.Count -ge 8) 'Fixture must contain format, table, section, field code, and content revisions'
                 Write-Host 'Saving Word revision fixture'
                 $realDoc.SaveAs2([string]$realPath, 12)
             } finally { $realDoc.Close(0); $realDoc = $null }
@@ -155,10 +210,18 @@ End Function
                 Assert-True ($realDoc.Content.Text -eq $expectedText) 'Word roundtrip text must survive'
                 $formatCount = 0; $contentCount = 0
                 foreach ($revision in $realDoc.Revisions) {
-                    if ($revision.Type -in @(3, 10)) { $formatCount++ } else { $contentCount++ }
+                    $inFieldCode = $false
+                    if ($revision.Type -in @(1, 2) -and $revision.Range.Fields.Count -eq 0) {
+                        foreach ($f in $revision.Range.Paragraphs[1].Range.Fields) {
+                            if ($revision.Range.Start -ge $f.Code.Start -and $revision.Range.End -le $f.Code.End) {
+                                $inFieldCode = $true; break
+                            }
+                        }
+                    }
+                    if ($revision.Type -in @(3, 4, 5, 8, 10, 11, 12, 13) -or $inFieldCode) { $formatCount++ } else { $contentCount++ }
                 }
-                Assert-True ($formatCount -eq 0) 'Word must report zero formatting revisions'
-                Assert-True ($contentCount -ge 1) 'Word must still report the insertion revision'
+                Assert-True ($formatCount -eq 0) "Word must report zero formatting/table/section/field-code revisions; found $formatCount"
+                Assert-True ($contentCount -ge 3) "Word must still report the content revisions; found $contentCount"
                 Write-Host 'PASS VBA-emitted processor and Word document reopen'
             } finally { $realDoc.Close(0) }
             # Inject only the unavailable process boundary and interactive message box.
@@ -187,8 +250,20 @@ End Sub
                 Assert-True ($fallbackDoc.FullName -eq $fallbackPath) 'Fallback must keep the intended document'
                 Assert-True ($fallbackDoc.Content.Text -eq $expectedText) 'Fallback must preserve text'
                 $types = @($fallbackDoc.Revisions | ForEach-Object { [int]$_.Type })
-                Assert-True (@($types | Where-Object { $_ -in @(3,10) }).Count -eq 0) 'Fallback must accept format revisions'
-                Assert-True (@($types | Where-Object { $_ -notin @(3,10) }).Count -ge 1) 'Fallback must retain content revisions'
+                $fallbackFormatLeft = 0
+                foreach ($revision in $fallbackDoc.Revisions) {
+                    $inFieldCode = $false
+                    if ($revision.Type -in @(1, 2) -and $revision.Range.Fields.Count -eq 0) {
+                        foreach ($f in $revision.Range.Paragraphs[1].Range.Fields) {
+                            if ($revision.Range.Start -ge $f.Code.Start -and $revision.Range.End -le $f.Code.End) {
+                                $inFieldCode = $true; break
+                            }
+                        }
+                    }
+                    if ($revision.Type -in @(3, 4, 5, 8, 10, 11, 12, 13) -or $inFieldCode) { $fallbackFormatLeft++ }
+                }
+                Assert-True ($fallbackFormatLeft -eq 0) "Fallback must accept all format/table/section/field-code revisions; left $fallbackFormatLeft"
+                Assert-True ($types.Count -ge 3) "Fallback must retain content revisions; left $($types.Count)"
                 Write-Host 'PASS Word fallback after unavailable processor'
                 $cancelClass = $doc.VBProject.VBComponents.Add(2)
                 $cancelClass.Name = 'RepairCancelEvents'

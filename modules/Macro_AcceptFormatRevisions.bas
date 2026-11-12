@@ -3,12 +3,14 @@ Option Explicit
 
 ' =============================================
 ' 模块名：Macro_AcceptFormatRevisions
-' 功能：只接受"格式类修订"（字符格式、段落格式），
+' 功能：只接受"格式类修订"（字符、段落、表格、节、编号及域代码格式等），
 '       插入、删除、替换、移动等内容类修订保持未接受状态。
 '
 ' 实现（两条路径）：
 '   1. OOXML 快速路径（.docx/.docm）：保存并备份后，把文档当作 zip 解包，
-'      删除 word/*.xml 中的 w:rPrChange / w:pPrChange，再重新打包。
+'      删除 word/*.xml 中的格式变更标记（w:rPrChange / w:pPrChange / w:tblPrChange /
+'      w:tblGridChange / w:tblPrExChange / w:trPrChange / w:tcPrChange /
+'      w:sectPrChange / w:numberingChange）以及域指令区内的纯域代码修订，再重新打包。
 '      ZIP 由独立 PowerShell/.NET 进程同步读写，完整校验后替换。
 '      策略禁止 PowerShell 或处理失败时回退到 Word 对象模型。
 '   2. Word 对象模型回退路径：非 OOXML 文档、或 OOXML 处理失败时使用。
@@ -240,6 +242,61 @@ Private Function WriteStripScript(ByVal scriptPath As String) As Boolean
     Print #f, "        return ,$xml"
     Print #f, "    } finally { $reader.Dispose(); $stream.Dispose() }"
     Print #f, "}"
+    Print #f, "function Test-FieldCodeRevisionNode($node, [bool]$inFieldCode, [string]$wNs) {"
+    Print #f, "    if ($null -eq $node.ParentNode) { return $false }"
+    Print #f, "    if ($node.ParentNode.LocalName -in @('rPr', 'trPr')) { return $false }"
+    Print #f, "    $isIns = ($node.LocalName -eq 'ins')"
+    Print #f, "    $hasRun = $false"
+    Print #f, "    $hasInstr = $false"
+    Print #f, "    foreach ($child in $node.ChildNodes) {"
+    Print #f, "        if ($child.NodeType -eq [Xml.XmlNodeType]::Whitespace -or $child.NodeType -eq [Xml.XmlNodeType]::SignificantWhitespace) { continue }"
+    Print #f, "        if ($child.NodeType -ne [Xml.XmlNodeType]::Element) { return $false }"
+    Print #f, "        if ($child.NamespaceURI -ne $wNs -or $child.LocalName -ne 'r') { return $false }"
+    Print #f, "        $hasRun = $true"
+    Print #f, "        foreach ($rc in $child.ChildNodes) {"
+    Print #f, "            if ($rc.NodeType -eq [Xml.XmlNodeType]::Whitespace -or $rc.NodeType -eq [Xml.XmlNodeType]::SignificantWhitespace) { continue }"
+    Print #f, "            if ($rc.NodeType -ne [Xml.XmlNodeType]::Element -or $rc.NamespaceURI -ne $wNs) { return $false }"
+    Print #f, "            if ($rc.LocalName -eq 'rPr') { continue }"
+    Print #f, "            if ($isIns -and $rc.LocalName -eq 'instrText') { $hasInstr = $true; continue }"
+    Print #f, "            if (-not $isIns -and ($rc.LocalName -eq 'delInstrText' -or $rc.LocalName -eq 'instrText')) { $hasInstr = $true; continue }"
+    Print #f, "            return $false"
+    Print #f, "        }"
+    Print #f, "    }"
+    Print #f, "    return ($hasRun -and ($hasInstr -or $inFieldCode))"
+    Print #f, "}"
+    Print #f, "function Collect-FieldCodeRevisions($el, $stack, [bool]$trackFields, [string]$wNs, $insList, $delList) {"
+    Print #f, "    if ($null -eq $el -or $el.NodeType -ne [Xml.XmlNodeType]::Element) { return }"
+    Print #f, "    $isW = ($el.NamespaceURI -eq $wNs)"
+    Print #f, "    if ($isW -and $el.LocalName -in @('txbxContent', 'footnote', 'endnote', 'comment')) {"
+    Print #f, "        $subStack = [System.Collections.Generic.List[bool]]::new()"
+    Print #f, "        foreach ($child in $el.ChildNodes) {"
+    Print #f, "            if ($child.NodeType -eq [Xml.XmlNodeType]::Element) {"
+    Print #f, "                Collect-FieldCodeRevisions $child $subStack $true $wNs $insList $delList"
+    Print #f, "            }"
+    Print #f, "        }"
+    Print #f, "        return"
+    Print #f, "    }"
+    Print #f, "    $inFieldCode = ($stack.Count -gt 0 -and $stack[$stack.Count - 1])"
+    Print #f, "    if ($isW -and ($el.LocalName -eq 'ins' -or $el.LocalName -eq 'del')) {"
+    Print #f, "        if (Test-FieldCodeRevisionNode $el $inFieldCode $wNs) {"
+    Print #f, "            if ($el.LocalName -eq 'ins') { [void]$insList.Add($el) } else { [void]$delList.Add($el) }"
+    Print #f, "            return"
+    Print #f, "        }"
+    Print #f, "    }"
+    Print #f, "    if ($trackFields -and $isW -and $el.LocalName -eq 'fldChar') {"
+    Print #f, "        $ft = $el.GetAttribute('fldCharType', $wNs)"
+    Print #f, "        if ($ft -eq 'begin') { $stack.Add($true) }"
+    Print #f, "        elseif ($ft -eq 'separate') { if ($stack.Count -gt 0) { $stack[$stack.Count - 1] = $false } }"
+    Print #f, "        elseif ($ft -eq 'end') { if ($stack.Count -gt 0) { $stack.RemoveAt($stack.Count - 1) } }"
+    Print #f, "        return"
+    Print #f, "    }"
+    Print #f, "    $childTrack = $trackFields -and -not ($isW -and $el.LocalName -in @('del', 'moveFrom'))"
+    Print #f, "    foreach ($child in $el.ChildNodes) {"
+    Print #f, "        if ($child.NodeType -eq [Xml.XmlNodeType]::Element) {"
+    Print #f, "            Collect-FieldCodeRevisions $child $stack $childTrack $wNs $insList $delList"
+    Print #f, "        }"
+    Print #f, "    }"
+    Print #f, "}"
     Print #f, "try {"
     Print #f, "    if ((Test-Path -LiteralPath $ready) -or (Test-Path -LiteralPath $recovery)) { throw 'Transaction paths already exist' }"
     Print #f, "    $before = (Get-FileHash -LiteralPath $DocumentPath -Algorithm SHA256).Hash"
@@ -257,11 +314,32 @@ Private Function WriteStripScript(ByVal scriptPath As String) As Boolean
     Print #f, "            if ($entry.FullName -match '\.(xml|rels)$') {"
     Print #f, "                $xml = Parse-Xml $bytes"
     Print #f, "                if ($entry.FullName -match '^word/[^/]+\.xml$') {"
+    Print #f, "                    $wNs = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'"
     Print #f, "                    $ns = [Xml.XmlNamespaceManager]::new($xml.NameTable)"
-    Print #f, "                    $ns.AddNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main')"
-    Print #f, "                    $nodes = @($xml.SelectNodes('//w:rPrChange | //w:pPrChange', $ns))"
-    Print #f, "                    foreach ($node in $nodes) { [void]$node.ParentNode.RemoveChild($node); $removed++ }"
-    Print #f, "                    if ($nodes.Count -gt 0) {"
+    Print #f, "                    $ns.AddNamespace('w', $wNs)"
+    Print #f, "                    $partRemoved = 0"
+    Print #f, "                    $xpath = '//w:rPrChange | //w:pPrChange | //w:tblPrChange | //w:tblGridChange | //w:tblPrExChange | //w:trPrChange | //w:tcPrChange | //w:sectPrChange | //w:numberingChange'"
+    Print #f, "                    $nodes = @($xml.SelectNodes($xpath, $ns))"
+    Print #f, "                    foreach ($node in $nodes) { if ($null -ne $node.ParentNode) { [void]$node.ParentNode.RemoveChild($node); $removed++; $partRemoved++ } }"
+    Print #f, "                    $fieldStack = [System.Collections.Generic.List[bool]]::new()"
+    Print #f, "                    $insList = [System.Collections.ArrayList]::new()"
+    Print #f, "                    $delList = [System.Collections.ArrayList]::new()"
+    Print #f, "                    Collect-FieldCodeRevisions $xml.DocumentElement $fieldStack $true $wNs $insList $delList"
+    Print #f, "                    foreach ($ins in $insList) {"
+    Print #f, "                        if ($null -ne $ins.ParentNode) {"
+    Print #f, "                            $parent = $ins.ParentNode"
+    Print #f, "                            while ($ins.HasChildNodes) { [void]$parent.InsertBefore($ins.FirstChild, $ins) }"
+    Print #f, "                            [void]$parent.RemoveChild($ins)"
+    Print #f, "                            $removed++; $partRemoved++"
+    Print #f, "                        }"
+    Print #f, "                    }"
+    Print #f, "                    foreach ($del in $delList) {"
+    Print #f, "                        if ($null -ne $del.ParentNode) {"
+    Print #f, "                            [void]$del.ParentNode.RemoveChild($del)"
+    Print #f, "                            $removed++; $partRemoved++"
+    Print #f, "                        }"
+    Print #f, "                    }"
+    Print #f, "                    if ($partRemoved -gt 0) {"
     Print #f, "                        $output = [IO.MemoryStream]::new()"
     Print #f, "                        try { $xml.Save($output); $bytes = $output.ToArray() } finally { $output.Dispose() }"
     Print #f, "                        $entryStream = $entry.Open()"
@@ -438,7 +516,7 @@ Private Sub AcceptFormatRevisionsByWordApi(ByVal doc As Document)
         msgText = "已接受 " & accepted & " 处格式类修订，但仍有 " & formatLeft & " 处格式类修订无法接受。" & vbCrLf & vbCrLf & _
                   "通常是因为这些格式修订与插入、删除等内容类修订重叠。"
     ElseIf accepted = 0 Then
-        msgText = "未发现格式类修订（字符格式、段落格式）。" & vbCrLf & vbCrLf & _
+        msgText = "未发现格式类修订（字符、段落、表格、节、编号及域代码格式等）。" & vbCrLf & vbCrLf & _
                   "文档中仍有 " & contentLeft & " 处内容类修订，已保持未接受状态。"
     Else
         msgText = "已接受 " & accepted & " 处格式类修订。"
@@ -460,13 +538,27 @@ Private Function AcceptFormatRevisionsInDocument(ByVal doc As Document) As Long
     Dim acceptedInRound As Long
     Dim i As Long
     Dim hasContentRev As Boolean
+    Dim hasSectionProp As Boolean
 
     On Error Resume Next
+    For Each rev In doc.Revisions
+        If rev.Type = wdRevisionSectionProperty Then
+            hasSectionProp = True
+            Exit For
+        End If
+    Next rev
+    If hasSectionProp Then
+        accepted = accepted + AcceptSectionFormatRevisionsViaView(doc)
+    End If
+
     For scanRound = 1 To MAX_WORD_API_ROUNDS
         Set targets = New Collection
         hasContentRev = False
         For Each rev In doc.Revisions
-            If rev.Type = wdRevisionProperty Or rev.Type = wdRevisionParagraphProperty Then
+            If rev.Type = wdRevisionSectionProperty Then
+                ' 节属性修订若与插入修订重叠，Word 会误把插入标为 wdRevisionSectionProperty 且 .Accept 无效
+                hasContentRev = True
+            ElseIf IsFormatRevision(rev) Then
                 targets.Add rev
             Else
                 hasContentRev = True
@@ -504,6 +596,97 @@ Private Function AcceptFormatRevisionsInDocument(ByVal doc As Document) As Long
     AcceptFormatRevisionsInDocument = accepted
 End Function
 
+' 通过临时切换视图为"仅显示格式"接受节属性修订（规避 Word COM 对 wdRevisionSectionProperty 的缺陷）
+Private Function AcceptSectionFormatRevisionsViaView(ByVal doc As Document) As Long
+    Dim vw As View
+    Dim origInsDel As Boolean
+    Dim origFmt As Boolean
+    Dim origComments As Boolean
+    Dim origInk As Boolean
+    Dim origMarkup As Long
+    Dim hasMarkupProp As Boolean
+    Dim beforeCount As Long
+    Dim afterCount As Long
+
+    On Error GoTo Cleanup
+    If doc.Windows.Count = 0 Then Exit Function
+    Set vw = doc.Windows(1).View
+
+    origInsDel = vw.ShowInsertionsAndDeletions
+    origFmt = vw.ShowFormatChanges
+    origComments = vw.ShowComments
+    origInk = vw.ShowInkAnnotations
+
+    On Error Resume Next
+    origMarkup = vw.RevisionsFilter.Markup
+    hasMarkupProp = (Err.Number = 0)
+    Err.Clear
+    On Error GoTo Cleanup
+
+    If hasMarkupProp Then vw.RevisionsFilter.Markup = 2 ' wdRevisionsMarkupAll
+    vw.ShowInsertionsAndDeletions = False
+    vw.ShowFormatChanges = True
+    vw.ShowComments = False
+    vw.ShowInkAnnotations = False
+
+    beforeCount = doc.Revisions.Count
+    doc.AcceptAllRevisionsShown
+    afterCount = doc.Revisions.Count
+    If beforeCount > afterCount Then
+        AcceptSectionFormatRevisionsViaView = beforeCount - afterCount
+    End If
+
+Cleanup:
+    On Error Resume Next
+    If Not vw Is Nothing Then
+        vw.ShowInsertionsAndDeletions = origInsDel
+        vw.ShowFormatChanges = origFmt
+        vw.ShowComments = origComments
+        vw.ShowInkAnnotations = origInk
+        If hasMarkupProp Then vw.RevisionsFilter.Markup = origMarkup
+    End If
+    Err.Clear
+End Function
+
+' 判断是否为格式类修订（含表格、节、编号、样式及纯域代码变更）
+Private Function IsFormatRevision(ByVal rev As Revision) As Boolean
+    Select Case rev.Type
+        Case wdRevisionProperty, wdRevisionParagraphProperty, _
+             wdRevisionTableProperty, wdRevisionSectionProperty, _
+             wdRevisionParagraphNumber, wdRevisionDisplayField, _
+             wdRevisionStyle, wdRevisionStyleDefinition
+            IsFormatRevision = True
+        Case wdRevisionInsert, wdRevisionDelete
+            IsFormatRevision = IsFieldCodeRevision(rev)
+    End Select
+End Function
+
+' 判断插入/删除修订是否仅位于域指令区（对应 Word 审阅中的"域代码已更改"）
+Private Function IsFieldCodeRevision(ByVal rev As Revision) As Boolean
+    Dim revRange As Range
+    Dim scopeRange As Range
+    Dim fld As Field
+    Dim paraCount As Long
+
+    On Error GoTo Done
+    Set revRange = rev.Range
+    If revRange Is Nothing Then Exit Function
+    If revRange.Fields.Count > 0 Then Exit Function
+
+    paraCount = revRange.Paragraphs.Count
+    If paraCount < 1 Then Exit Function
+    Set scopeRange = revRange.Duplicate
+    scopeRange.SetRange revRange.Paragraphs(1).Range.Start, _
+                        revRange.Paragraphs(paraCount).Range.End
+    For Each fld In scopeRange.Fields
+        If revRange.Start >= fld.Code.Start And revRange.End <= fld.Code.End Then
+            IsFieldCodeRevision = True
+            Exit Function
+        End If
+    Next fld
+Done:
+End Function
+
 ' 统计文档中剩余的格式类修订数量
 Private Function CountFormatRevisions(ByVal doc As Document) As Long
     Dim rev As Revision
@@ -511,7 +694,7 @@ Private Function CountFormatRevisions(ByVal doc As Document) As Long
 
     On Error Resume Next
     For Each rev In doc.Revisions
-        If rev.Type = wdRevisionProperty Or rev.Type = wdRevisionParagraphProperty Then
+        If IsFormatRevision(rev) Then
             count = count + 1
         End If
     Next rev
