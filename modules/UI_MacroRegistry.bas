@@ -77,6 +77,10 @@ Public Function GetMyMacroRegistry() As Variant
                     "批量接受修订并删除批注", _
                     "批量将单个或多个文档的tracking版转换为clean版，接受所有修订并停止修订同时删除文档中的所有批注。")
                     
+    items.Add Array("BatchDetectCleanVersions", _
+                    "批量检测 clean 版本", _
+                    "只读判断文档是否无修订、无批注且修订跟踪已关闭。支持当前文档、多文件和递归文件夹；批量生成分类报告，不修改或保存源文档。高亮不纳入判定。")
+
     ' 第10个
     items.Add Array("LinkToThePreviousSection", _
                     "页眉和页脚设置为“链接到前一节”", _

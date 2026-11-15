@@ -26,6 +26,7 @@ $suites = @(
     @{ Name = "RenamePathSafety";        File = "RenamePathSafety.Tests.ps1";        RequiresCom = $true },
     @{ Name = "NormalizeScientificTerms"; File = "NormalizeScientificTerms.Tests.ps1"; RequiresCom = $true },
     @{ Name = "BatchDetectHighlights";   File = "BatchDetectHighlights.Tests.ps1";   RequiresCom = $true },
+    @{ Name = "BatchDetectCleanVersions"; File = "BatchDetectCleanVersions.Tests.ps1"; RequiresCom = $true },
     @{ Name = "BatchConvertWordToPDF";   File = "BatchConvertWordToPDF.Tests.ps1";   RequiresCom = $true },
     @{ Name = "PdfOutputSafety";          File = "PdfOutputSafety.Tests.ps1";          RequiresCom = $true },
     @{ Name = "PdfFieldState";            File = "PdfFieldState.Tests.ps1";            RequiresCom = $true },

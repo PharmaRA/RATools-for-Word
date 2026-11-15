@@ -1,0 +1,28 @@
+PASS Clean with locked fields
+PASS Highlight, hidden text and metadata are outside the definition
+PASS Tracking enabled without revisions
+PASS Revisions with tracking turned off
+PASS Comments without revisions
+PASS All failed conditions are listed
+PASS Readable protected document is not unprotected
+PASS Footnote revisions
+PASS Endnote revisions
+PASS Second section header revisions
+PASS First page header revisions
+PASS Even page footer revisions
+PASS Text box revisions
+PASS Canvas text box revisions
+PASS Line, empty text box and frame do not cause false errors
+PASS RAToolsCleanMissingProbe
+PASS RAToolsCleanClosedProbe
+Creating real DOC and Document_Open DOCM fixtures in Word.
+PASS Real DOC, DOCX and event DOCM are read-only with Document_Open blocked
+PASS Real Document_Open executes in the enabled-macro positive control
+PASS Real binary DOC revisions are detected without saving the file
+PASS Already-open unsaved document is reused and preserved
+PASS Missing and corrupt files are unable to detect
+PASS Mixed batch continues after errors and reports exact reasons and totals
+PASS Cancelled source closure is reported instead of silently passing
+PASS Real Word macro list exposes and searches the new entry
+PASS BatchDetectCleanVersions.Tests (25 scenarios; 607 assertions)
+EXIT_CODE=0
