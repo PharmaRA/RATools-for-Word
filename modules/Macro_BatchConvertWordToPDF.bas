@@ -22,6 +22,8 @@ Private Type ConvertSession
     fso As Object
     processLog As String
     lastOutputPath As String
+    cloudOutputFolder As String
+    cloudOutputChosen As Boolean
     successCount As Long
     failCount As Long
     totalFileCount As Long
@@ -174,6 +176,38 @@ Private Function ChooseConvertOption(ByVal dialogTitle As String) As String
     End If
 End Function
 
+' Resolve cloud folders before handing paths to FileSystemObject.
+Private Function BuildPdfOutputPath(ByRef session As ConvertSession, _
+                                    ByVal sourceFolder As String, _
+                                    ByVal documentName As String) As String
+    Dim outputFolder As String
+
+    outputFolder = sourceFolder
+    If IsWebPath(outputFolder) Then
+        outputFolder = ResolveWebPathToLocalFolder(outputFolder)
+        If Len(outputFolder) = 0 Then
+            If Not session.cloudOutputChosen Then
+                session.cloudOutputChosen = True
+                session.cloudOutputFolder = PickFolder("未找到云端文件的本地同步位置，请选择 PDF 保存文件夹")
+            End If
+            outputFolder = session.cloudOutputFolder
+        End If
+    End If
+
+    If Len(outputFolder) = 0 Then
+        Err.Raise vbObjectError + 2401, , "已取消选择 PDF 保存文件夹。"
+    End If
+    If IsWebPath(outputFolder) Then
+        Err.Raise vbObjectError + 2402, , "PDF 需要保存到本地或已同步的文件夹，请勿选择网页地址。"
+    End If
+    If Not session.fso.FolderExists(outputFolder) Then
+        Err.Raise vbObjectError + 2403, , "PDF 保存文件夹不存在或无法访问。"
+    End If
+
+    BuildPdfOutputPath = session.fso.BuildPath(outputFolder, _
+        session.fso.GetBaseName(documentName) & ".pdf")
+End Function
+
 ' ==================== 处理当前活动文档 ====================
 Private Sub ConvertActiveDocument(ByRef session As ConvertSession)
     Dim doc As Document
@@ -190,6 +224,8 @@ Private Sub ConvertActiveDocument(ByRef session As ConvertSession)
         Exit Sub
     End If
 
+    pdfFileName = BuildPdfOutputPath(session, doc.Path, doc.Name)
+
     Application.StatusBar = "正在处理: " & doc.Name
     DoEvents
 
@@ -205,8 +241,6 @@ Private Sub ConvertActiveDocument(ByRef session As ConvertSession)
         ' 刷新整个目录
         RefreshTableOfContents doc, 1
     End If
-
-    pdfFileName = session.fso.BuildPath(doc.Path, session.fso.GetBaseName(doc.Name) & ".pdf")
 
     SafeExportAsPDF doc, pdfFileName
 
@@ -242,9 +276,10 @@ Private Sub ConvertOneFile(ByRef session As ConvertSession, ByVal filePath As St
     Dim fieldStates As Collection
     Dim exportErrorDescription As String
 
-    fileName = session.fso.GetFileName(filePath)
+    fileName = "云端文档"
 
     On Error GoTo FileError
+    If Not IsWebPath(filePath) Then fileName = session.fso.GetFileName(filePath)
 
     session.processedFileCount = session.processedFileCount + 1
     ShowBatchProgress session.processedFileCount, session.totalFileCount, fileName
@@ -264,6 +299,15 @@ Private Sub ConvertOneFile(ByRef session As ConvertSession, ByVal filePath As St
         doc.ActiveWindow.View.Type = wdPrintView
     End If
 
+    fileName = doc.Name
+    If IsWebPath(filePath) Then
+        pdfFileName = BuildPdfOutputPath(session, doc.Path, doc.Name)
+    Else
+        ' Prefer the selected local path even when Word reports a cloud URL.
+        pdfFileName = BuildPdfOutputPath(session, session.fso.GetParentFolderName(filePath), _
+            session.fso.GetFileName(filePath))
+    End If
+
     ' 根据选项执行转换前处理
     If session.updateType = 1 Then
         ' 所见即所得：锁定全部域
@@ -276,9 +320,6 @@ Private Sub ConvertOneFile(ByRef session As ConvertSession, ByVal filePath As St
         ' 刷新整个目录
         RefreshTableOfContents doc, 1
     End If
-
-    pdfFileName = session.fso.BuildPath(session.fso.GetParentFolderName(filePath), _
-        session.fso.GetBaseName(filePath) & ".pdf")
 
     SafeExportAsPDF doc, pdfFileName
 

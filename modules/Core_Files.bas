@@ -457,8 +457,12 @@ Private Function ReadRegistryQueryLines(ByVal rootKey As String, _
 CleanUp:
     If Err.Number <> 0 Then Err.Clear
     On Error Resume Next
+    If Not outputFile Is Nothing Then outputFile.Close
     If Len(tempPath) > 0 Then
-        If fso.FileExists(tempPath) Then fso.DeleteFile tempPath, True
+        If fso.FileExists(tempPath) Then
+            Set shell = CreateObject("Shell.Application")
+            shell.Namespace(10).MoveHere tempPath, 4 Or 16 Or 1024
+        End If
     End If
     On Error GoTo 0
     Set shell = Nothing
