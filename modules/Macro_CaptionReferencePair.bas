@@ -105,6 +105,34 @@ Private Function ResolveCaptionPairLabel(ByVal labelName As String) As String
     ResolveCaptionPairLabel = label.Name
 End Function
 
+Private Function CaptionPairDisplayLabel(ByVal doc As Document, ByVal labelName As String) As String
+    Dim item As Field, fieldCode As String, sequenceName As String
+    Dim visibleLabel As String, candidate As String, labelStart As Long
+    CaptionPairDisplayLabel = labelName
+    If InStr(labelName, "_") = 0 Then Exit Function
+    sequenceName = Replace(labelName, " ", "_")
+    For Each item In doc.Fields
+        If item.Type = wdFieldSequence Then
+            fieldCode = Trim$(Mid$(Trim$(item.Code.Text), 4))
+            If Len(fieldCode) > 0 Then fieldCode = Replace(Split(fieldCode, " ")(0), Chr$(34), vbNullString)
+            If StrComp(fieldCode, sequenceName, vbTextCompare) = 0 Then
+                labelStart = item.Result.Paragraphs(1).Range.Start
+                If item.Code.Start - 1 >= labelStart + Len(labelName) Then
+                    visibleLabel = doc.Range(labelStart, labelStart + Len(labelName)).Text
+                    If StrComp(Replace(visibleLabel, " ", "_"), sequenceName, vbTextCompare) = 0 Then
+                        If Len(candidate) = 0 Then
+                            candidate = visibleLabel
+                        ElseIf StrComp(candidate, visibleLabel, vbBinaryCompare) <> 0 Then
+                            Exit Function
+                        End If
+                    End If
+                End If
+            End If
+        End If
+    Next item
+    If Len(candidate) > 0 Then CaptionPairDisplayLabel = candidate
+End Function
+
 Private Function NextCaptionPairBookmark(ByVal doc As Document) As String
     Dim value As CaptionPairGuid, candidate As String, i As Long
     Do
@@ -128,7 +156,7 @@ Public Function InsertCaptionReferencePair(ByVal insertionPoint As Range, _
     Dim doc As Document, point As Range, captionRange As Range, referenceRange As Range
     Dim bookmarkRange As Range, pairRange As Range, sequence As Field, item As Field
     Dim blockStart As Long, pairStart As Long, captionStart As Long, prefix As String, title As String
-    Dim bookmarkName As String, undoStarted As Boolean, changed As Boolean
+    Dim bookmarkName As String, displayLabel As String, undoStarted As Boolean, changed As Boolean
     Dim errorNumber As Long, errorText As String, rolledBack As Boolean
 
     ValidateCaptionPairInsertionPoint insertionPoint
@@ -137,6 +165,7 @@ Public Function InsertCaptionReferencePair(ByVal insertionPoint As Range, _
     ValidateSingleLine captionText, "题注文字"
     Set doc = insertionPoint.Document
     labelName = ResolveCaptionPairLabel(labelName)
+    displayLabel = CaptionPairDisplayLabel(doc, labelName)
     Set point = insertionPoint.Duplicate
     blockStart = point.Start
     If point.Start > point.Paragraphs(1).Range.Start Then prefix = vbCr
@@ -159,6 +188,9 @@ Public Function InsertCaptionReferencePair(ByVal insertionPoint As Range, _
         If item.Type = wdFieldSequence Then Set sequence = item
     Next item
     If sequence Is Nothing Then Err.Raise vbObjectError + 2407, FEATURE_TITLE, "未能创建题注编号。"
+    If StrComp(displayLabel, labelName, vbBinaryCompare) <> 0 Then
+        doc.Range(captionRange.Start, captionRange.Start + Len(labelName)).Text = displayLabel
+    End If
 
     ' 包含完整 SEQ 域结束符，保证剪切整段题注时书签随题注移动。
     Set bookmarkRange = doc.Range(captionRange.Start, sequence.Result.End + 1)

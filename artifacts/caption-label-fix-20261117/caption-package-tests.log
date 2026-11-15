@@ -1,0 +1,13 @@
+TestCaptionPairRecoveredLabelDisplay: PASS recovered display spaces, mixed/literal underscores, native sequence and field updates
+TestCaptionPairRecoveredLabelBoundaries: PASS malformed SEQ isolation, native chapter fields and repeated generation
+TestCaptionPairGeneration: PASS adjacent pair, native list, hyperlink, preservation, single undo
+TestCaptionPairFormatting: PASS standard blue, format preservation, live renumbering and unchanged caption/body colors
+TestCaptionPairInputSafety: PASS mid-paragraph, selection, invalid input and protection safeguards
+TestCaptionPairFormCancel: PASS form native labels, draft label and cancel without side effects
+TestCaptionPairFormGenerate: PASS form generate event, custom label and remembered selection
+TestCaptionPairUnsupportedPositions: PASS table, header and existing-field guards
+TestCaptionPairNativeNumbering: PASS double digit sequences and native Roman numbering
+TestCaptionPairOrphanIsolation: PASS orphaned references remain isolated from new captions
+TestCaptionPairPasteCompatibility: PASS generated pair copied through existing paste-and-relink
+TestCaptionPairSequencesAndMoves: PASS numbering, duplicate titles, Chinese/custom labels, caption and reference cut/paste
+PASS CaptionReferencePair.Tests

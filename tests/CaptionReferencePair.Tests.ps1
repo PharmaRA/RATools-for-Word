@@ -224,6 +224,46 @@ Failed:
     doc.Close wdDoNotSaveChanges
 End Function
 
+Public Function TestCaptionPairRecoveredLabelDisplay() As String
+    Dim doc As Document, pair As Range, seq As Field, ref As Field, point As Range
+    Dim label As CaptionLabel, labelName As Variant, sequenceName As String, beforeText As String
+    On Error GoTo Failed
+    For Each labelName In Array("Table 2.6.6-", "Appendix_A 2.6.6-", "Literal_Underscore")
+        Set doc = Documents.Add
+        Set label = CaptionLabels.Add(CStr(labelName))
+        Set point = doc.Range(0, 0)
+        point.InsertCaption Label:=label.Name, Title:=" Existing caption", _
+                            Position:=wdCaptionPositionAbove, ExcludeLabel:=False
+        sequenceName = Replace(CStr(labelName), " ", "_")
+        Set label = CaptionLabels.Add(sequenceName)
+        Set pair = InsertCaptionReferencePair(doc.Range(doc.Content.End - 1, doc.Content.End - 1), sequenceName, "New caption")
+        Set seq = FieldOfType(pair, wdFieldSequence)
+        Set ref = FieldOfType(pair, wdFieldRef)
+        Check ref.Result.Text = CStr(labelName) & " 2", "Recovered label must retain the existing caption display: " & CStr(labelName) & "; actual=[" & ref.Result.Text & "]"
+        Check pair.Text = CStr(labelName) & " 2" & vbCr & CStr(labelName) & " 2 New caption" & vbCr, "Both generated paragraphs must use the visible label"
+        Check InStr(1, seq.Code.Text, "SEQ " & sequenceName & " ", vbTextCompare) > 0, "Display repair must keep the native sequence identifier"
+        RefreshPairs doc
+        Check ref.Result.Text = CStr(labelName) & " 2", "Field updates must retain the visible label"
+        beforeText = doc.Content.Text
+        Set pair = InsertCaptionReferencePair(doc.Range(doc.Content.End - 1, doc.Content.End - 1), sequenceName, "Next caption")
+        Check FieldOfType(pair, wdFieldRef).Result.Text = CStr(labelName) & " 3", "Repeated generation must continue the original sequence"
+        Check doc.Undo, "Display repair must remain part of the generation undo record"
+        Check doc.Content.Text = beforeText, "One undo must preserve the existing caption and reference"
+        doc.Close wdDoNotSaveChanges
+        Set doc = Nothing
+    Next labelName
+    Set doc = Documents.Add
+    Set pair = InsertCaptionReferencePair(doc.Range(0, 0), "Standalone_Underscore", "No existing caption")
+    Check FieldOfType(pair, wdFieldRef).Result.Text = "Standalone_Underscore 1", "A new literal underscore label must stay unchanged"
+    doc.Close wdDoNotSaveChanges
+    TestCaptionPairRecoveredLabelDisplay = "PASS recovered display spaces, mixed/literal underscores, native sequence and field updates"
+    Exit Function
+Failed:
+    TestCaptionPairRecoveredLabelDisplay = "FAIL " & Err.Description
+    On Error Resume Next
+    doc.Close wdDoNotSaveChanges
+End Function
+
 Public Function TestCaptionPairFormCancel() As String
     Dim doc As Document, ui As frmCaptionReference, original As String, labelsBefore As Long
     Dim i As Long, hasTable As Boolean
@@ -248,6 +288,52 @@ Failed:
     TestCaptionPairFormCancel = "FAIL " & Err.Description
     On Error Resume Next
     Unload ui
+    doc.Close wdDoNotSaveChanges
+End Function
+
+Public Function TestCaptionPairRecoveredLabelBoundaries() As String
+    Dim doc As Document, pair As Range, point As Range, malformed As Field, chapter As Field
+    Dim label As CaptionLabel, savedChapter As Boolean, savedLevel As Long, savedSeparator As Long
+    On Error GoTo Failed
+    Set label = CaptionLabels.Add("Chapter Pair 2.6.6-")
+    Set doc = Documents.Add
+    doc.Content.Text = "Chapter heading" & vbCr
+    doc.Paragraphs(1).Range.Style = wdStyleHeading1
+    doc.Paragraphs(1).Range.ListFormat.ApplyOutlineNumberDefault
+    Set point = doc.Range(doc.Content.End - 1, doc.Content.End - 1)
+    point.InsertCaption Label:=label.Name, Title:=" Existing caption", _
+                        Position:=wdCaptionPositionAbove, ExcludeLabel:=False
+    Set point = doc.Range(doc.Content.End - 1, doc.Content.End - 1)
+    Set malformed = doc.Fields.Add(point, wdFieldEmpty, "SEQ", False)
+    Check malformed.Type = wdFieldSequence, "Fixture must contain a SEQ field without an identifier"
+    doc.Range(doc.Content.End - 1, doc.Content.End - 1).InsertBefore vbCr
+    Set label = CaptionLabels.Add("Chapter_Pair_2.6.6-")
+    savedChapter = label.IncludeChapterNumber
+    savedLevel = label.ChapterStyleLevel
+    savedSeparator = label.Separator
+    label.IncludeChapterNumber = True
+    label.ChapterStyleLevel = 1
+    label.Separator = wdSeparatorHyphen
+    Set pair = InsertCaptionReferencePair(doc.Range(doc.Content.End - 1, doc.Content.End - 1), label.Name, "Chapter caption")
+    Set chapter = FieldOfType(pair, wdFieldStyleRef)
+    Check Not chapter Is Nothing, "Display repair must preserve the native chapter-number field"
+    Check FieldOfType(pair, wdFieldRef).Result.Text = "Chapter Pair 2.6.6- 1" & ChrW(30) & "2", "Display repair must preserve the chapter number and native nonbreaking separator"
+    RefreshPairs doc
+    Check FieldOfType(pair, wdFieldRef).Result.Text = "Chapter Pair 2.6.6- 1" & ChrW(30) & "2", "Chapter numbering must survive field updates"
+    Set pair = InsertCaptionReferencePair(doc.Range(doc.Content.End - 1, doc.Content.End - 1), label.Name, "Next chapter caption")
+    Check FieldOfType(pair, wdFieldRef).Result.Text = "Chapter Pair 2.6.6- 1" & ChrW(30) & "3", "Chapter-numbered captions must retain the recovered display label"
+    label.IncludeChapterNumber = savedChapter
+    label.ChapterStyleLevel = savedLevel
+    label.Separator = savedSeparator
+    doc.Close wdDoNotSaveChanges
+    TestCaptionPairRecoveredLabelBoundaries = "PASS malformed SEQ isolation, native chapter fields and repeated generation"
+    Exit Function
+Failed:
+    TestCaptionPairRecoveredLabelBoundaries = "FAIL " & Err.Description
+    On Error Resume Next
+    label.IncludeChapterNumber = savedChapter
+    label.ChapterStyleLevel = savedLevel
+    label.Separator = savedSeparator
     doc.Close wdDoNotSaveChanges
 End Function
 
@@ -405,7 +491,7 @@ Failed:
     doc.Close wdDoNotSaveChanges
 End Function
 '@)
-    foreach ($test in @('TestCaptionPairGeneration', 'TestCaptionPairFormatting', 'TestCaptionPairSequencesAndMoves', 'TestCaptionPairInputSafety', 'TestCaptionPairFormCancel', 'TestCaptionPairFormGenerate', 'TestCaptionPairUnsupportedPositions', 'TestCaptionPairPasteCompatibility', 'TestCaptionPairNativeNumbering', 'TestCaptionPairOrphanIsolation')) {
+    foreach ($test in @('TestCaptionPairRecoveredLabelDisplay', 'TestCaptionPairRecoveredLabelBoundaries', 'TestCaptionPairGeneration', 'TestCaptionPairFormatting', 'TestCaptionPairInputSafety', 'TestCaptionPairFormCancel', 'TestCaptionPairFormGenerate', 'TestCaptionPairUnsupportedPositions', 'TestCaptionPairNativeNumbering', 'TestCaptionPairOrphanIsolation', 'TestCaptionPairPasteCompatibility', 'TestCaptionPairSequencesAndMoves')) {
         $result = $word.Run($test)
         Write-Output "$test`: $result"
         if (-not $result.StartsWith('PASS ')) { throw "$test`: $result" }
