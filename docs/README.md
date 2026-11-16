@@ -19,4 +19,5 @@
 - [用户手册与文档站实施记录](docs-site-plan.md)
 - [功能覆盖映射](feature-map.json)：功能区、注册宏、悬浮窗到手册章节的逐项对应，由检查脚本核对。
 - [代码审阅与逐项修复计划](code-review-2026-11-10.md)：发现项、验收条件和提交进度。
+- [审阅悬浮窗实施与验收](review-toolbar-plan.md)：已确认范围、实现与验证记录，以及阶段工具窗工作区 `.worktrees/workflow-toolbars` 的位置和用途。
 - [v0.8 重构路线图](refactor-roadmap-v0.8.md)

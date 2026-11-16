@@ -66,7 +66,9 @@ def entry_points() -> dict[str, dict[str, tuple[str, str]]]:
     }
     form = (ROOT / "userforms/frmQuickToolbar.frm").read_text(encoding="gbk")
     toolbar = {name: ("", name) for name in re.findall(r'RunQuickToolbarAction "([^"]+)"', form)}
-    return {"ribbon": ribbon, "macros": macros, "toolbar": toolbar}
+    review_form = (ROOT / "userforms/frmReviewToolbar.frm").read_text(encoding="gbk")
+    review_toolbar = {name: ("", name) for name in re.findall(r'RunReviewToolbarAction "([^"]+)"', review_form)}
+    return {"ribbon": ribbon, "macros": macros, "toolbar": toolbar, "reviewToolbar": review_toolbar}
 
 
 def check_coverage(errors: list[str]) -> None:

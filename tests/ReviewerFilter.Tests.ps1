@@ -64,8 +64,10 @@ Assert-True ($moduleSource.Contains('If StrComp(frmReviewerFilter.FilteredDocume
     'WindowActivate refresh must short-circuit for the same document'
 
 $ribbonText = Get-Content -LiteralPath $ribbonPath -Raw
-Assert-True ($ribbonText.Contains('onAction="ShowReviewerFilter"')) 'Ribbon button is not wired'
-Assert-True ($ribbonText.Contains('id="btnReviewerFilter"')) 'Ribbon button id missing'
+Assert-True ($ribbonText.Contains('onAction="ToggleReviewToolbar"')) 'Review toolbar Ribbon entry is not wired'
+Assert-True ($ribbonText.Contains('id="btnReviewToolbar"')) 'Review toolbar Ribbon button id missing'
+$reviewToolbarSource = Read-VbaSource (Join-Path $repoRoot 'modules\UI_ReviewToolbar.bas')
+Assert-True ($reviewToolbarSource.Contains('Wrapper_ShowReviewerFilter')) 'Review toolbar must open the existing reviewer filter'
 
 $registrySource = Read-VbaSource $registryPath
 Assert-True ($registrySource.Contains('Wrapper_ShowReviewerFilter')) 'Macro registry entry missing'

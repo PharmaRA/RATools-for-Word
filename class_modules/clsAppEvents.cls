@@ -41,6 +41,7 @@ End Sub
 ' ==========================================
 Private Sub App_DocumentChange()
     UI_QuickToolbar.RaiseQuickToolbarIfVisible
+    UI_ReviewToolbar.RefreshReviewToolbarIfVisible
     RefreshReviewerFilterIfVisible
 End Sub
 
@@ -49,6 +50,7 @@ End Sub
 ' ==========================================
 Private Sub App_WindowActivate(ByVal Doc As Document, ByVal Wn As Window)
     UI_QuickToolbar.RaiseQuickToolbarIfVisible
+    UI_ReviewToolbar.RefreshReviewToolbarIfVisible
     RefreshReviewerFilterIfVisible
 End Sub
 
@@ -57,5 +59,11 @@ End Sub
 ' owner 为 0 后窗体不会被文档窗口销毁带走，必须显式卸载。
 ' ==========================================
 Private Sub App_Quit()
+    UI_ReviewToolbar.UnloadReviewToolbarOnQuit
     UI_QuickToolbar.UnloadQuickToolbarOnQuit
+End Sub
+
+' 正文重新获得选区或原生修订按钮被使用后，更新审阅窗状态。
+Private Sub App_WindowSelectionChange(ByVal Sel As Selection)
+    UI_ReviewToolbar.RefreshReviewToolbarIfVisible
 End Sub

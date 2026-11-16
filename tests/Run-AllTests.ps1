@@ -31,6 +31,8 @@ $suites = @(
     @{ Name = "PdfOutputSafety";          File = "PdfOutputSafety.Tests.ps1";          RequiresCom = $true },
     @{ Name = "PdfFieldState";            File = "PdfFieldState.Tests.ps1";            RequiresCom = $true },
     @{ Name = "QuickToolbar";            File = "QuickToolbar.Tests.ps1";            RequiresCom = $true },
+    @{ Name = "ReviewToolbar";           File = "ReviewToolbar.Tests.ps1";           RequiresCom = $true },
+    @{ Name = "ReviewToolbarActions";    File = "ReviewToolbarActions.Tests.ps1";    RequiresCom = $true },
     @{ Name = "TooltipIdentity";         File = "TooltipIdentity.Tests.ps1";         RequiresCom = $true },
     @{ Name = "ReviewerFilter";          File = "ReviewerFilter.Tests.ps1";          RequiresCom = $true },
     @{ Name = "ReviewerStorySafety";     File = "ReviewerStorySafety.Tests.ps1";     RequiresCom = $true },

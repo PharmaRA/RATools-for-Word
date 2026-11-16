@@ -475,15 +475,10 @@
       "action": "ReviewTrackChanges",
       "target": "review.md#review-tools"
     },
-    "id:btnAcceptFormatRevisions": {
-      "label": "接受格式修订",
-      "action": "AcceptFormatRevisions",
-      "target": "accept-format-revisions.md"
-    },
-    "id:btnReviewerFilter": {
-      "label": "按审阅者筛选",
-      "action": "ShowReviewerFilter",
-      "target": "review.md#reviewer-filter"
+    "id:btnReviewToolbar": {
+      "label": "审阅悬浮窗",
+      "action": "ToggleReviewToolbar",
+      "target": "review.md#review-toolbar"
     },
     "id:btnShowMacros": {
       "label": "",
@@ -602,6 +597,15 @@
       "action": "Wrapper_GenerateCaptionReferencePair",
       "target": "caption-pairs.md"
     }
+  },
+  "reviewToolbar": {
+    "track_changes": {"label": "", "action": "track_changes", "target": "review.md#review-tools"},
+    "new_comment": {"label": "", "action": "new_comment", "target": "review.md#review-tools"},
+    "reviewer_filter": {"label": "", "action": "reviewer_filter", "target": "review.md#reviewer-filter"},
+    "accept_format_revisions": {"label": "", "action": "accept_format_revisions", "target": "accept-format-revisions.md"},
+    "detect_highlights": {"label": "", "action": "detect_highlights", "target": "highlights.md"},
+    "detect_clean_versions": {"label": "", "action": "detect_clean_versions", "target": "review.md#clean-detection"},
+    "accept_revisions_comments": {"label": "", "action": "accept_revisions_comments", "target": "clean-documents.md"}
   },
   "toolbar": {
     "style_heading1": {
