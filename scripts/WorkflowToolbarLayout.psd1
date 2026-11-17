@@ -22,4 +22,27 @@
             )
         }
     }
+    Final = @{
+        Caption = 'RATools 定稿工具'; Columns = 2; Width = 432
+        Rows = @(
+            @('交付前检查', '检测 clean 版本…|detect_clean_versions', '检测高亮内容…|detect_highlights'),
+            @('目录与引用', '更新章节目录…|mso:TableOfContentsUpdate', '更新图表目录…|mso:TableOfFiguresUpdate'),
+            @('', '更新当前范围域|mso:FieldsUpdate', '保护引用域格式|protect_field_format'),
+            @('清稿与编号固定', '接受修订并删除批注…|accept_revisions_comments', '标题编号转文本|heading_numbers_text'),
+            @('保存与交付', '保存当前文档|save_current', '导出 PDF…|export_pdf'),
+            @('', '重命名当前文件…|rename_current', '打开所在文件夹|open_folder')
+        )
+        Menus = @{}
+        Tips = @{
+            'detect_clean_versions' = '沿用当前文档、多文件和文件夹模式；高亮不纳入 clean 判定。'
+            'mso:TableOfContentsUpdate' = '沿用 Word 当前章节目录的定位和更新方式。'
+            'mso:TableOfFiguresUpdate' = '沿用 Word 当前图表目录的定位和更新方式。'
+            'mso:FieldsUpdate' = '更新当前选区或所在域；不表示全篇所有文字区域更新。'
+            'protect_field_format' = '保留 REF、PAGEREF 域格式；有选区时处理选区，无选区时处理当前正文域集合。'
+            'heading_numbers_text' = '处理当前文档正文中的符合条件标题；适合最终副本，不自动另存或保存。'
+            'save_current' = '保存当前活动文档；取消或失败后保留实际未保存状态。'
+            'export_pdf' = '保留现有处理模式及 PDF 选项；未保存编辑可能进入 PDF，Word 原件不因此自动保存。'
+            'accept_revisions_comments' = '沿用现有处理模式、关闭修订跟踪及保存规则。'
+        }
+    }
 }

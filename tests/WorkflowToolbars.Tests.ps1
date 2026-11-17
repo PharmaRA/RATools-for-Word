@@ -1,4 +1,4 @@
-﻿param([ValidateSet('Writing')][string]$Kind = 'Writing', [string]$ProgressPath = '')
+﻿param([ValidateSet('Writing','Final')][string]$Kind = 'Writing', [string]$ProgressPath = '', [switch]$CompileOnly)
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Import-Module (Join-Path $repoRoot 'scripts/RATools.Build.psm1') -Force
@@ -23,7 +23,7 @@ try {
     if ($ownWordCandidates.Count -ne 1) { throw 'Unable to identify the isolated Word process safely.' }
     $ownWordProcessId = [int]$ownWordCandidates[0].ProcessId
     $ownWordCreation = $ownWordCandidates[0].CreationDate
-    $word.Visible = $true
+    $word.Visible = -not $CompileOnly
     $word.AddIns.Unload($false)
     $templatePath = Join-Path $temporaryRoot 'WorkflowToolbarTests.dotm'
     $null = New-RAToolsDotmFromDirectory -SourceDirectory (Join-Path $repoRoot 'dotm') -DestinationPath $templatePath
@@ -43,6 +43,13 @@ try {
     $managerText = $managerText.Replace('If Len(failureText) > 0 Then MsgBox failureText, vbExclamation, "RATools"', 'WorkflowProbe.lastWorkflowFailure = failureText')
     $managerText = $managerText.Replace('If mActionRunning Then Exit Sub', 'WorkflowProbe.guardWasRunning = mActionRunning: If mActionRunning Then Exit Sub')
     $managerText = $managerText.Replace('ApplyRAToolsStyle Mid$(actionKey, 7)', 'WorkflowProbe.styleDispatchKey = Mid$(actionKey, 7): ApplyRAToolsStyle Mid$(actionKey, 7)')
+    if ($Kind -eq 'Final') {
+        $managerText = $managerText.Replace('commentCount = doc.Comments.Count', 'If WorkflowProbe.forceSnapshotError Then Err.Raise vbObjectError + 3110, , "snapshot unavailable"' + "`r`n    commentCount = doc.Comments.Count")
+        $managerText = $managerText.Replace('Case "save_current": target.Save', 'Case "save_current": WorkflowProbe.SaveCurrentForTest target')
+        foreach ($route in @{'detect_clean_versions'='BatchDetectCleanVersions';'detect_highlights'='BatchDetectHighlights';'export_pdf'='BatchConvertWordToPDF';'accept_revisions_comments'='BatchAcceptAndClean';'heading_numbers_text'='ConvertHeadingNumbers'}.GetEnumerator()) {
+            $managerText = $managerText.Replace($route.Value, 'WorkflowProbe.RecordFinalAction "' + $route.Key + '"')
+        }
+    }
     $manager.DeleteLines(1,$manager.CountOfLines)
     $manager.AddFromString($managerText)
     $tableModule = $hostDoc.VBProject.VBComponents.Item('Macro_BatchAutoFitTables').CodeModule
@@ -56,11 +63,18 @@ Option Explicit
 Private checks As Long
 Public lastWorkflowFailure As String
 Public guardWasRunning As Boolean, styleDispatchKey As String
+Public forceSnapshotError As Boolean, cancelSave As Boolean
+Public lastFinalAction As String
 Private savedLeft As String, savedTop As String
+Private savedFinalLeft As String, savedFinalTop As String
 Public Sub RestoreWorkflowTestPositions()
     If Len(savedLeft) = 0 Or Len(savedTop) = 0 Then Exit Sub
     SaveSetting "RATools", "WritingToolbar", "Left", savedLeft
     SaveSetting "RATools", "WritingToolbar", "Top", savedTop
+    If Len(savedFinalLeft) > 0 And Len(savedFinalTop) > 0 Then
+        SaveSetting "RATools", "FinalToolbar", "Left", savedFinalLeft
+        SaveSetting "RATools", "FinalToolbar", "Top", savedFinalTop
+    End If
 End Sub
 Private Sub Check(ByVal condition As Boolean, ByVal message As String)
     Dim logFile As Integer
@@ -178,7 +192,137 @@ Failed:
     TestWritingToolbar = "FAIL WritingToolbar after " & checks & ": " & Err.Description
 End Function
 '@
+    $finalProbe = @'
+Public Sub RecordFinalAction(ByVal actionKey As String)
+    lastFinalAction = actionKey
+End Sub
+Public Sub SaveCurrentForTest(ByVal target As Document)
+    If cancelSave Then Err.Raise 4198, , "user cancelled save"
+    target.Save
+End Sub
+Private Function FinalLoadedCount() As Long
+    Dim item As Object
+    For Each item In VBA.UserForms
+        If TypeName(item) = "frmFinalToolbar" Then FinalLoadedCount = FinalLoadedCount + 1
+    Next item
+End Function
+Public Function TestFinalToolbar() As String
+    Dim doc As Document, other As Document, values As Variant
+    On Error GoTo Failed
+    savedLeft = GetSetting("RATools", "WritingToolbar", "Left", CStr(Application.Left + 30))
+    savedTop = GetSetting("RATools", "WritingToolbar", "Top", CStr(Application.Top + 80))
+    savedFinalLeft = GetSetting("RATools", "FinalToolbar", "Left", CStr(Application.Left + 30))
+    savedFinalTop = GetSetting("RATools", "FinalToolbar", "Top", CStr(Application.Top + 80))
+    RefreshWorkflowToolbarsIfVisible
+    Check FinalLoadedCount() = 0, "events do not instantiate final form"
+    Set doc = Documents.Add
+    doc.TrackRevisions = False
+    doc.Content.Text = "Final document" & vbCr
+    ShowWorkflowToolbar "Final"
+    Check frmFinalToolbar.Controls.Count = 20, "12 actions, refresh and document/status/group labels"
+    Check IsUserFormWindowVisible("RATools 定稿工具"), "final visible"
+    Check GetUserFormWindowOwner("RATools 定稿工具") = 0, "final owner detached"
+    Check InStr(frmFinalToolbar.lblSnapshot.Caption, "修订：0") > 0, "zero revisions is a successful read"
+    Check InStr(frmFinalToolbar.lblSnapshot.Caption, "批注：0") > 0, "zero comments is a successful read"
+    Check InStr(frmFinalToolbar.lblSnapshotTime.Caption, "读取时间") > 0, "snapshot timestamp"
+    doc.TrackRevisions = True
+    doc.Sections(1).Headers(wdHeaderFooterPrimary).Range.Text = "Header tracked"
+    doc.Comments.Add doc.Range(0,1), "Review comment"
+    RunWorkflowAction "refresh_final_state"
+    values = ReadWorkflowReviewSnapshot(doc)
+    Check CLng(values(0)) > 0, "revision count includes header story"
+    Check CLng(values(1)) = 1, "actual comment count"
+    Check InStr(frmFinalToolbar.lblSnapshot.Caption, "批注：1") > 0, "panel reports actual count"
+    RefreshWorkflowToolbarsIfVisible True
+    Check InStr(frmFinalToolbar.lblSnapshotTime.Caption, "待刷新") > 0, "possible edit marks old values stale"
+    RunWorkflowAction "refresh_final_state"
+    Check InStr(frmFinalToolbar.lblSnapshotTime.Caption, "待刷新") = 0, "explicit refresh clears stale marker"
+    forceSnapshotError = True
+    frmFinalToolbar.ReadDocumentSnapshot
+    Check InStr(frmFinalToolbar.lblSnapshot.Caption, "读取失败") > 0, "failed read is not zero"
+    forceSnapshotError = False
+    RunWorkflowAction "refresh_final_state"
+    Check InStr(frmFinalToolbar.lblSnapshot.Caption, "读取失败") = 0, "read failure can recover"
+    ToggleWorkflowToolbar "Final"
+    doc.Comments.Add doc.Range(1,2), "Edited while hidden"
+    ShowWorkflowToolbar "Final"
+    Check InStr(frmFinalToolbar.lblSnapshot.Caption, "批注：2") > 0, "reopen re-reads edits while already unsaved"
+    Set other = Documents.Add
+    other.TrackRevisions = False
+    RefreshWorkflowToolbarsIfVisible
+    Check InStr(frmFinalToolbar.lblDocument.Caption, other.Name) > 0, "document switch targets current document"
+    Check InStr(frmFinalToolbar.lblSnapshot.Caption, "批注：0") > 0, "document switch re-reads snapshot"
+    other.Close wdDoNotSaveChanges
+    doc.Activate
+    SetQuickToolbarMsoTestMode True
+    RunWorkflowAction "mso:TableOfContentsUpdate"
+    Check GetLastQuickToolbarMsoForTest() = "TableOfContentsUpdate", "chapter TOC existing native route"
+    RunWorkflowAction "mso:TableOfFiguresUpdate"
+    Check GetLastQuickToolbarMsoForTest() = "TableOfFiguresUpdate", "figure TOC existing native route"
+    RunWorkflowAction "mso:FieldsUpdate"
+    Check GetLastQuickToolbarMsoForTest() = "FieldsUpdate", "current field route"
+    SetQuickToolbarMsoTestMode False
+    cancelSave = True
+    doc.Saved = False
+    RunWorkflowAction "save_current"
+    Check Not doc.Saved, "cancelled save leaves unsaved state"
+    Check InStr(frmFinalToolbar.lblDocument.Caption, "未保存") > 0, "cancelled save never reports saved"
+    cancelSave = False
+    RunWorkflowAction "export_pdf"
+    Check lastFinalAction = "export_pdf", "PDF uses existing mode/options entry"
+    RunWorkflowAction "detect_clean_versions"
+    Check lastFinalAction = "detect_clean_versions", "full clean check remains separate"
+    ShowWorkflowToolbar "Writing"
+    Check IsUserFormWindowVisible("RATools 撰写工具"), "writing and final coexist"
+    frmFinalToolbar.Left = 221: frmFinalToolbar.Top = 181
+    ToggleWorkflowToolbar "Final"
+    UnloadWorkflowToolbarsOnQuit
+    ShowWorkflowToolbar "Final"
+    Check frmFinalToolbar.Left = 221 And frmFinalToolbar.Top = 181, "final independent position"
+    doc.Close wdDoNotSaveChanges
+    RefreshWorkflowToolbarsIfVisible
+    Check Documents.Count = 0, "real final no-document state"
+    Check Not frmFinalToolbar.btnRefreshState.Enabled And Not frmFinalToolbar.btn0.Enabled, "no-document disables final actions"
+    Check InStr(frmFinalToolbar.lblSnapshot.Caption, "—") > 0, "no-document state is unread"
+    UnloadWorkflowToolbarsOnQuit
+    RestoreWorkflowTestPositions
+    TestFinalToolbar = "PASS FinalToolbar (" & checks & " assertions; snapshot/error/stale/save-cancel/native routes)"
+    Exit Function
+Failed:
+    TestFinalToolbar = "FAIL FinalToolbar after " & checks & ": " & Err.Description
+End Function
+'@
+    $methodProbe = @'
+Public Function TestWorkflowMethods() As String
+    Dim toolbar As Object
+    On Error GoTo Failed
+    savedLeft = GetSetting("RATools", "WritingToolbar", "Left", CStr(Application.Left + 30))
+    savedTop = GetSetting("RATools", "WritingToolbar", "Top", CStr(Application.Top + 80))
+    savedFinalLeft = GetSetting("RATools", "FinalToolbar", "Left", CStr(Application.Left + 30))
+    savedFinalTop = GetSetting("RATools", "FinalToolbar", "Top", CStr(Application.Top + 80))
+    Set toolbar = VBA.UserForms.Add("frm__WORKFLOW_KIND__Toolbar")
+    toolbar.RefreshDocumentState True
+    If "__WORKFLOW_KIND__" = "Final" Then
+        toolbar.ReadDocumentSnapshot
+        toolbar.RefreshDocumentState False, True
+        Check InStr(toolbar.lblSnapshotTime.Caption, "待刷新") > 0, "executed final snapshot and stale methods"
+    End If
+    Check InStr(toolbar.lblDocument.Caption, ActiveDocument.Name) > 0, "executed document state method"
+    UnloadWorkflowToolbarsOnQuit
+    RestoreWorkflowTestPositions
+    TestWorkflowMethods = "PASS WorkflowMethods (__WORKFLOW_KIND__; direct state method execution)"
+    Exit Function
+Failed:
+    TestWorkflowMethods = "FAIL WorkflowMethods (__WORKFLOW_KIND__): " & Err.Description
+End Function
+'@
+    $finalProbe += "`r`n" + $methodProbe.Replace('__WORKFLOW_KIND__', $Kind)
+    $probeSource += "`r`n" + $finalProbe
     $probe.CodeModule.AddFromString($probeSource.Replace('__WORKFLOW_PROGRESS_PATH__', $ProgressPath.Replace('"', '""')))
+    if ($CompileOnly) {
+        Write-WorkflowTestProgress ('Execute ' + $Kind + ' state methods in hidden Word')
+        $result = [string]$word.Run('TestWorkflowMethods')
+    } else {
     Write-WorkflowTestProgress 'Save test add-in'
     $hostDoc.Save()
     $hostDoc.Saved = $true
@@ -188,8 +332,10 @@ End Function
     Write-WorkflowTestProgress 'Load test add-in'
     $testAddin = $word.AddIns.Add($templatePath, $true)
     $testAddin.Installed = $true
-    Write-WorkflowTestProgress 'Run writing toolbar assertions'
-    $result = [string]$word.Run('TestWritingToolbar')
+    $testMethod = if ($Kind -eq 'Final') { 'TestFinalToolbar' } else { 'TestWritingToolbar' }
+    Write-WorkflowTestProgress ('Run ' + $Kind + ' toolbar assertions')
+    $result = [string]$word.Run($testMethod)
+    }
     Write-Output $result
     if (-not $result.StartsWith('PASS')) { throw $result }
 }
@@ -215,8 +361,12 @@ finally {
                     $remainingWord = Get-Process -Id $ownWordProcessId -ErrorAction SilentlyContinue
                     if ($null -ne $remainingWord) {
                         if ($remainingWord.ProcessName -ne 'WINWORD' -or [math]::Abs(($remainingWord.StartTime - $ownWordCreation).TotalSeconds) -gt 2) { throw 'Word process identity changed; refusing forced cleanup.' }
-                        Stop-Process -Id $ownWordProcessId -Force -ErrorAction Stop
-                        $remainingWord.WaitForExit(10000) | Out-Null
+                        try {
+                            $remainingWord.Kill()
+                            $remainingWord.WaitForExit(10000) | Out-Null
+                        } catch {
+                            if (-not $remainingWord.HasExited) { throw }
+                        }
                     }
                 }
             }

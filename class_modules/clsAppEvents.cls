@@ -69,5 +69,9 @@ End Sub
 ' 正文重新获得选区或原生修订按钮被使用后，更新审阅窗状态。
 Private Sub App_WindowSelectionChange(ByVal Sel As Selection)
     UI_ReviewToolbar.RefreshReviewToolbarIfVisible
-    UI_WorkflowToolbars.RefreshWorkflowToolbarsIfVisible
+    UI_WorkflowToolbars.RefreshWorkflowToolbarsIfVisible True
+End Sub
+
+Private Sub App_DocumentBeforeSave(ByVal Doc As Document, SaveAsUI As Boolean, Cancel As Boolean)
+    UI_WorkflowToolbars.RefreshWorkflowToolbarsIfVisible True
 End Sub

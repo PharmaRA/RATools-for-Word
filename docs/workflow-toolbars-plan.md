@@ -220,3 +220,20 @@ RATools → 工具窗 ▾
 | 限定只读 review | 已完成最后复审，未发现剩余代码阻断；生成器、测试关闭/卸载和进度初始化三个收尾缺口均已关闭 | 子代理审阅撰写窗、分发、生成、专项测试及直接依赖，并限定复审最后差异 |
 
 人工依赖：恢复本机 Word 许可/激活后重跑真实样式、颜色、当前表与整篇表格、菜单、无文档、文档切换和位置恢复测试，再完成可读性、提示、焦点及 Office 位数/DPI 组合确认。当前不把专项失败写成 PASS，也不将源码编译通过写成完整交互验收。按本文第 6 节继续其他可执行开发。
+
+### 8.2 定稿悬浮窗（2026-11-18）
+
+已实现两列十二个操作入口与独立刷新按钮。状态区只读统计故事区域修订数、文档批注数及跟踪状态，区分未读、读取失败和零；文档切换重新读取，选区变化、保存前事件及修改动作标记旧读数待刷新。顶部 Saved 状态直接来自当前活动文档，保存取消和失败不增加成功提示。完整检测、目录、清稿、编号、文件夹及 PDF 入口复用原操作与范围。
+
+备份：`backups/workflow-toolbars-resume-20261118-002839/phase2-before/`。证据继续位于同次 `verification/`。
+
+| 检查 | 实际结果 | 证据 |
+| --- | --- | --- |
+| `Sync-WorkflowToolbarForms.ps1 -Kind Final` | 最后修复显式 ResetSnapshot 调用后生成真实 FRM/FRX，退出 0 | `final-generation-02.log` |
+| `SourceCompile.Tests.ps1` | 最终源码导入、标准模块及类/窗体引用编译探针退出 0；此探针不能代替所有方法体执行 | `final-sourcecompile-02.log` |
+| `WorkflowToolbars.Tests.ps1 -Kind Final -CompileOnly` | 在隐藏 Word 中直接执行快照读取、状态刷新及旧读数分支，最后方法检查与收尾退出 0；01 次方法已执行但因退出进程竞态最终 1，修复后02次退出0 | `final-methods-01.log`、`final-methods-02.log` |
+| PowerShell 语法、UTF-8 BOM 与功能区 XML | 相关脚本语法及 XML 解析通过 | 本机定向检查输出 |
+| `WorkflowToolbars.Tests.ps1 -Kind Final` | 退出 1。可见 Word 返回许可协议过期，VBProject 导入不可用；本次自身进程和临时目录已收尾，未执行完功能断言 | `final-tests-01.log`、`final-progress-01.log` |
+| 限定只读 review | 标签歧义与隐藏期间编辑后重开旧读数两个问题均已关闭，最后产品及收尾竞态差异复审无剩余代码阻断 | 不重复已交付撰写及审阅窗初审 |
+
+待恢复 Word 许可后补验：状态零/失败/旧读数、页眉修订计数、文档切换、保存取消、目录与域分发、原 PDF/清稿模式、无文档和独立位置；实际交互、视觉与 Office/DPI 矩阵仍未通过。

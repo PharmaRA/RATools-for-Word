@@ -1,6 +1,6 @@
 ﻿#requires -version 5.1
 [CmdletBinding()]
-param([ValidateSet('Writing')][string[]]$Kind = @('Writing'))
+param([ValidateSet('Writing','Final')][string[]]$Kind = @('Writing'))
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Import-Module (Join-Path $PSScriptRoot 'RATools.Build.psm1') -Force
@@ -34,10 +34,27 @@ foreach ($toolbarKind in $Kind) {
         $label = $designer.Controls.Add('Forms.Label.1','lblDocument',$true)
         $label.Left = 10; $label.Top = 8; $label.Width = $definition.Width - 30; $label.Height = 28
         $label.Caption = '当前文档'
+        if ($toolbarKind -eq 'Final') {
+            $snapshotLabel = $designer.Controls.Add('Forms.Label.1','lblSnapshot',$true)
+            $snapshotLabel.Left = 10; $snapshotLabel.Top = 38; $snapshotLabel.Width = $definition.Width - 30; $snapshotLabel.Height = 30
+            $snapshotLabel.Caption = '修订：—    批注：—    修订跟踪：—'
+            $timeLabel = $designer.Controls.Add('Forms.Label.1','lblSnapshotTime',$true)
+            $timeLabel.Left = 10; $timeLabel.Top = 74; $timeLabel.Width = $definition.Width - 94; $timeLabel.Height = 22
+            $timeLabel.Caption = '状态读取时间：—'
+            $refreshButton = $designer.Controls.Add('Forms.CommandButton.1','btnRefreshState',$true)
+            $refreshButton.Left = $definition.Width - 80; $refreshButton.Top = 70; $refreshButton.Width = 54; $refreshButton.Height = 24
+            $refreshButton.Caption = '刷新'; $refreshButton.Tag = 'refresh_final_state'; $refreshButton.TakeFocusOnClick = $false
+        }
         $code = [Collections.Generic.List[string]]::new()
         $code.Add('Option Explicit')
         $code.Add('Private mUpdating As Boolean')
         $code.Add('Private mMenuRange As Range')
+        if ($toolbarKind -eq 'Final') {
+            $code.Add('Private mSnapshotDocument As Document')
+            $code.Add('Private mSnapshotState As String, mSnapshotFailure As String')
+            $code.Add('Private mSnapshotStale As Boolean, mSnapshotSaved As Boolean, mTracking As Boolean')
+            $code.Add('Private mRevisionCount As Long, mCommentCount As Long, mReadAt As Date')
+        }
         $code.Add('Private Sub UserForm_Initialize()')
         $code.Add('    Dim item As Object')
         $code.Add('    For Each item In Me.Controls: item.Font.Name = "Microsoft YaHei": item.Font.Size = 9: Next item')
@@ -47,7 +64,7 @@ foreach ($toolbarKind in $Kind) {
         $code.Add('    On Error GoTo 0')
         $code.Add('    RefreshDocumentState False')
         $code.Add('End Sub')
-        $top = 42
+        $top = if ($toolbarKind -eq 'Final') { 110 } else { 42 }
         $buttonIndex = 0
         $menuInitializers = [Collections.Generic.List[string]]::new()
         foreach ($row in $definition.Rows) {
@@ -66,6 +83,7 @@ foreach ($toolbarKind in $Kind) {
                 $control.Left = 10 + ($column - 1) * (($definition.Width - 28) / $definition.Columns)
                 $control.Top = $top; $control.Width = ($definition.Width - 28) / $definition.Columns - 5; $control.Height = 26
                 $control.ControlTipText = if ($parts[1].StartsWith('style:')) { '应用 ' + $parts[1].Substring(6) + '；作用于当前选区或插入点。' } else { $parts[0] + '；作用范围和模式选择沿用原工具。' }
+                if ($definition.ContainsKey('Tips') -and $definition.Tips.ContainsKey($parts[1])) { $control.ControlTipText = $definition.Tips[$parts[1]] }
                 if ($isMenu) {
                     $control.Style = 2
                     $control.ListWidth = 280
@@ -123,6 +141,7 @@ foreach ($toolbarKind in $Kind) {
         foreach ($line in $menuInitializers) { $code.Add($line) }
         $code.Add('    mUpdating = False')
         $code.Add('End Sub')
+        if ($toolbarKind -eq 'Writing') {
         $code.Add('Public Sub RefreshDocumentState(ByVal busy As Boolean)')
         $code.Add('    Dim item As Object, available As Boolean, value As Long')
         $code.Add('    On Error GoTo Unavailable')
@@ -140,6 +159,81 @@ foreach ($toolbarKind in $Kind) {
         $code.Add('        If TypeName(item) = "CommandButton" Or TypeName(item) = "ComboBox" Then item.Enabled = available And Not busy')
         $code.Add('    Next item')
         $code.Add('End Sub')
+        } else {
+            $finalStateCode = @'
+Private Sub ResetSnapshot()
+    Set mSnapshotDocument = Nothing
+    mSnapshotState = "unread"
+    mSnapshotStale = False
+    mSnapshotFailure = ""
+End Sub
+Private Sub RenderSnapshot()
+    Select Case mSnapshotState
+        Case "read"
+            lblSnapshot.Caption = IIf(mSnapshotStale, "上次读数（待刷新）：", "") & "修订：" & mRevisionCount & "    批注：" & mCommentCount & "    修订跟踪：" & IIf(mTracking, "开", "关")
+            lblSnapshotTime.Caption = "读取时间：" & Format$(mReadAt, "hh:nn:ss") & IIf(mSnapshotStale, " · 待刷新", "")
+        Case "failed"
+            lblSnapshot.Caption = "状态读取失败：" & mSnapshotFailure
+            lblSnapshotTime.Caption = "状态读取时间：—"
+        Case Else
+            lblSnapshot.Caption = "修订：—    批注：—    修订跟踪：—"
+            lblSnapshotTime.Caption = "状态读取时间：—"
+    End Select
+End Sub
+Public Sub ReadDocumentSnapshot()
+    Dim values As Variant
+    On Error GoTo Failed
+    If Documents.Count = 0 Then Call ResetSnapshot: RenderSnapshot: Exit Sub
+    Set mSnapshotDocument = ActiveDocument
+    values = ReadWorkflowReviewSnapshot(mSnapshotDocument)
+    mRevisionCount = CLng(values(0)): mCommentCount = CLng(values(1)): mTracking = CBool(values(2))
+    mSnapshotSaved = mSnapshotDocument.Saved
+    mReadAt = Now
+    mSnapshotState = "read": mSnapshotStale = False: mSnapshotFailure = ""
+    RenderSnapshot
+    Exit Sub
+Failed:
+    mSnapshotState = "failed": mSnapshotStale = False
+    mSnapshotFailure = Err.Description
+    RenderSnapshot
+End Sub
+Public Sub RefreshDocumentState(ByVal busy As Boolean, Optional ByVal mayHaveEdited As Boolean = False)
+    Dim item As Object, available As Boolean, needsRead As Boolean
+    On Error GoTo Unavailable
+    If Documents.Count = 0 Then
+        lblDocument.Caption = "当前没有打开的文档"
+        Call ResetSnapshot: RenderSnapshot
+        GoTo UpdateControls
+    End If
+    lblDocument.Caption = "当前文档：" & ActiveDocument.Name & IIf(ActiveDocument.Saved, " · 已保存", " · 有未保存修改")
+    available = True
+    If mSnapshotDocument Is Nothing Then
+        needsRead = True
+    ElseIf Not (mSnapshotDocument Is ActiveDocument) Then
+        ResetSnapshot
+        needsRead = True
+    End If
+    If needsRead And Not busy Then ReadDocumentSnapshot
+    If mSnapshotState = "read" Then
+        If mayHaveEdited Or (mSnapshotSaved <> ActiveDocument.Saved) Then mSnapshotStale = True
+    End If
+    RenderSnapshot
+    GoTo UpdateControls
+Unavailable:
+    available = False
+    lblDocument.Caption = "当前文档不可用"
+    Call ResetSnapshot: RenderSnapshot
+UpdateControls:
+    For Each item In Me.Controls
+        If TypeName(item) = "CommandButton" Or TypeName(item) = "ComboBox" Then item.Enabled = available And Not busy
+    Next item
+End Sub
+Private Sub btnRefreshState_Click()
+    RunWorkflowAction "refresh_final_state"
+End Sub
+'@
+            foreach ($stateLine in ($finalStateCode -split '\r?\n')) { $code.Add($stateLine) }
+        }
         $code.Add('Private Sub UserForm_Activate(): RefreshWorkflowToolbarsIfVisible: End Sub')
         $code.Add('Public Sub SaveToolbarPosition()')
         $code.Add('    On Error Resume Next')

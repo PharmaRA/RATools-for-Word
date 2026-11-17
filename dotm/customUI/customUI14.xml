@@ -277,6 +277,7 @@
                 <!-- == 常用宏 == -->
 				<group id="grpWorkflow" label="阶段工具窗">
 					<button id="btnWritingToolbar" label="撰写悬浮窗" imageMso="StylesPane" onAction="ToggleWritingToolbar" screentip="撰写与排版工具"/>
+					<button id="btnFinalToolbar" label="定稿悬浮窗" imageMso="FilePrintPreview" onAction="ToggleFinalToolbar" screentip="定稿前检查与交付"/>
 				</group>
 				<group id="grpMyMacro" label="宏列表">
 					<button id="btnShowMacros" imageMso="MacroPlay" size="large" showLabel="false" onAction="ShowMacroListWindow" />
