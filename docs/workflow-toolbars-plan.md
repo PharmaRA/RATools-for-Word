@@ -2,7 +2,7 @@
 
 记录日期：2026-11-17。
 
-状态：2026-11-17 用户已授权按本文顺序逐项实施；每项完成测试、只读 review、CHANGELOG 更新后独立提交。2026-11-18 续接会话 223，撰写窗代码已完成，实际验证及人工依赖记在文末；继续定稿窗、图表引用窗和联合交付。
+状态：2026-11-17 用户已授权按本文顺序逐项实施；每项完成测试、只读 review、CHANGELOG 更新后独立提交。2026-11-18 已提交撰写窗和定稿窗，图表引用窗已实现并完成本机限定验证；实际结果及人工依赖记在第 8 节，继续联合交付。
 
 工作区：`.worktrees/workflow-toolbars`，分支：`feat/workflow-toolbars`。已有审阅悬浮窗的实现与验证见[审阅悬浮窗实施与验收](review-toolbar-plan.md)。本文描述其后的三个工具窗，不重新设计已交付的审阅窗。
 
@@ -237,3 +237,20 @@ RATools → 工具窗 ▾
 | 限定只读 review | 标签歧义与隐藏期间编辑后重开旧读数两个问题均已关闭，最后产品及收尾竞态差异复审无剩余代码阻断 | 不重复已交付撰写及审阅窗初审 |
 
 待恢复 Word 许可后补验：状态零/失败/旧读数、页眉修订计数、文档切换、保存取消、目录与域分发、原 PDF/清稿模式、无文档和独立位置；实际交互、视觉与 Office/DPI 矩阵仍未通过。
+
+### 8.3 图表引用悬浮窗（2026-11-18）
+
+已实现两列十四个入口及表格文字、表格结构和图片三个菜单组。生成、恢复题注和粘贴重连直接调用原入口；表标题/图标题只应用样式，生成位置限制和一次粘贴沿用原处理器。当前范围域更新及 REF/PAGEREF 格式保护与定稿窗复用，批量标蓝保留原文档范围。图表窗跟随当前文档，支持无文档禁用、忙碌防重入、独立位置和退出卸载，功能区与专项测试入口已接入。
+
+备份：backups/workflow-toolbars-resume-20261118-135946/phase3-before/。本项证据：backups/workflow-toolbars-resume-20261118-135946/verification/。
+
+| 检查 | 实际结果 | 证据 |
+| --- | --- | --- |
+| PowerShell 语法、UTF-8 BOM、布局与功能区 XML | 五个相关脚本语法及 BOM 检查、数据文件和 XML 解析通过 | 本机定向检查输出 |
+| Sync-WorkflowToolbarForms.ps1 -Kind References | 真实 FRM/FRX 生成与收尾退出 0 | references-generation-01.log |
+| SourceCompile.Tests.ps1 | 全部源码导入、标准模块及类/窗体引用编译探针退出 0；不能覆盖所有方法体 | references-sourcecompile-01.log |
+| WorkflowToolbars.Tests.ps1 -Kind References -CompileOnly | 隐藏 Word 中直接执行状态与菜单方法，41 项断言通过、收尾退出 0。真实校验正文、文字选区、页眉、表格和现有域位置限制；原生对话框及交互宏仅在临时工程记录分发，覆盖一次粘贴分发、防重入、活动文档及异常恢复 | references-methods-01.log、references-methods-progress-01.log |
+| WorkflowToolbars.Tests.ps1 -Kind References | 退出 1。可见 Word 许可协议过期，VBProject 导入不可用；未进入完整功能断言，未将样式、真实剪贴板粘贴或可见交互写成 PASS | references-tests-01.log、references-tests-progress-01.log |
+| 限定只读 review | 限定只读 review 已完成，未发现具体代码阻断；FRX 仅审阅文件元数据，控件属性由真实方法检查覆盖 | 子代理审阅结果 |
+
+人工依赖：恢复本机 Word 许可后重跑完整图表专项，补验真实表/图样式不产生自动编号、当前表适宽、剪贴板一次粘贴与引用目标、无文档、位置恢复，以及原生对话框、菜单、焦点、提示和 Office/DPI 显示组合。按第 6 节继续联合交付，不重跑此前撰写、定稿的许可阻断测试。

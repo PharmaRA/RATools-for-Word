@@ -22,6 +22,10 @@ Public Sub ToggleFinalToolbar(ByVal control As IRibbonControl)
     ToggleWorkflowToolbar "Final"
 End Sub
 
+Public Sub ToggleReferencesToolbar(ByVal control As IRibbonControl)
+    ToggleWorkflowToolbar "References"
+End Sub
+
 Public Sub ToggleWorkflowToolbar(ByVal kind As String)
     Dim toolbar As Object
     On Error GoTo Failed
@@ -63,7 +67,7 @@ Public Sub RefreshWorkflowToolbarsIfVisible(Optional ByVal mayHaveEdited As Bool
     mRefreshing = True
     On Error Resume Next
     For Each toolbar In VBA.UserForms
-        If TypeName(toolbar) = "frmWritingToolbar" Or TypeName(toolbar) = "frmFinalToolbar" Then
+        If TypeName(toolbar) = "frmWritingToolbar" Or TypeName(toolbar) = "frmFinalToolbar" Or TypeName(toolbar) = "frmReferencesToolbar" Then
             If toolbar.Visible Then
                 If TypeName(toolbar) = "frmFinalToolbar" Then
                     toolbar.RefreshDocumentState mActionRunning, mayHaveEdited
@@ -83,7 +87,7 @@ Public Sub UnloadWorkflowToolbarsOnQuit()
     On Error Resume Next
     For index = VBA.UserForms.Count - 1 To 0 Step -1
         Set toolbar = VBA.UserForms(index)
-        If TypeName(toolbar) = "frmWritingToolbar" Or TypeName(toolbar) = "frmFinalToolbar" Then
+        If TypeName(toolbar) = "frmWritingToolbar" Or TypeName(toolbar) = "frmFinalToolbar" Or TypeName(toolbar) = "frmReferencesToolbar" Then
             toolbar.SaveToolbarPosition
             Unload toolbar
         End If
@@ -127,7 +131,7 @@ Public Sub RunWorkflowAction(ByVal actionKey As String)
     ElseIf Left$(actionKey, 4) = "mso:" Then
         ExecuteQuickToolbarMso Mid$(actionKey, 5)
         Select Case Mid$(actionKey, 5)
-            Case "ParagraphDialog", "PageSetupDialog", "SectionBreakInsert", "TableOfContentsUpdate", "TableOfFiguresUpdate": keepFocus = True
+            Case "ParagraphDialog", "PageSetupDialog", "SectionBreakInsert", "TableOfContentsUpdate", "TableOfFiguresUpdate", "TableOfFiguresInsert", "CaptionInsert", "CrossReferenceInsert", "TableInsertGallery", "TableBordersMenu": keepFocus = True
         End Select
     Else
         Select Case actionKey
@@ -153,6 +157,10 @@ Public Sub RunWorkflowAction(ByVal actionKey As String)
             Case "export_pdf": BatchConvertWordToPDF
             Case "rename_current": Wrapper_RenameCurrentDocument Nothing
             Case "open_folder": OpenDocumentFolder Nothing: keepFocus = True: invalidateSnapshot = False
+            Case "caption_pair": GenerateCaptionReferencePair Nothing: keepFocus = True
+            Case "restore_caption_labels": Wrapper_AddMissingCaptionLabels Nothing
+            Case "paste_relink": Wrapper_PasteRelinkCrossReference
+            Case "links_fields_blue": SetHyperlinksAndFieldsToBlue
             Case Else: Err.Raise vbObjectError + 2100, , "Unknown workflow action: " & actionKey
         End Select
     End If

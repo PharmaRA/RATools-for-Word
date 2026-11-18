@@ -35,6 +35,7 @@ $suites = @(
     @{ Name = "ReviewToolbarActions";    File = "ReviewToolbarActions.Tests.ps1";    RequiresCom = $true },
     @{ Name = "WritingToolbar";          File = "WorkflowToolbars.Tests.ps1";       RequiresCom = $true },
     @{ Name = "FinalToolbar";            File = "FinalToolbar.Tests.ps1";          RequiresCom = $true },
+    @{ Name = "ReferencesToolbar";       File = "ReferencesToolbar.Tests.ps1";     RequiresCom = $true },
     @{ Name = "TooltipIdentity";         File = "TooltipIdentity.Tests.ps1";         RequiresCom = $true },
     @{ Name = "ReviewerFilter";          File = "ReviewerFilter.Tests.ps1";          RequiresCom = $true },
     @{ Name = "ReviewerStorySafety";     File = "ReviewerStorySafety.Tests.ps1";     RequiresCom = $true },

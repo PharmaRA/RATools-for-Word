@@ -1,6 +1,6 @@
 ﻿#requires -version 5.1
 [CmdletBinding()]
-param([ValidateSet('Writing','Final')][string[]]$Kind = @('Writing'))
+param([ValidateSet('Writing','Final','References')][string[]]$Kind = @('Writing'))
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Import-Module (Join-Path $PSScriptRoot 'RATools.Build.psm1') -Force
@@ -159,7 +159,7 @@ foreach ($toolbarKind in $Kind) {
         $code.Add('        If TypeName(item) = "CommandButton" Or TypeName(item) = "ComboBox" Then item.Enabled = available And Not busy')
         $code.Add('    Next item')
         $code.Add('End Sub')
-        } else {
+        } elseif ($toolbarKind -eq 'Final') {
             $finalStateCode = @'
 Private Sub ResetSnapshot()
     Set mSnapshotDocument = Nothing
@@ -233,6 +233,29 @@ Private Sub btnRefreshState_Click()
 End Sub
 '@
             foreach ($stateLine in ($finalStateCode -split '\r?\n')) { $code.Add($stateLine) }
+        } else {
+            $referenceStateCode = @'
+Public Sub RefreshDocumentState(ByVal busy As Boolean)
+    Dim item As Object, available As Boolean
+    On Error GoTo Unavailable
+    If cbotable_tools.ListCount = 0 Then InitializeMenus
+    If Documents.Count = 0 Then
+        lblDocument.Caption = "当前没有打开的文档"
+    Else
+        lblDocument.Caption = "当前文档：" & ActiveDocument.Name
+        available = True
+    End If
+    GoTo UpdateControls
+Unavailable:
+    available = False
+    lblDocument.Caption = "当前文档不可用"
+UpdateControls:
+    For Each item In Me.Controls
+        If TypeName(item) = "CommandButton" Or TypeName(item) = "ComboBox" Then item.Enabled = available And Not busy
+    Next item
+End Sub
+'@
+            foreach ($stateLine in ($referenceStateCode -split '\r?\n')) { $code.Add($stateLine) }
         }
         $code.Add('Private Sub UserForm_Activate(): RefreshWorkflowToolbarsIfVisible: End Sub')
         $code.Add('Public Sub SaveToolbarPosition()')

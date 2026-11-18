@@ -22,6 +22,37 @@
             )
         }
     }
+    References = @{
+        Caption = 'RATools 图表引用工具'; Columns = 2; Width = 432
+        Rows = @(
+            @('建立题注与引用', '生成题注与引用…|caption_pair', '插入题注…|mso:CaptionInsert'),
+            @('', '插入交叉引用…|mso:CrossReferenceInsert', '恢复题注标签|restore_caption_labels'),
+            @('图表格式', '表标题样式|style:表标题-F', '图标题样式|style:图标题-F'),
+            @('', '当前表适宽|autofit_table', '更多图表工具|menu:table_tools'),
+            @('复制与维护', '粘贴并重连引用|paste_relink', '更新当前范围域|mso:FieldsUpdate'),
+            @('', '引用与链接标蓝|links_fields_blue', '保护引用域格式|protect_field_format'),
+            @('图表目录', '插入图表目录…|mso:TableOfFiguresInsert', '更新图表目录…|mso:TableOfFiguresUpdate')
+        )
+        Menus = @{
+            table_tools = @(
+                '— 表格文字 —|', '表头左对齐|style:表头左对齐-F', '表头居中|style:表头居中-F', '表头右对齐|style:表头右对齐-F',
+                '表格正文左对齐|style:表格文本左对齐-F', '表格正文居中|style:表格文本居中-F', '表格正文右对齐|style:表格文本右对齐-F',
+                '无间距|style:表格文本无间距-F', '表格注释|style:表格注释-F',
+                '— 表格结构 —|', '插入表格|mso:TableInsertGallery', '边框|mso:TableBordersMenu', '重复标题行|mso:TableRepeatHeaderRows', '拆分表格|mso:TableSplitTable',
+                '— 图片 —|', '图片段落样式|style:图片-F', '嵌入型环绕|mso:TextWrappingInLineWithText'
+            )
+        }
+        Tips = @{
+            'caption_pair' = '光标须位于正文中，并在表格与现有域之外；先取消文字选区，不自动插入图片或表格。'
+            'style:表标题-F' = '应用表标题-F样式；只设置样式，自动编号通过题注功能建立。'
+            'style:图标题-F' = '应用图标题-F样式；只设置样式，自动编号通过题注功能建立。'
+            'paste_relink' = '复制后在目标位置点击，无需先粘贴；此动作包含一次粘贴和引用重连。'
+            'restore_caption_labels' = '恢复 Word 题注类型入口，不表示恢复已删除的引用目标或书签。'
+            'links_fields_blue' = '沿用当前文档批量处理及排除规则；不是选区上色，也不是引用检查报告。'
+            'mso:FieldsUpdate' = '更新当前选区或所在域，不表示全篇所有文字区域更新。'
+            'protect_field_format' = '保留 REF、PAGEREF 域格式；有选区时处理选区，无选区时处理当前正文域集合。'
+        }
+    }
     Final = @{
         Caption = 'RATools 定稿工具'; Columns = 2; Width = 432
         Rows = @(
