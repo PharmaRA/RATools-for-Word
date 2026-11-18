@@ -11,8 +11,6 @@ from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
-import markdown
-import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 MANUAL = ROOT / "docs/manual"
@@ -36,6 +34,9 @@ class Page(HTMLParser):
 
 
 def render(path: Path) -> Page:
+    import markdown
+    import yaml
+
     source = path.read_text(encoding="utf-8")
     if path.suffix == ".md":
         source = markdown.markdown(
@@ -46,6 +47,58 @@ def render(path: Path) -> Page:
 
 def normalize(value: str) -> str:
     return re.sub(r"[\W_]", "", unicodedata.normalize("NFKC", value)).lower()
+
+
+def workflow_entry_points() -> dict[str, dict[str, tuple[str, str]]]:
+    points = {}
+    for kind in ("Writing", "Final", "References"):
+        source = (ROOT / f"userforms/frm{kind}Toolbar.frm").read_text(encoding="gbk")
+        actions = set(re.findall(r'(?:RunWorkflowAction\s+|actionKey\s*=\s*)"([^"]+)"', source))
+        category = kind[0].lower() + kind[1:] + "Toolbar"
+        points[category] = {action: ("", action) for action in actions}
+    return points
+
+
+def check_workflow_coverage(errors: list[str]) -> None:
+    mapping = json.loads((ROOT / "docs/feature-map.json").read_text(encoding="utf-8"))
+    actual = workflow_entry_points()
+    menu = ET.parse(ROOT / "dotm/customUI/customUI14.xml").find('.//*[@id="menuWorkflowToolbars"]')
+    if menu is None:
+        errors.append("Unified window menu is missing")
+        return
+    ribbon = {"id:" + node.attrib["id"]: (node.attrib.get("label", ""), node.attrib.get("onAction", "")) for node in menu}
+    if len(ribbon) != 5:
+        errors.append("Unified window menu must contain five unique entries")
+    actual["ribbon"] = ribbon
+    pages: dict[Path, tuple[Page, str]] = {}
+    for category, entries in actual.items():
+        documented = mapping.get(category, {})
+        if category == "ribbon":
+            documented = {key: value for key, value in documented.items() if key.startswith("id:btnWorkflow") or key in {"id:btnWritingToolbar", "id:btnFinalToolbar", "id:btnReferencesToolbar"}}
+        for key in sorted(entries.keys() - documented.keys()):
+            errors.append(f"Undocumented {category} entry: {key}")
+        for key in sorted(documented.keys() - entries.keys()):
+            errors.append(f"Stale {category} entry: {key}")
+        for key in entries.keys() & documented.keys():
+            label, action = entries[key]
+            entry = documented[key]
+            if entry["label"] != label or entry["action"] != action:
+                errors.append(f"Changed {category} entry needs review: {key}")
+            target = urlsplit(entry["target"])
+            path = (MANUAL / unquote(target.path)).resolve()
+            if not path.is_relative_to(MANUAL.resolve()) or not path.is_file():
+                errors.append(f"Missing manual target for {key}: {entry['target']}")
+                continue
+            if path not in pages:
+                source = path.read_text(encoding="utf-8")
+                # Workflow sections use explicit HTML anchors; this mode needs only the standard library.
+                pages[path] = (Page(source), normalize(source))
+            page, source_labels = pages[path]
+            if target.fragment and unquote(target.fragment) not in page.ids:
+                errors.append(f"Missing manual anchor for {key}: {entry['target']}")
+            if label and normalize(label) not in source_labels:
+                errors.append(f"Manual does not mention source label {label}: {entry['target']}")
+        print(f"Coverage {category}: {len(entries)} source entries, {len(documented)} mapped")
 
 
 def entry_points() -> dict[str, dict[str, tuple[str, str]]]:
@@ -68,7 +121,7 @@ def entry_points() -> dict[str, dict[str, tuple[str, str]]]:
     toolbar = {name: ("", name) for name in re.findall(r'RunQuickToolbarAction "([^"]+)"', form)}
     review_form = (ROOT / "userforms/frmReviewToolbar.frm").read_text(encoding="gbk")
     review_toolbar = {name: ("", name) for name in re.findall(r'RunReviewToolbarAction "([^"]+)"', review_form)}
-    return {"ribbon": ribbon, "macros": macros, "toolbar": toolbar, "reviewToolbar": review_toolbar}
+    return {"ribbon": ribbon, "macros": macros, "toolbar": toolbar, "reviewToolbar": review_toolbar, **workflow_entry_points()}
 
 
 def check_coverage(errors: list[str]) -> None:
@@ -143,8 +196,15 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--site-dir", type=Path)
     parser.add_argument("--base-path", default="")
+    parser.add_argument("--workflow-only", action="store_true", help="Check only the unified menu and three workflow forms.")
     args = parser.parse_args()
     errors: list[str] = []
+    if args.workflow_only:
+        check_workflow_coverage(errors)
+        for error in errors:
+            print("ERROR:", error)
+        print(f"Workflow documentation checks: {'FAIL' if errors else 'PASS'} ({len(errors)} errors)")
+        return 1 if errors else 0
     check_coverage(errors)
     pages = sorted(MANUAL.glob("*.md"))
     config = json.loads((ROOT / "website/src/data/sidebar.json").read_text(encoding="utf-8"))

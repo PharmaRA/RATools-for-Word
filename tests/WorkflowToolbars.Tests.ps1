@@ -1,4 +1,4 @@
-﻿param([ValidateSet('Writing','Final','References')][string]$Kind = 'Writing', [string]$ProgressPath = '', [switch]$CompileOnly)
+﻿param([ValidateSet('Writing','Final','References','Joint')][string]$Kind = 'Writing', [string]$ProgressPath = '', [switch]$CompileOnly)
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Import-Module (Join-Path $repoRoot 'scripts/RATools.Build.psm1') -Force
@@ -60,6 +60,15 @@ try {
         }.GetEnumerator()) {
             if (-not $managerText.Contains($route.Value)) { throw ('Missing reference route: ' + $route.Key) }
             $managerText = $managerText.Replace($route.Value, 'WorkflowProbe.RecordReferenceAction "' + $route.Key + '"')
+        }
+    }
+    if ($Kind -eq 'Joint') {
+        $managerText = $managerText.Replace('MsgBox Err.Description, vbExclamation, "RATools"', 'WorkflowProbe.lastWorkflowFailure = Err.Description')
+        foreach ($windowModuleName in @('UI_QuickToolbar','UI_ReviewToolbar')) {
+            $windowModule = $hostDoc.VBProject.VBComponents.Item($windowModuleName).CodeModule
+            $windowText = [regex]::Replace($windowModule.Lines(1,$windowModule.CountOfLines), '(?m)^\s*MsgBox [^\r\n]+', '    WorkflowProbe.lastWorkflowFailure = Err.Description')
+            $windowModule.DeleteLines(1,$windowModule.CountOfLines)
+            $windowModule.AddFromString($windowText)
         }
     }
     $manager.DeleteLines(1,$manager.CountOfLines)
@@ -130,7 +139,7 @@ Public Function TestWritingToolbar() As String
     Check GetUserFormWindowOwner("RATools 撰写工具") = 0, "document independent owner"
     Check IsUserFormWindowOnTop("RATools 撰写工具"), "topmost"
     Check Selection.Start = startPos And Selection.End = endPos, "show preserves selection"
-    Check frmWritingToolbar.Controls.Count = 30, "24 actions plus document and five group labels"
+    Check frmWritingToolbar.Controls.Count = 31, "24 actions plus document, window menu and five group labels"
     Check InStr(frmWritingToolbar.btn0.ControlTipText, "标题1-F") > 0, "full style name in tooltip"
     For Each item In frmWritingToolbar.Controls
         If TypeName(item) = "CommandButton" Then Check Not item.TakeFocusOnClick, "button retains text selection"
@@ -239,7 +248,7 @@ Public Function TestFinalToolbar() As String
     doc.TrackRevisions = False
     doc.Content.Text = "Final document" & vbCr
     ShowWorkflowToolbar "Final"
-    Check frmFinalToolbar.Controls.Count = 20, "12 actions, refresh and document/status/group labels"
+    Check frmFinalToolbar.Controls.Count = 21, "12 actions, refresh, window menu and document/status/group labels"
     Check IsUserFormWindowVisible("RATools 定稿工具"), "final visible"
     Check GetUserFormWindowOwner("RATools 定稿工具") = 0, "final owner detached"
     Check InStr(frmFinalToolbar.lblSnapshot.Caption, "修订：0") > 0, "zero revisions is a successful read"
@@ -357,7 +366,7 @@ Private Sub ExerciseReferenceMethods(ByVal toolbar As Object)
     Check Not toolbar.btn8.Enabled And Not toolbar.cbotable_tools.Enabled, "busy disables reference actions and menu"
     toolbar.RefreshDocumentState False
     Check toolbar.btn8.Enabled And toolbar.cbotable_tools.Enabled, "idle enables reference actions and menu"
-    Check toolbar.Controls.Count = 19, "fourteen reference entries plus document and four group labels"
+    Check toolbar.Controls.Count = 20, "fourteen reference entries plus document, window menu and four group labels"
     Check InStr(toolbar.lblDocument.Caption, doc.Name) > 0, "reference methods follow active document"
     Check InStr(toolbar.btn8.ControlTipText, "无需先粘贴") > 0, "paste tooltip explains one-step operation"
     Check InStr(toolbar.btn4.ControlTipText, "只设置样式") > 0, "caption style is distinct from automatic numbering"
@@ -482,6 +491,126 @@ Failed:
 End Function
 '@
     $probeSource += [Environment]::NewLine + $referenceProbe
+    $jointProbe = @'
+Private Function LoadedWindowForTest(ByVal formName As String) As Object
+    Dim item As Object
+    For Each item In VBA.UserForms
+        If TypeName(item) = formName Then
+            Set LoadedWindowForTest = item
+            Exit Function
+        End If
+    Next item
+End Function
+Private Function WorkflowWindowsForTest() As Collection
+    Dim windows As New Collection, item As Object
+    For Each item In VBA.UserForms
+        If TypeName(item) = "frmWritingToolbar" Or TypeName(item) = "frmFinalToolbar" Or TypeName(item) = "frmReferencesToolbar" Then windows.Add item
+    Next item
+    Set WorkflowWindowsForTest = windows
+End Function
+Private Function WorkflowLoadedCountForTest() As Long
+    Dim item As Object
+    For Each item In VBA.UserForms
+        If TypeName(item) = "frmWritingToolbar" Or TypeName(item) = "frmFinalToolbar" Or TypeName(item) = "frmReferencesToolbar" Then WorkflowLoadedCountForTest = WorkflowLoadedCountForTest + 1
+    Next item
+End Function
+Public Function TestWorkflowJoint() As String
+    Dim doc As Document, other As Document, writing As Object, final As Object, references As Object, toolbar As Object, quick As Object, review As Object
+    On Error GoTo Failed
+    SaveReferenceTestPositions
+    RefreshWorkflowToolbarsIfVisible
+    Check WorkflowLoadedCountForTest() = 0, "joint events do not instantiate new windows"
+    Set doc = Documents.Add
+    doc.Content.Text = "Joint toolbar document" & vbCr
+    ShowWorkflowToolbar "Writing"
+    Set writing = LoadedWindowForTest("frmWritingToolbar")
+    Check Not (writing Is Nothing), "writing window loaded through shared entry"
+    Check writing.Visible, "writing window shown; " & lastWorkflowFailure
+    Check writing.cboToolbars.ListCount = 6, "unified menu has five windows"
+    writing.cboToolbars.ListIndex = 4
+    Set final = LoadedWindowForTest("frmFinalToolbar")
+    Check Not (final Is Nothing), "writing menu opens final window"
+    Check final.Visible And writing.Visible, "opening final preserves writing visibility"
+    Check writing.cboToolbars.ListIndex = 0, "window menu resets after switch"
+    final.cboToolbars.ListIndex = 5
+    Set references = LoadedWindowForTest("frmReferencesToolbar")
+    Check Not (references Is Nothing), "final menu opens reference window"
+    Check references.Visible And final.Visible And writing.Visible, "all three new windows coexist"
+    references.cboToolbars.ListIndex = 1
+    Set quick = LoadedWindowForTest("frmQuickToolbar")
+    Check Not (quick Is Nothing), "unified menu loads current quick instance"
+    Check quick.Visible, "unified menu shows current quick instance"
+    references.cboToolbars.ListIndex = 3
+    Set review = LoadedWindowForTest("frmReviewToolbar")
+    Check Not (review Is Nothing), "unified menu loads current review instance"
+    Check review.Visible, "unified menu shows current review instance"
+    Check WorkflowLoadedCountForTest() = 3, "shared switch keeps one instance per new window"
+    Check GetUserFormWindowOwner(writing.Caption) = 0 And GetUserFormWindowOwner(final.Caption) = 0 And GetUserFormWindowOwner(references.Caption) = 0, "new windows detach from document owner"
+    For Each toolbar In WorkflowWindowsForTest()
+        Check toolbar.cboToolbars.ListCount = 6 And toolbar.cboToolbars.ListIndex = 0, "same initialized menu on each new window"
+        toolbar.RefreshDocumentState True
+        Check Not toolbar.cboToolbars.Enabled, "busy disables window menu"
+        toolbar.RefreshDocumentState False
+    Next toolbar
+    Set other = Documents.Add
+    RefreshWorkflowToolbarsIfVisible
+    For Each toolbar In WorkflowWindowsForTest()
+        Check InStr(toolbar.lblDocument.Caption, other.Name) > 0, "joint windows follow current document"
+    Next toolbar
+    other.Close wdDoNotSaveChanges
+    doc.Activate
+    writing.Left = 135: writing.Top = 167
+    final.Left = 221: final.Top = 181
+    references.Left = 267: references.Top = 193
+    writing.cboToolbars.ListIndex = 2
+    Check Not writing.Visible And final.Visible And references.Visible, "self toggle hides only selected window"
+    RefreshWorkflowToolbarsIfVisible
+    Check Not writing.Visible, "joint event keeps selected window hidden"
+    final.cboToolbars.ListIndex = 2
+    Check writing.Visible And writing.Left = 135 And writing.Top = 167, "other window reopens writing in saved position"
+    UnloadWorkflowToolbarsOnQuit
+    Check WorkflowLoadedCountForTest() = 0, "joint unload removes all new window instances"
+    Check quick.Visible And review.Visible, "new window unload preserves current legacy instances"
+    ShowWorkflowToolbar "Writing"
+    ShowWorkflowToolbar "Final"
+    ShowWorkflowToolbar "References"
+    Set writing = LoadedWindowForTest("frmWritingToolbar")
+    Set final = LoadedWindowForTest("frmFinalToolbar")
+    Set references = LoadedWindowForTest("frmReferencesToolbar")
+    Check writing.Left = 135 And writing.Top = 167, "writing independent position survives reload"
+    Check final.Left = 221 And final.Top = 181, "final independent position survives reload"
+    Check references.Left = 267 And references.Top = 193, "reference independent position survives reload"
+    doc.Close wdDoNotSaveChanges
+    RefreshWorkflowToolbarsIfVisible
+    Check Documents.Count = 0, "joint add-in remains available with no document"
+    For Each toolbar In WorkflowWindowsForTest()
+        Check toolbar.cboToolbars.Enabled, "window switch is available without a document"
+        Check Not toolbar.Controls("btn0").Enabled, "document action is disabled without a document"
+    Next toolbar
+    references.cboToolbars.ListIndex = 2
+    Check Not writing.Visible, "no-document menu hides another window"
+    references.cboToolbars.ListIndex = 2
+    Check writing.Visible, "no-document menu reopens another window"
+    SetQuickToolbarMsoTestMode True
+    RunWorkflowAction "mso:CaptionInsert"
+    Check GetLastQuickToolbarMsoForTest() = "", "no-document switch does not bypass action guard"
+    SetQuickToolbarMsoTestMode False
+    UnloadWorkflowToolbarsOnQuit
+    UnloadReviewToolbarOnQuit
+    UnloadQuickToolbarOnQuit
+    Check WorkflowLoadedCountForTest() = 0, "joint final teardown unloads new windows"
+    Set quick = LoadedWindowForTest("frmQuickToolbar")
+    Set review = LoadedWindowForTest("frmReviewToolbar")
+    Check quick Is Nothing, "joint teardown unloads current quick instance"
+    Check review Is Nothing, "joint teardown unloads current review instance"
+    RestoreWorkflowTestPositions
+    TestWorkflowJoint = "PASS WorkflowJoint (" & checks & " assertions; actual five-window menus, coexistence, positions and lifecycle)"
+    Exit Function
+Failed:
+    TestWorkflowJoint = "FAIL WorkflowJoint after " & checks & ": " & Err.Description
+End Function
+'@
+    $probeSource += [Environment]::NewLine + $jointProbe
     $methodProbe = @'
 Public Function TestWorkflowMethods() As String
     Dim toolbar As Object
@@ -510,7 +639,7 @@ End Function
     $finalProbe += "`r`n" + $methodProbe.Replace('__WORKFLOW_KIND__', $Kind)
     $probeSource += "`r`n" + $finalProbe
     $probe.CodeModule.AddFromString($probeSource.Replace('__WORKFLOW_PROGRESS_PATH__', $ProgressPath.Replace('"', '""')))
-    if ($CompileOnly) {
+    if ($CompileOnly -and $Kind -ne 'Joint') {
         Write-WorkflowTestProgress ('Execute ' + $Kind + ' state methods in hidden Word')
         $result = [string]$word.Run('TestWorkflowMethods')
     } else {
@@ -523,7 +652,7 @@ End Function
     Write-WorkflowTestProgress 'Load test add-in'
     $testAddin = $word.AddIns.Add($templatePath, $true)
     $testAddin.Installed = $true
-    $testMethod = switch ($Kind) { 'Final' { 'TestFinalToolbar' }; 'References' { 'TestReferencesToolbar' }; default { 'TestWritingToolbar' } }
+    $testMethod = switch ($Kind) { 'Final' { 'TestFinalToolbar' }; 'References' { 'TestReferencesToolbar' }; 'Joint' { 'TestWorkflowJoint' }; default { 'TestWritingToolbar' } }
     Write-WorkflowTestProgress ('Run ' + $Kind + ' toolbar assertions')
     $result = [string]$word.Run($testMethod)
     }

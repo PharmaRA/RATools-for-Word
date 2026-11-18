@@ -32,8 +32,13 @@ foreach ($toolbarKind in $Kind) {
         $designer = $component.Designer
         $designer.BackColor = 16447479
         $label = $designer.Controls.Add('Forms.Label.1','lblDocument',$true)
-        $label.Left = 10; $label.Top = 8; $label.Width = $definition.Width - 30; $label.Height = 28
+        $label.Left = 10; $label.Top = 8; $label.Width = $definition.Width - 190; $label.Height = 28
         $label.Caption = '当前文档'
+        $toolbarMenu = $designer.Controls.Add('Forms.ComboBox.1','cboToolbars',$true)
+        $toolbarMenu.Left = $definition.Width - 168; $toolbarMenu.Top = 8
+        $toolbarMenu.Width = 142; $toolbarMenu.Height = 24; $toolbarMenu.Style = 2
+        $toolbarMenu.ListWidth = 142; $toolbarMenu.Tag = '工具窗'
+        $toolbarMenu.ControlTipText = '显示或隐藏快捷、撰写、审阅、定稿或图表引用窗；各窗可以同时使用。'
         if ($toolbarKind -eq 'Final') {
             $snapshotLabel = $designer.Controls.Add('Forms.Label.1','lblSnapshot',$true)
             $snapshotLabel.Left = 10; $snapshotLabel.Top = 38; $snapshotLabel.Width = $definition.Width - 30; $snapshotLabel.Height = 30
@@ -64,9 +69,26 @@ foreach ($toolbarKind in $Kind) {
         $code.Add('    On Error GoTo 0')
         $code.Add('    RefreshDocumentState False')
         $code.Add('End Sub')
+        $code.Add('Private Sub cboToolbars_Change()')
+        $code.Add('    Dim kind As String')
+        $code.Add('    If mUpdating Or cboToolbars.ListIndex < 1 Then Exit Sub')
+        $code.Add('    Select Case cboToolbars.ListIndex')
+        $code.Add('        Case 1: kind = "Quick"')
+        $code.Add('        Case 2: kind = "Writing"')
+        $code.Add('        Case 3: kind = "Review"')
+        $code.Add('        Case 4: kind = "Final"')
+        $code.Add('        Case 5: kind = "References"')
+        $code.Add('    End Select')
+        $code.Add('    mUpdating = True: cboToolbars.ListIndex = 0: mUpdating = False')
+        $code.Add('    If Len(kind) > 0 Then ToggleWorkflowToolbar kind')
+        $code.Add('End Sub')
         $top = if ($toolbarKind -eq 'Final') { 110 } else { 42 }
         $buttonIndex = 0
         $menuInitializers = [Collections.Generic.List[string]]::new()
+        foreach ($windowLabel in @('工具窗','快捷悬浮窗','撰写悬浮窗','审阅悬浮窗','定稿悬浮窗','图表引用悬浮窗')) {
+            $menuInitializers.Add('    cboToolbars.AddItem ' + (VbaQuote $windowLabel))
+        }
+        $menuInitializers.Add('    cboToolbars.ListIndex = 0')
         foreach ($row in $definition.Rows) {
             if ($row[0]) {
                 $group = $designer.Controls.Add('Forms.Label.1', 'lblGroup' + $buttonIndex, $true)
@@ -156,7 +178,7 @@ foreach ($toolbarKind in $Kind) {
         $code.Add('    available = False: lblDocument.Caption = "当前文档不可用"')
         $code.Add('UpdateControls:')
         $code.Add('    For Each item In Me.Controls')
-        $code.Add('        If TypeName(item) = "CommandButton" Or TypeName(item) = "ComboBox" Then item.Enabled = available And Not busy')
+        $code.Add('        If TypeName(item) = "CommandButton" Or TypeName(item) = "ComboBox" Then item.Enabled = Not busy And (available Or item.Name = "cboToolbars")')
         $code.Add('    Next item')
         $code.Add('End Sub')
         } elseif ($toolbarKind -eq 'Final') {
@@ -225,7 +247,7 @@ Unavailable:
     Call ResetSnapshot: RenderSnapshot
 UpdateControls:
     For Each item In Me.Controls
-        If TypeName(item) = "CommandButton" Or TypeName(item) = "ComboBox" Then item.Enabled = available And Not busy
+        If TypeName(item) = "CommandButton" Or TypeName(item) = "ComboBox" Then item.Enabled = Not busy And (available Or item.Name = "cboToolbars")
     Next item
 End Sub
 Private Sub btnRefreshState_Click()
@@ -251,7 +273,7 @@ Unavailable:
     lblDocument.Caption = "当前文档不可用"
 UpdateControls:
     For Each item In Me.Controls
-        If TypeName(item) = "CommandButton" Or TypeName(item) = "ComboBox" Then item.Enabled = available And Not busy
+        If TypeName(item) = "CommandButton" Or TypeName(item) = "ComboBox" Then item.Enabled = Not busy And (available Or item.Name = "cboToolbars")
     Next item
 End Sub
 '@

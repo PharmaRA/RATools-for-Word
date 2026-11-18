@@ -26,6 +26,19 @@ Private Sub UserForm_Initialize()
     InitializeMenus
     RefreshDocumentState False
 End Sub
+Private Sub cboToolbars_Change()
+    Dim kind As String
+    If mUpdating Or cboToolbars.ListIndex < 1 Then Exit Sub
+    Select Case cboToolbars.ListIndex
+        Case 1: kind = "Quick"
+        Case 2: kind = "Writing"
+        Case 3: kind = "Review"
+        Case 4: kind = "Final"
+        Case 5: kind = "References"
+    End Select
+    mUpdating = True: cboToolbars.ListIndex = 0: mUpdating = False
+    If Len(kind) > 0 Then ToggleWorkflowToolbar kind
+End Sub
 Private Sub btn0_Click()
     RunWorkflowAction "style:标题1-F"
 End Sub
@@ -189,6 +202,13 @@ Private Sub cbolayout_DropButtonClick()
 End Sub
 Private Sub InitializeMenus()
     mUpdating = True
+    cboToolbars.AddItem "工具窗"
+    cboToolbars.AddItem "快捷悬浮窗"
+    cboToolbars.AddItem "撰写悬浮窗"
+    cboToolbars.AddItem "审阅悬浮窗"
+    cboToolbars.AddItem "定稿悬浮窗"
+    cboToolbars.AddItem "图表引用悬浮窗"
+    cboToolbars.ListIndex = 0
     cbostyles.AddItem "更多样式"
     cbostyles.AddItem "— 编号标题 —"
     cbostyles.AddItem "标题 5"
@@ -242,7 +262,7 @@ Unavailable:
     available = False: lblDocument.Caption = "当前文档不可用"
 UpdateControls:
     For Each item In Me.Controls
-        If TypeName(item) = "CommandButton" Or TypeName(item) = "ComboBox" Then item.Enabled = available And Not busy
+        If TypeName(item) = "CommandButton" Or TypeName(item) = "ComboBox" Then item.Enabled = Not busy And (available Or item.Name = "cboToolbars")
     Next item
 End Sub
 Private Sub UserForm_Activate(): RefreshWorkflowToolbarsIfVisible: End Sub
@@ -253,6 +273,9 @@ Public Sub SaveToolbarPosition()
 End Sub
 Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer): SaveToolbarPosition: End Sub
 Private Sub lblDocument_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+    EnsureTooltipOnTop Me.Caption
+End Sub
+Private Sub cboToolbars_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
     EnsureTooltipOnTop Me.Caption
 End Sub
 Private Sub lblGroup0_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)

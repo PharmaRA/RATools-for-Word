@@ -2,7 +2,7 @@
 
 记录日期：2026-11-17。
 
-状态：2026-11-17 用户已授权按本文顺序逐项实施；每项完成测试、只读 review、CHANGELOG 更新后独立提交。2026-11-18 已提交撰写窗和定稿窗，图表引用窗已实现并完成本机限定验证；实际结果及人工依赖记在第 8 节，继续联合交付。
+状态：2026-11-17 用户已授权按本文顺序逐项实施；每项完成测试、只读 review、CHANGELOG 更新后独立提交。2026-11-18 撰写窗、定稿窗和图表引用窗已分别提交，统一入口、联合成品及本机限定验收已完成；实际结果与尚待补验的人工依赖见第 8 节。
 
 工作区：`.worktrees/workflow-toolbars`，分支：`feat/workflow-toolbars`。已有审阅悬浮窗的实现与验证见[审阅悬浮窗实施与验收](review-toolbar-plan.md)。本文描述其后的三个工具窗，不重新设计已交付的审阅窗。
 
@@ -254,3 +254,29 @@ RATools → 工具窗 ▾
 | 限定只读 review | 限定只读 review 已完成，未发现具体代码阻断；FRX 仅审阅文件元数据，控件属性由真实方法检查覆盖 | 子代理审阅结果 |
 
 人工依赖：恢复本机 Word 许可后重跑完整图表专项，补验真实表/图样式不产生自动编号、当前表适宽、剪贴板一次粘贴与引用目标、无文档、位置恢复，以及原生对话框、菜单、焦点、提示和 Office/DPI 显示组合。按第 6 节继续联合交付，不重跑此前撰写、定稿的许可阻断测试。
+
+### 8.4 联合交付（2026-11-18）
+
+功能区和三个新窗顶部统一提供五类工具窗入口，复用既有窗口切换，可同时显示、分别记住位置。无文档时保留窗口切换能力，文档操作禁用；忙碌时禁用菜单。快捷窗与审阅窗直接入口保留。使用手册、索引和 47 个撰写动作、13 个定稿动作、27 个图表动作及 5 个统一功能区入口的覆盖映射已同步。
+
+撰写、定稿、图表引用窗分别提交为 72d2b0b、f0c596f、3be65a0。联合交付同时将同一路径 DOTM 的保存改为当前模板 Save，并补齐真实窗口实例、独立位置、生命周期及包内源码/控件一致性检查。
+
+备份：backups/workflow-toolbars-resume-20261118-135946/phase4-before/；本项证据：backups/workflow-toolbars-resume-20261118-135946/verification/。
+
+| 实际执行命令 | 最终退出码与结果 | 证据 |
+| --- | --- | --- |
+| powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./scripts/Sync-WorkflowToolbarForms.ps1 -Kind Writing | 0，生成带统一菜单的真实 FRM/FRX | joint-generation-writing-01.log |
+| powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./scripts/Sync-WorkflowToolbarForms.ps1 -Kind Final | 0，生成带统一菜单的真实 FRM/FRX | joint-generation-final-01.log |
+| powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./scripts/Sync-WorkflowToolbarForms.ps1 -Kind References | 0，生成带统一菜单的真实 FRM/FRX | joint-generation-references-01.log |
+| powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./tests/SourceCompile.Tests.ps1 | 0，全部源码导入及标准模块、类/窗体引用编译探针通过 | joint-sourcecompile-01.log |
+| python -B ./scripts/docs/check_docs.py --workflow-only | 0，47+13+27 个动作及 5 个功能区入口覆盖、标签与手册显式锚点检查通过；未执行整站检查 | joint-docs-02.log；01 次缺少 markdown 退出 1，限定模式改用标准库锚点解析 |
+| powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./tests/WorkflowToolbarIntegration.Tests.ps1 -ProgressPath backups/workflow-toolbars-resume-20261118-135946/verification/joint-windows-progress-02.log | 0，45 项断言通过；隐藏 Word 应用中通过真实菜单显示五窗，核对实际实例、共存、独立位置、文档切换、无文档开关和最终卸载 | joint-windows-02.log、joint-windows-progress-02.log |
+| powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./scripts/Build-RAToolsDotm.ps1 -Version v0.8.8_workflow-toolbars_20261118 -AppVersion v0.8.8 -NoSyncDotmDirectory -OutputPath C:/Repositories/RATools-for-Word/.worktrees/workflow-toolbars/dist/RATools_v0.8.8_workflow-toolbars_20261118.dotm | 0，完成真实 VBA 导入、Save 保存、元数据清理和 DOTM 成品；未回写解包目录 | joint-build-01.log |
+| powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./tests/WorkflowToolbarPackage.Tests.ps1 -PackagePath C:/Repositories/RATools-for-Word/.worktrees/workflow-toolbars/dist/RATools_v0.8.8_workflow-toolbars_20261118.dotm | 0，34 个标准模块匹配，45 个源码组件齐全；共用分发、事件及三窗共 5 个直接组件方法体一致，50 个操作控件、三窗非模态和统一功能区检查通过 | joint-package-04.log |
+| 限定只读 review | 无剩余静态阻断；真实旧窗实例/卸载、对象集合遍历及包内导出探针的复审已闭合 | 子代理限定复审结果，未运行代理侧测试 |
+
+失败与修复保留：联合窗口首跑在第 13 项后因 Array 对象遍历报“要求对象”，退出 1，改为实际已加载窗体对象集合并补旧窗实例及卸载断言后重跑通过。成品探针 01–02 次在保存后 Properties 调用处空对象，改为临时可写副本导出；03 次在 PowerShell 5.1 默认编码读取源码 XML 处失败，改为显式 UTF-8 后 04 次整包验收退出 0。上述临时副本和本次测试 Word 实例按已审查的自身实例/回收站流程收尾，不把先前局部通过当成最终 PASS。
+
+成品：[RATools_v0.8.8_workflow-toolbars_20261118.dotm](../dist/RATools_v0.8.8_workflow-toolbars_20261118.dotm)，402332 字节；SHA-256：B739B8CA1ADD5C81DB044267A7478BD8C63CDA1D06E4061425898FD1A9F4B3CB。本地成品已核对，未推送、合并或安装到 Word 启动目录。
+
+人工依赖与验证边界：恢复本机 Word 许可后，仍需补撰写/定稿/图表各窗的完整可见编辑、真实样式与颜色、当前表格范围、实际剪贴板粘贴与引用目标、原生对话框焦点，以及视觉、Office 位数和 DPI 组合确认。45 项联动验收验证窗口菜单与生命周期，不替代这些编辑和视觉场景；本轮未运行完整回归或文档整站构建。

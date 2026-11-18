@@ -1,5 +1,30 @@
 {
   "ribbon": {
+    "id:btnWorkflowQuickToolbar": {
+      "label": "快捷悬浮窗",
+      "action": "ToggleQuickToolbar",
+      "target": "interface.md#workflow-toolbars"
+    },
+    "id:btnWritingToolbar": {
+      "label": "撰写悬浮窗",
+      "action": "ToggleWritingToolbar",
+      "target": "interface.md#writing-toolbar"
+    },
+    "id:btnWorkflowReviewToolbar": {
+      "label": "审阅悬浮窗",
+      "action": "ToggleReviewToolbar",
+      "target": "interface.md#workflow-toolbars"
+    },
+    "id:btnFinalToolbar": {
+      "label": "定稿悬浮窗",
+      "action": "ToggleFinalToolbar",
+      "target": "interface.md#final-toolbar"
+    },
+    "id:btnReferencesToolbar": {
+      "label": "图表引用悬浮窗",
+      "action": "ToggleReferencesToolbar",
+      "target": "interface.md#references-toolbar"
+    },
     "id:btnLogo": {
       "label": "加载",
       "action": "AttachTemplate",
@@ -727,6 +752,447 @@
       "label": "",
       "action": "detect_highlights",
       "target": "highlights.md"
+    }
+  },
+  "writingToolbar": {
+    "autofit_all_tables": {
+      "label": "",
+      "action": "autofit_all_tables",
+      "target": "interface.md#writing-toolbar"
+    },
+    "autofit_table": {
+      "label": "",
+      "action": "autofit_table",
+      "target": "interface.md#writing-toolbar"
+    },
+    "batch_margins": {
+      "label": "",
+      "action": "batch_margins",
+      "target": "interface.md#writing-toolbar"
+    },
+    "extract_abbreviations": {
+      "label": "",
+      "action": "extract_abbreviations",
+      "target": "interface.md#writing-toolbar"
+    },
+    "link_sections": {
+      "label": "",
+      "action": "link_sections",
+      "target": "interface.md#writing-toolbar"
+    },
+    "mso:ClearFormatting": {
+      "label": "",
+      "action": "mso:ClearFormatting",
+      "target": "interface.md#writing-toolbar"
+    },
+    "mso:FootnoteInsert": {
+      "label": "",
+      "action": "mso:FootnoteInsert",
+      "target": "interface.md#writing-toolbar"
+    },
+    "mso:FormatPainter": {
+      "label": "",
+      "action": "mso:FormatPainter",
+      "target": "interface.md#writing-toolbar"
+    },
+    "mso:PageBreakInsertWord": {
+      "label": "",
+      "action": "mso:PageBreakInsertWord",
+      "target": "interface.md#writing-toolbar"
+    },
+    "mso:PageSetupDialog": {
+      "label": "",
+      "action": "mso:PageSetupDialog",
+      "target": "interface.md#writing-toolbar"
+    },
+    "mso:ParagraphDialog": {
+      "label": "",
+      "action": "mso:ParagraphDialog",
+      "target": "interface.md#writing-toolbar"
+    },
+    "mso:SectionBreakInsert": {
+      "label": "",
+      "action": "mso:SectionBreakInsert",
+      "target": "interface.md#writing-toolbar"
+    },
+    "mso:Subscript": {
+      "label": "",
+      "action": "mso:Subscript",
+      "target": "interface.md#writing-toolbar"
+    },
+    "mso:Superscript": {
+      "label": "",
+      "action": "mso:Superscript",
+      "target": "interface.md#writing-toolbar"
+    },
+    "normalize_terms": {
+      "label": "",
+      "action": "normalize_terms",
+      "target": "interface.md#writing-toolbar"
+    },
+    "page_break_before": {
+      "label": "",
+      "action": "page_break_before",
+      "target": "interface.md#writing-toolbar"
+    },
+    "style:参考文献列表-F": {
+      "label": "",
+      "action": "style:参考文献列表-F",
+      "target": "interface.md#writing-toolbar"
+    },
+    "style:无编号标题1-F": {
+      "label": "",
+      "action": "style:无编号标题1-F",
+      "target": "interface.md#writing-toolbar"
+    },
+    "style:无编号标题2-F": {
+      "label": "",
+      "action": "style:无编号标题2-F",
+      "target": "interface.md#writing-toolbar"
+    },
+    "style:无编号标题3-F": {
+      "label": "",
+      "action": "style:无编号标题3-F",
+      "target": "interface.md#writing-toolbar"
+    },
+    "style:无编号标题4-F": {
+      "label": "",
+      "action": "style:无编号标题4-F",
+      "target": "interface.md#writing-toolbar"
+    },
+    "style:无编号标题5-F": {
+      "label": "",
+      "action": "style:无编号标题5-F",
+      "target": "interface.md#writing-toolbar"
+    },
+    "style:无编号标题6-F": {
+      "label": "",
+      "action": "style:无编号标题6-F",
+      "target": "interface.md#writing-toolbar"
+    },
+    "style:无编号标题7-F": {
+      "label": "",
+      "action": "style:无编号标题7-F",
+      "target": "interface.md#writing-toolbar"
+    },
+    "style:无编号标题8-F": {
+      "label": "",
+      "action": "style:无编号标题8-F",
+      "target": "interface.md#writing-toolbar"
+    },
+    "style:无编号标题9-F": {
+      "label": "",
+      "action": "style:无编号标题9-F",
+      "target": "interface.md#writing-toolbar"
+    },
+    "style:标题1-F": {
+      "label": "",
+      "action": "style:标题1-F",
+      "target": "interface.md#writing-toolbar"
+    },
+    "style:标题2-F": {
+      "label": "",
+      "action": "style:标题2-F",
+      "target": "interface.md#writing-toolbar"
+    },
+    "style:标题3-F": {
+      "label": "",
+      "action": "style:标题3-F",
+      "target": "interface.md#writing-toolbar"
+    },
+    "style:标题4-F": {
+      "label": "",
+      "action": "style:标题4-F",
+      "target": "interface.md#writing-toolbar"
+    },
+    "style:标题5-F": {
+      "label": "",
+      "action": "style:标题5-F",
+      "target": "interface.md#writing-toolbar"
+    },
+    "style:标题6-F": {
+      "label": "",
+      "action": "style:标题6-F",
+      "target": "interface.md#writing-toolbar"
+    },
+    "style:标题7-F": {
+      "label": "",
+      "action": "style:标题7-F",
+      "target": "interface.md#writing-toolbar"
+    },
+    "style:标题8-F": {
+      "label": "",
+      "action": "style:标题8-F",
+      "target": "interface.md#writing-toolbar"
+    },
+    "style:标题9-F": {
+      "label": "",
+      "action": "style:标题9-F",
+      "target": "interface.md#writing-toolbar"
+    },
+    "style:标题居中-F": {
+      "label": "",
+      "action": "style:标题居中-F",
+      "target": "interface.md#writing-toolbar"
+    },
+    "style:标题左对齐-F": {
+      "label": "",
+      "action": "style:标题左对齐-F",
+      "target": "interface.md#writing-toolbar"
+    },
+    "style:正文-F": {
+      "label": "",
+      "action": "style:正文-F",
+      "target": "interface.md#writing-toolbar"
+    },
+    "style:正文无缩进-F": {
+      "label": "",
+      "action": "style:正文无缩进-F",
+      "target": "interface.md#writing-toolbar"
+    },
+    "style:正文无间距-F": {
+      "label": "",
+      "action": "style:正文无间距-F",
+      "target": "interface.md#writing-toolbar"
+    },
+    "style:编号列表-F": {
+      "label": "",
+      "action": "style:编号列表-F",
+      "target": "interface.md#writing-toolbar"
+    },
+    "style:脚注-F": {
+      "label": "",
+      "action": "style:脚注-F",
+      "target": "interface.md#writing-toolbar"
+    },
+    "style:页眉-F": {
+      "label": "",
+      "action": "style:页眉-F",
+      "target": "interface.md#writing-toolbar"
+    },
+    "style:页脚-F": {
+      "label": "",
+      "action": "style:页脚-F",
+      "target": "interface.md#writing-toolbar"
+    },
+    "style:项目符号列表-F": {
+      "label": "",
+      "action": "style:项目符号列表-F",
+      "target": "interface.md#writing-toolbar"
+    },
+    "style_pane": {
+      "label": "",
+      "action": "style_pane",
+      "target": "interface.md#writing-toolbar"
+    },
+    "text_blue": {
+      "label": "",
+      "action": "text_blue",
+      "target": "interface.md#writing-toolbar"
+    }
+  },
+  "finalToolbar": {
+    "accept_revisions_comments": {
+      "label": "",
+      "action": "accept_revisions_comments",
+      "target": "interface.md#final-toolbar"
+    },
+    "detect_clean_versions": {
+      "label": "",
+      "action": "detect_clean_versions",
+      "target": "interface.md#final-toolbar"
+    },
+    "detect_highlights": {
+      "label": "",
+      "action": "detect_highlights",
+      "target": "interface.md#final-toolbar"
+    },
+    "export_pdf": {
+      "label": "",
+      "action": "export_pdf",
+      "target": "interface.md#final-toolbar"
+    },
+    "heading_numbers_text": {
+      "label": "",
+      "action": "heading_numbers_text",
+      "target": "interface.md#final-toolbar"
+    },
+    "mso:FieldsUpdate": {
+      "label": "",
+      "action": "mso:FieldsUpdate",
+      "target": "interface.md#final-toolbar"
+    },
+    "mso:TableOfContentsUpdate": {
+      "label": "",
+      "action": "mso:TableOfContentsUpdate",
+      "target": "interface.md#final-toolbar"
+    },
+    "mso:TableOfFiguresUpdate": {
+      "label": "",
+      "action": "mso:TableOfFiguresUpdate",
+      "target": "interface.md#final-toolbar"
+    },
+    "open_folder": {
+      "label": "",
+      "action": "open_folder",
+      "target": "interface.md#final-toolbar"
+    },
+    "protect_field_format": {
+      "label": "",
+      "action": "protect_field_format",
+      "target": "interface.md#final-toolbar"
+    },
+    "refresh_final_state": {
+      "label": "",
+      "action": "refresh_final_state",
+      "target": "interface.md#final-toolbar"
+    },
+    "rename_current": {
+      "label": "",
+      "action": "rename_current",
+      "target": "interface.md#final-toolbar"
+    },
+    "save_current": {
+      "label": "",
+      "action": "save_current",
+      "target": "interface.md#final-toolbar"
+    }
+  },
+  "referencesToolbar": {
+    "autofit_table": {
+      "label": "",
+      "action": "autofit_table",
+      "target": "interface.md#references-toolbar"
+    },
+    "caption_pair": {
+      "label": "",
+      "action": "caption_pair",
+      "target": "interface.md#references-toolbar"
+    },
+    "links_fields_blue": {
+      "label": "",
+      "action": "links_fields_blue",
+      "target": "interface.md#references-toolbar"
+    },
+    "mso:CaptionInsert": {
+      "label": "",
+      "action": "mso:CaptionInsert",
+      "target": "interface.md#references-toolbar"
+    },
+    "mso:CrossReferenceInsert": {
+      "label": "",
+      "action": "mso:CrossReferenceInsert",
+      "target": "interface.md#references-toolbar"
+    },
+    "mso:FieldsUpdate": {
+      "label": "",
+      "action": "mso:FieldsUpdate",
+      "target": "interface.md#references-toolbar"
+    },
+    "mso:TableBordersMenu": {
+      "label": "",
+      "action": "mso:TableBordersMenu",
+      "target": "interface.md#references-toolbar"
+    },
+    "mso:TableInsertGallery": {
+      "label": "",
+      "action": "mso:TableInsertGallery",
+      "target": "interface.md#references-toolbar"
+    },
+    "mso:TableOfFiguresInsert": {
+      "label": "",
+      "action": "mso:TableOfFiguresInsert",
+      "target": "interface.md#references-toolbar"
+    },
+    "mso:TableOfFiguresUpdate": {
+      "label": "",
+      "action": "mso:TableOfFiguresUpdate",
+      "target": "interface.md#references-toolbar"
+    },
+    "mso:TableRepeatHeaderRows": {
+      "label": "",
+      "action": "mso:TableRepeatHeaderRows",
+      "target": "interface.md#references-toolbar"
+    },
+    "mso:TableSplitTable": {
+      "label": "",
+      "action": "mso:TableSplitTable",
+      "target": "interface.md#references-toolbar"
+    },
+    "mso:TextWrappingInLineWithText": {
+      "label": "",
+      "action": "mso:TextWrappingInLineWithText",
+      "target": "interface.md#references-toolbar"
+    },
+    "paste_relink": {
+      "label": "",
+      "action": "paste_relink",
+      "target": "interface.md#references-toolbar"
+    },
+    "protect_field_format": {
+      "label": "",
+      "action": "protect_field_format",
+      "target": "interface.md#references-toolbar"
+    },
+    "restore_caption_labels": {
+      "label": "",
+      "action": "restore_caption_labels",
+      "target": "interface.md#references-toolbar"
+    },
+    "style:图标题-F": {
+      "label": "",
+      "action": "style:图标题-F",
+      "target": "interface.md#references-toolbar"
+    },
+    "style:图片-F": {
+      "label": "",
+      "action": "style:图片-F",
+      "target": "interface.md#references-toolbar"
+    },
+    "style:表头右对齐-F": {
+      "label": "",
+      "action": "style:表头右对齐-F",
+      "target": "interface.md#references-toolbar"
+    },
+    "style:表头居中-F": {
+      "label": "",
+      "action": "style:表头居中-F",
+      "target": "interface.md#references-toolbar"
+    },
+    "style:表头左对齐-F": {
+      "label": "",
+      "action": "style:表头左对齐-F",
+      "target": "interface.md#references-toolbar"
+    },
+    "style:表标题-F": {
+      "label": "",
+      "action": "style:表标题-F",
+      "target": "interface.md#references-toolbar"
+    },
+    "style:表格文本右对齐-F": {
+      "label": "",
+      "action": "style:表格文本右对齐-F",
+      "target": "interface.md#references-toolbar"
+    },
+    "style:表格文本居中-F": {
+      "label": "",
+      "action": "style:表格文本居中-F",
+      "target": "interface.md#references-toolbar"
+    },
+    "style:表格文本左对齐-F": {
+      "label": "",
+      "action": "style:表格文本左对齐-F",
+      "target": "interface.md#references-toolbar"
+    },
+    "style:表格文本无间距-F": {
+      "label": "",
+      "action": "style:表格文本无间距-F",
+      "target": "interface.md#references-toolbar"
+    },
+    "style:表格注释-F": {
+      "label": "",
+      "action": "style:表格注释-F",
+      "target": "interface.md#references-toolbar"
     }
   }
 }

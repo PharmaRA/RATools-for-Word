@@ -29,6 +29,10 @@ End Sub
 Public Sub ToggleWorkflowToolbar(ByVal kind As String)
     Dim toolbar As Object
     On Error GoTo Failed
+    Select Case kind
+        Case "Quick": ToggleQuickToolbar Nothing: Exit Sub
+        Case "Review": ToggleReviewToolbar Nothing: Exit Sub
+    End Select
     Set toolbar = LoadedWorkflowForm("frm" & kind & "Toolbar")
     If Not toolbar Is Nothing Then
         If toolbar.Visible Then

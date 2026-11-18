@@ -77,7 +77,7 @@ function Import-RAToolsVbaSourcesIntoDotm {
         }
 
         Write-Host "Saving updated dotm"
-        $document.SaveAs2($DotmPath, $wdFormatXMLTemplateMacroEnabled)
+        $document.Save()
         $document.Saved = $true
     }
     catch {

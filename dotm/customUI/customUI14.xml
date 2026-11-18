@@ -275,10 +275,14 @@
 				</group>
 
                 <!-- == 常用宏 == -->
-				<group id="grpWorkflow" label="阶段工具窗">
+				<group id="grpWorkflow" label="工具窗">
+                    <menu id="menuWorkflowToolbars" label="工具窗" image="QuickToolbar" size="large">
+                        <button id="btnWorkflowQuickToolbar" label="快捷悬浮窗" onAction="ToggleQuickToolbar"/>
 					<button id="btnWritingToolbar" label="撰写悬浮窗" imageMso="StylesPane" onAction="ToggleWritingToolbar" screentip="撰写与排版工具"/>
+					<button id="btnWorkflowReviewToolbar" label="审阅悬浮窗" onAction="ToggleReviewToolbar"/>
 					<button id="btnFinalToolbar" label="定稿悬浮窗" imageMso="FilePrintPreview" onAction="ToggleFinalToolbar" screentip="定稿前检查与交付"/>
 					<button id="btnReferencesToolbar" label="图表引用悬浮窗" imageMso="CrossReferenceInsert" onAction="ToggleReferencesToolbar" screentip="图表题注与引用工具"/>
+                    </menu>
 				</group>
 				<group id="grpMyMacro" label="宏列表">
 					<button id="btnShowMacros" imageMso="MacroPlay" size="large" showLabel="false" onAction="ShowMacroListWindow" />

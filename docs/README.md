@@ -5,7 +5,7 @@
 - [使用手册首页](manual/index.md)：按任务查找功能，或阅读完整导航。
 - [安装、更新与停用](manual/installation.md)
 - [第一次使用](manual/quick-start.md)
-- [全部注册宏与快捷悬浮窗](manual/interface.md)
+- [注册宏、统一入口与阶段悬浮窗](manual/interface.md)
 - [常见工作流程](manual/workflows.md)
 - [常见问题](manual/faq.md)
 - [自定义模板与扩展宏](manual/customization.md)
@@ -20,5 +20,5 @@
 - [功能覆盖映射](feature-map.json)：功能区、注册宏、悬浮窗到手册章节的逐项对应，由检查脚本核对。
 - [代码审阅与逐项修复计划](code-review-2026-11-10.md)：发现项、验收条件和提交进度。
 - [审阅悬浮窗实施与验收](review-toolbar-plan.md)：已确认范围、实现与验证记录，以及阶段工具窗工作区 `.worktrees/workflow-toolbars` 的位置和用途。
-- [阶段悬浮窗方案：撰写、定稿与图表引用](workflow-toolbars-plan.md)：功能分区、逐行按钮布局、菜单内容、快捷窗关系与逐项实施、验证记录。
+- [阶段工具窗实施与验收](workflow-toolbars-plan.md)：统一入口、撰写/定稿/图表引用布局及逐项验证；联合成品与人工依赖见第 8.4 节。
 - [v0.8 重构路线图](refactor-roadmap-v0.8.md)

@@ -30,6 +30,19 @@ Private Sub UserForm_Initialize()
     InitializeMenus
     RefreshDocumentState False
 End Sub
+Private Sub cboToolbars_Change()
+    Dim kind As String
+    If mUpdating Or cboToolbars.ListIndex < 1 Then Exit Sub
+    Select Case cboToolbars.ListIndex
+        Case 1: kind = "Quick"
+        Case 2: kind = "Writing"
+        Case 3: kind = "Review"
+        Case 4: kind = "Final"
+        Case 5: kind = "References"
+    End Select
+    mUpdating = True: cboToolbars.ListIndex = 0: mUpdating = False
+    If Len(kind) > 0 Then ToggleWorkflowToolbar kind
+End Sub
 Private Sub btn0_Click()
     RunWorkflowAction "detect_clean_versions"
 End Sub
@@ -68,6 +81,13 @@ Private Sub btn11_Click()
 End Sub
 Private Sub InitializeMenus()
     mUpdating = True
+    cboToolbars.AddItem "¹¤¾ß´°"
+    cboToolbars.AddItem "¿ì½ÝÐü¸¡´°"
+    cboToolbars.AddItem "×«Ð´Ðü¸¡´°"
+    cboToolbars.AddItem "ÉóÔÄÐü¸¡´°"
+    cboToolbars.AddItem "¶¨¸åÐü¸¡´°"
+    cboToolbars.AddItem "Í¼±íÒýÓÃÐü¸¡´°"
+    cboToolbars.ListIndex = 0
     mUpdating = False
 End Sub
 Private Sub ResetSnapshot()
@@ -134,7 +154,7 @@ Unavailable:
     Call ResetSnapshot: RenderSnapshot
 UpdateControls:
     For Each item In Me.Controls
-        If TypeName(item) = "CommandButton" Or TypeName(item) = "ComboBox" Then item.Enabled = available And Not busy
+        If TypeName(item) = "CommandButton" Or TypeName(item) = "ComboBox" Then item.Enabled = Not busy And (available Or item.Name = "cboToolbars")
     Next item
 End Sub
 Private Sub btnRefreshState_Click()
@@ -148,6 +168,9 @@ Public Sub SaveToolbarPosition()
 End Sub
 Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer): SaveToolbarPosition: End Sub
 Private Sub lblDocument_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+    EnsureTooltipOnTop Me.Caption
+End Sub
+Private Sub cboToolbars_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
     EnsureTooltipOnTop Me.Caption
 End Sub
 Private Sub lblSnapshot_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
