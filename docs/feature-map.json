@@ -557,6 +557,11 @@
       "action": "BatchAcceptAndClean",
       "target": "clean-documents.md"
     },
+    "BatchDetectCleanVersions": {
+      "label": "批量检测 clean 版本",
+      "action": "BatchDetectCleanVersions",
+      "target": "clean-documents.md"
+    },
     "LinkToThePreviousSection": {
       "label": "页眉和页脚设置为“链接到前一节”",
       "action": "LinkToThePreviousSection",
