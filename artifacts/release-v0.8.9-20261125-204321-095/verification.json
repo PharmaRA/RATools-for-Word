@@ -1,0 +1,26 @@
+{
+  "version": "v0.8.9",
+  "platform": "Windows",
+  "package": "dist/RATools_v0.8.9.dotm",
+  "package_bytes": 438428,
+  "package_sha256": "5D57E880182B69643F7B41D47A7D4AB51BE57DB6D2AD441DAEA9F8EFD11F38DF",
+  "build": {
+    "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Build-RAToolsDotm.ps1 -Version v0.8.9 -AppVersion v0.8.9 -OutputPath dist/RATools_v0.8.9.dotm",
+    "exit_code": 0,
+    "log": "build.log"
+  },
+  "package_verification": {
+    "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/BuiltPackage.Tests.ps1 -PackagePath dist/RATools_v0.8.9.dotm",
+    "exit_code": 0,
+    "standard_modules_matching_source": 33,
+    "source_components_present": 44,
+    "log": "package-verification.log"
+  },
+  "package_directory_verification": {
+    "algorithm": "SHA256",
+    "matching_parts": 51,
+    "result": "PASS"
+  },
+  "build_temporary_directory_recycled": true,
+  "full_functional_regression_run": false
+}
