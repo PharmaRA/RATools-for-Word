@@ -26,11 +26,16 @@ Private Const BUTTON_ROW_STEP As Single = 25
 Private Const BUTTON_COLUMN_GAP As Single = 3
 Private Const BUTTON_GROUP_GAP As Single = 4
 
+Private m_HoverButtons As Collection
+Private m_Dividers As Collection
+Private m_ThemeApplied As Boolean
+Private m_LastDark As Boolean
+
 Private Sub UserForm_Initialize()
     Me.Caption = "RATools"
     Me.Width = TOOLBAR_WIDTH
     Me.Height = TOOLBAR_HEIGHT
-    Me.BackColor = RGB(247, 248, 250)
+    Set m_HoverButtons = New Collection
 
     ConfigureButton Me.btnHeading1, 0, 0, 4, 0
     ConfigureButton Me.btnHeading2, 0, 1, 4, 1
@@ -57,10 +62,42 @@ Private Sub UserForm_Initialize()
     ConfigureButton Me.btnAcceptRevisionsComments, 5, 2, 4, 22
     ConfigureButton Me.btnDetectHighlights, 5, 3, 4, 23
 
+    CreateGroupDividers
+    ApplyTheme True
     RestoreToolbarPosition
 End Sub
 
+Private Sub UserForm_Activate()
+    ApplyTheme True
+End Sub
+
+Public Sub ApplyTheme(Optional ByVal force As Boolean = False)
+    Dim darkNow As Boolean
+    Dim divCtrl As MSForms.Label
+
+    darkNow = IsOfficeDarkTheme()
+    If m_ThemeApplied And Not force And (darkNow = m_LastDark) Then Exit Sub
+
+    ApplyFormBaseTheme Me
+    If Not m_Dividers Is Nothing Then
+        For Each divCtrl In m_Dividers
+            StyleDividerLine divCtrl
+        Next divCtrl
+    End If
+    RefreshHoverButtons m_HoverButtons
+    ApplyFormWindowChrome Me.Caption, False
+
+    m_LastDark = darkNow
+    m_ThemeApplied = True
+End Sub
+
+Public Sub OnHoverControlChanged(ByVal activeItem As Object)
+    ResetHoverButtons m_HoverButtons, activeItem
+    RefreshTooltipWatch
+End Sub
+
 Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+    ResetHoverButtons m_HoverButtons
     RefreshTooltipWatch
 End Sub
 
@@ -75,17 +112,47 @@ Private Sub ConfigureButton(ByVal buttonItem As MSForms.Label, _
         .Left = GetButtonLeft(columnIndex, columnCount)
         .Top = GetButtonTop(rowIndex)
         .BackStyle = fmBackStyleOpaque
-        .BackColor = RGB(255, 255, 255)
+        .BackColor = ThemeToolbarTileColor()
         .BorderStyle = fmBorderStyleSingle
-        .BorderColor = RGB(221, 226, 232)
+        .BorderColor = ThemeToolbarTileBorderColor()
+        .SpecialEffect = fmSpecialEffectFlat
         .PicturePosition = fmPicturePositionCenter
         .TextAlign = fmTextAlignCenter
-        .tabIndex = tabIndex
+        .TabIndex = tabIndex
         .Font.Name = "Microsoft YaHei"
         .Font.Size = 7
     End With
 
     If HasButtonPicture(buttonItem) Then buttonItem.Caption = vbNullString
+    RegisterHoverButton m_HoverButtons, buttonItem, "toolbar", Me
+End Sub
+
+Private Sub CreateGroupDividers()
+    Dim gapRows As Variant
+    Dim idx As Long
+    Dim gapRow As Long
+    Dim prevBottom As Single
+    Dim nextTop As Single
+    Dim rowWidth As Single
+    Dim divCtrl As MSForms.Label
+
+    Set m_Dividers = New Collection
+    gapRows = Array(2, 4, 5)
+    rowWidth = 4 * BUTTON_WIDTH + 3 * BUTTON_COLUMN_GAP
+
+    On Error Resume Next
+    For idx = LBound(gapRows) To UBound(gapRows)
+        gapRow = CLng(gapRows(idx))
+        prevBottom = GetButtonTop(gapRow - 1) + BUTTON_HEIGHT
+        nextTop = GetButtonTop(gapRow)
+        Set divCtrl = Me.Controls.Add("Forms.Label.1", "divGroup" & CStr(idx + 1), True)
+        If Not divCtrl Is Nothing Then
+            divCtrl.Move GetButtonLeft(0, 4), prevBottom + (nextTop - prevBottom - 0.75) / 2, rowWidth, 0.75
+            StyleDividerLine divCtrl
+            m_Dividers.Add divCtrl
+        End If
+    Next idx
+    On Error GoTo 0
 End Sub
 
 Private Function GetButtonLeft(ByVal columnIndex As Long, _
@@ -321,6 +388,8 @@ End Sub
 
 Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
     SaveToolbarPosition
+    ClearHoverButtons m_HoverButtons
+    Set m_Dividers = Nothing
 End Sub
 
 Private Sub UserForm_Terminate()

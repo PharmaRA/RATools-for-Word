@@ -56,9 +56,15 @@ Private Declare PtrSafe Function GetWindowThreadProcessId Lib "user32" ( _
 Private Declare PtrSafe Function GetClassName Lib "user32" Alias "GetClassNameA" ( _
     ByVal hWnd As LongPtr, ByVal className As String, ByVal maxCount As Long) As Long
 Private Declare PtrSafe Function GetCurrentProcessId Lib "kernel32" () As Long
+Private Declare PtrSafe Function DwmSetWindowAttribute Lib "dwmapi.dll" ( _
+    ByVal hWnd As LongPtr, ByVal dwAttribute As Long, _
+    ByRef pvAttribute As Long, ByVal cbAttribute As Long) As Long
+Private Declare PtrSafe Function LoadCursor Lib "user32" Alias "LoadCursorA" ( _
+    ByVal hInstance As LongPtr, ByVal lpCursorName As LongPtr) As LongPtr
+Private Declare PtrSafe Function SetCursor Lib "user32" ( _
+    ByVal hCursor As LongPtr) As LongPtr
 Private Const MAX_TOOLTIP_WIDTH As Long = 400
 Private Const MAX_TOOLTIP_HEIGHT As Long = 60
-
 
 ' MSForms UserForm 的窗口类名
 Public Const USERFORM_WINDOW_CLASS As String = "ThunderDFrame"
@@ -85,6 +91,16 @@ Private Const HWND_TOPMOST As LongPtr = -1
 Private Const SWP_NOSIZE As Long = &H1
 Private Const SWP_NOMOVE As Long = &H2
 Private Const SWP_NOACTIVATE As Long = &H10
+
+' Win11 DWM 窗口外观属性（dwmapi.dll）与手型光标
+Private Const DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 As Long = 19
+Private Const DWMWA_USE_IMMERSIVE_DARK_MODE As Long = 20
+Private Const DWMWA_WINDOW_CORNER_PREFERENCE As Long = 33
+Private Const DWMWA_BORDER_COLOR As Long = 34
+Private Const DWMWA_CAPTION_COLOR As Long = 35
+Private Const DWMWA_TEXT_COLOR As Long = 36
+Private Const DWMWCP_ROUND As Long = 2
+Private Const IDC_HAND As LongPtr = 32649
 
 ' 按类名+标题定位已显示的 UserForm 窗口；未显示或未找到返回 0
 Public Function FindUserFormWindow(ByVal windowCaption As String) As LongPtr
@@ -256,7 +272,6 @@ Private Function IsTooltipOfForm(ByVal tooltipHandle As LongPtr, _
     className = Left$(className, classLength)
     If StrComp(Left$(className, Len("F3 Tooltip")), "F3 Tooltip", vbTextCompare) <> 0 Then Exit Function
 
-
     ' 气泡是小尺寸窗口；先按尺寸过滤掉窗体本身、容器与普通窗口。
     If GetWindowRect(tooltipHandle, tipRect) = 0 Then Exit Function
     If tipRect.Right - tipRect.Left > MAX_TOOLTIP_WIDTH Then Exit Function
@@ -277,11 +292,58 @@ ErrH:
     IsTooltipOfForm = False
 End Function
 
+' 应用 Win11 原生圆角与主题同步标题栏/边框色（Win10 及更早版本静默忽略）
+Public Function StyleUserFormWindowChrome(ByVal windowCaption As String, _
+                                          ByVal isDark As Boolean, _
+                                          ByVal captionColor As Long, _
+                                          ByVal borderColor As Long, _
+                                          ByVal textColor As Long, _
+                                          Optional ByVal applyCaptionColor As Boolean = True) As Boolean
+    Dim windowHandle As LongPtr
+    Dim darkFlag As Long
+    Dim cornerPref As Long
+    Dim cCaption As Long
+    Dim cBorder As Long
+    Dim cText As Long
 
+    On Error GoTo ErrH
 
+    windowHandle = FindUserFormWindow(windowCaption)
+    If windowHandle = 0 Then Exit Function
 
+    darkFlag = IIf(isDark, 1&, 0&)
+    cornerPref = DWMWCP_ROUND
+    cCaption = captionColor
+    cBorder = borderColor
+    cText = textColor
 
+    On Error Resume Next
+    DwmSetWindowAttribute windowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, darkFlag, 4
+    DwmSetWindowAttribute windowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, darkFlag, 4
+    DwmSetWindowAttribute windowHandle, DWMWA_WINDOW_CORNER_PREFERENCE, cornerPref, 4
+    DwmSetWindowAttribute windowHandle, DWMWA_BORDER_COLOR, cBorder, 4
+    If applyCaptionColor Then
+        DwmSetWindowAttribute windowHandle, DWMWA_CAPTION_COLOR, cCaption, 4
+        DwmSetWindowAttribute windowHandle, DWMWA_TEXT_COLOR, cText, 4
+    End If
+    On Error GoTo ErrH
 
+    StyleUserFormWindowChrome = True
+    Exit Function
+
+ErrH:
+    StyleUserFormWindowChrome = False
+End Function
+
+' 在悬停扁平标签按钮时将鼠标指针切换为系统手型
+Public Sub SetHandCursor()
+    Dim handCursor As LongPtr
+
+    On Error Resume Next
+    handCursor = LoadCursor(0, IDC_HAND)
+    If handCursor <> 0 Then SetCursor handCursor
+    On Error GoTo 0
+End Sub
 
 ' ====== 32/64 位 GetWindowLong 差异收敛在此两个包装内 ======
 

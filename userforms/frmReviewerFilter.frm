@@ -40,45 +40,108 @@ Private m_DocKey As String
 Private m_Updating As Boolean
 Private m_Items As Collection
 Private m_LastClickedIndex As Long
+Private m_HoverButtons As Collection
+Private m_FlatOnlyThis As clsFlatButton
+Private m_FlatClose As clsFlatButton
+Private m_ThemeApplied As Boolean
+Private m_LastDark As Boolean
 
 Private Sub UserForm_Initialize()
     m_DocKey = ""
     m_LastClickedIndex = -1
+    Set m_HoverButtons = New Collection
 
     Me.caption = REVIEWER_FILTER_CAPTION
     Me.btnClose.caption = "关闭"
     Me.btnOnlyThis.caption = "只看此人"
+    Me.btnClose.Cancel = True
 
     With Me.lblHint.Font
-        .Name = "Microsoft YaHei"
+        .Name = ThemeDefaultFontName()
         .Size = 9
     End With
-    Me.lblHint.ForeColor = RGB(110, 110, 110)
+    Me.lblHint.BackStyle = fmBackStyleTransparent
 
-    With Me.btnClose.Font
-        .Name = "Microsoft YaHei"
-        .Size = 9
-    End With
-    With Me.btnOnlyThis.Font
-        .Name = "Microsoft YaHei"
-        .Size = 9
-    End With
+    ' 保留原生 btnOnlyThis / btnClose 契约（供测试读取 .Enabled 与 Esc 关闭），移至离屏
+    Me.btnOnlyThis.TabStop = False
+    Me.btnOnlyThis.Move -500, -500, 10, 10
+    Me.btnClose.TabStop = False
+    Me.btnClose.Move -500, -500, 10, 10
 
     With Me.frmList
-        .BackColor = RGB(255, 255, 255)
         .BorderStyle = fmBorderStyleSingle
-        .BorderColor = RGB(210, 214, 220)
+        .SpecialEffect = fmSpecialEffectFlat
         .ScrollBars = fmScrollBarsNone
     End With
 
+    Set m_FlatOnlyThis = CreateFlatButton(m_HoverButtons, Me, "flatOnlyThis", "只看此人", "primary", "only", Me, 9)
+    Set m_FlatClose = CreateFlatButton(m_HoverButtons, Me, "flatClose", "关闭", "secondary", "close", Me, 9)
+
+    PositionFlatButtons Me.frmList.Top + Me.frmList.Height + 12
+
     RefreshReviewerList False
+    ApplyTheme True
 End Sub
 
-' 打开面板时把焦点放到关闭按钮，避免第一个复选框带虚线焦点框
+' 打开面板时刷新窗口主题并把焦点放到离屏关闭按钮，避免第一个复选框带虚线焦点框
 Private Sub UserForm_Activate()
+    ApplyTheme True
     On Error Resume Next
     Me.btnClose.SetFocus
     On Error GoTo 0
+End Sub
+
+Private Sub PositionFlatButtons(ByVal topPos As Single)
+    Dim rightEdge As Single
+
+    On Error Resume Next
+    rightEdge = Me.frmList.Left + Me.frmList.Width
+    m_FlatClose.MoveTo rightEdge - 66, topPos, 66, 24
+    m_FlatOnlyThis.MoveTo rightEdge - 66 - 8 - 80, topPos, 80, 24
+    On Error GoTo 0
+End Sub
+
+Public Sub ApplyTheme(Optional ByVal force As Boolean = False)
+    Dim darkNow As Boolean
+    Dim item As clsReviewerItem
+
+    darkNow = IsOfficeDarkTheme()
+    If m_ThemeApplied And Not force And (darkNow = m_LastDark) Then Exit Sub
+
+    On Error Resume Next
+    ApplyFormBaseTheme Me
+    Me.lblHint.ForeColor = ThemeTextMutedColor()
+    StyleFlatCard Me.frmList
+
+    If Not m_Items Is Nothing Then
+        For Each item In m_Items
+            item.chk.BackColor = ThemeCardColor()
+            item.chk.ForeColor = ThemeTextPrimaryColor()
+        Next item
+    End If
+
+    RefreshHoverButtons m_HoverButtons
+    ApplyFormWindowChrome Me.caption
+    On Error GoTo 0
+
+    m_LastDark = darkNow
+    m_ThemeApplied = True
+End Sub
+
+Public Sub OnHoverControlChanged(ByVal activeItem As Object)
+    ResetHoverButtons m_HoverButtons, activeItem
+End Sub
+
+Public Sub OnFlatButtonClick(ByVal actionKey As String)
+    If actionKey = "only" Then
+        btnOnlyThis_Click
+    ElseIf actionKey = "close" Then
+        btnClose_Click
+    End If
+End Sub
+
+Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+    ResetHoverButtons m_HoverButtons
 End Sub
 
 ' 当前面板对应的文档键（供模块判断是否需要重建列表）
@@ -97,6 +160,7 @@ Public Sub RefreshReviewerList(Optional ByVal forceRefresh As Boolean = False)
         m_DocKey = ""
         ClearRows
         Me.lblHint.caption = "当前没有打开的文档。"
+        ApplyTheme False
         Exit Sub
     End If
 
@@ -105,6 +169,7 @@ Public Sub RefreshReviewerList(Optional ByVal forceRefresh As Boolean = False)
     ' 面板已是当前文档的内容：不重建（这是"每次切回 Word 都转圈"的根因）
     If Not forceRefresh Then
         If StrComp(activeKey, m_DocKey, vbBinaryCompare) = 0 And Not m_Items Is Nothing Then
+            ApplyTheme False
             Exit Sub
         End If
     End If
@@ -126,6 +191,7 @@ Public Sub RefreshReviewerList(Optional ByVal forceRefresh As Boolean = False)
 
     BuildRows
     UpdateHint
+    ApplyTheme False
 End Sub
 
 ' 按当前作者数重建复选框
@@ -180,10 +246,10 @@ Private Function AddRow(ByVal authorIndex As Long, ByVal caption As String, _
         .Top = ROW_TOP + row * ROW_HEIGHT
         .Width = innerWidth
         .Height = ROW_HEIGHT
-        .Font.Name = "Microsoft YaHei"
+        .Font.Name = ThemeDefaultFontName()
         .Font.Size = 9.5
-        .ForeColor = RGB(32, 32, 32)
-        .BackColor = RGB(255, 255, 255)
+        .ForeColor = ThemeTextPrimaryColor()
+        .BackColor = ThemeCardColor()
         .BackStyle = fmBackStyleOpaque
         .Value = False
     End With
@@ -204,6 +270,7 @@ Private Sub LayoutRows()
     Dim lastControl As Control
     Dim frameHeight As Single
     Dim chrome As Single
+    Dim btnTop As Single
 
     If m_AuthorCount <= 0 Then Exit Sub
 
@@ -234,9 +301,9 @@ Private Sub LayoutRows()
         Me.frmList.ScrollBars = fmScrollBarsNone
     End If
 
-    Me.btnOnlyThis.Top = Me.frmList.Top + Me.frmList.Height + 12
-    Me.btnClose.Top = Me.btnOnlyThis.Top
-    Me.Height = Me.btnOnlyThis.Top + Me.btnOnlyThis.Height + 12 + chrome
+    btnTop = Me.frmList.Top + Me.frmList.Height + 12
+    PositionFlatButtons btnTop
+    Me.Height = btnTop + 24 + 12 + chrome
 End Sub
 
 Private Sub ClearRows()
@@ -423,8 +490,12 @@ End Sub
 
 ' 「只看此人」需要先选中一位作者
 Private Sub UpdateOnlyButton()
+    Dim canOnly As Boolean
+
     On Error Resume Next
-    Me.btnOnlyThis.Enabled = (m_AuthorCount > 0 And m_LastClickedIndex >= 0 And m_LastClickedIndex < m_AuthorCount)
+    canOnly = (m_AuthorCount > 0 And m_LastClickedIndex >= 0 And m_LastClickedIndex < m_AuthorCount)
+    Me.btnOnlyThis.Enabled = canOnly
+    If Not m_FlatOnlyThis Is Nothing Then m_FlatOnlyThis.SetEnabled canOnly
     On Error GoTo 0
 End Sub
 
@@ -472,4 +543,7 @@ Private Function AllFlagsSet() As Boolean
     AllFlagsSet = True
 End Function
 
-
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+    ClearHoverButtons m_HoverButtons
+    ClearRows
+End Sub

@@ -25,6 +25,10 @@ try {
     $word = Start-RAToolsWordSession
     $doc = $word.Documents.Add()
 
+    [void]$doc.VBProject.VBComponents.Import((Join-Path $repoRoot "modules\Core_Window.bas"))
+    [void]$doc.VBProject.VBComponents.Import((Join-Path $repoRoot "modules\UI_Theme.bas"))
+    [void]$doc.VBProject.VBComponents.Import((Join-Path $repoRoot "class_modules\clsHoverButton.cls"))
+    [void]$doc.VBProject.VBComponents.Import((Join-Path $repoRoot "class_modules\clsFlatButton.cls"))
     [void]$doc.VBProject.VBComponents.Import($modulePath)
     [void]$doc.VBProject.VBComponents.Import($itemPath)
     [void]$doc.VBProject.VBComponents.Import($formPath)

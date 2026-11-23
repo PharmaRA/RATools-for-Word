@@ -96,6 +96,9 @@ $modulePath = Join-Path $repoRoot "modules\UI_QuickToolbar.bas"
 $actionModulePath = Join-Path $repoRoot "modules\UI_QuickToolbarActions.bas"
 $styleNamesModulePath = Join-Path $repoRoot "modules\Engine_StyleNames.bas"
 $windowModulePath = Join-Path $repoRoot "modules\Core_Window.bas"
+$themeModulePath = Join-Path $repoRoot "modules\UI_Theme.bas"
+$hoverClassPath = Join-Path $repoRoot "class_modules\clsHoverButton.cls"
+$flatButtonClassPath = Join-Path $repoRoot "class_modules\clsFlatButton.cls"
 $syncScriptPath = Join-Path $repoRoot "scripts\Sync-QuickToolbarForm.ps1"
 $iconScriptPath = Join-Path $repoRoot "scripts\Generate-QuickToolbarIcon.ps1"
 $ribbonPath = Join-Path $repoRoot "dotm\customUI\customUI14.xml"
@@ -109,6 +112,9 @@ foreach ($requiredPath in @(
     $actionModulePath,
     $styleNamesModulePath,
     $windowModulePath,
+    $themeModulePath,
+    $hoverClassPath,
+    $flatButtonClassPath,
     $syncScriptPath,
     $iconScriptPath,
     $ribbonPath,
@@ -187,7 +193,7 @@ try {
 
     $doc = $word.Documents.Add()
 
-    foreach ($sourceFile in @($modulePath, $actionModulePath, $styleNamesModulePath, $windowModulePath, $formPath)) {
+    foreach ($sourceFile in @($modulePath, $actionModulePath, $styleNamesModulePath, $windowModulePath, $themeModulePath, $hoverClassPath, $flatButtonClassPath, $formPath)) {
         try {
             [void]$doc.VBProject.VBComponents.Import($sourceFile)
         }

@@ -1,4 +1,4 @@
-#requires -version 5.1
+﻿#requires -version 5.1
 param([string]$PackagePath)
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot '../scripts/RATools.Build.psm1') -Force
@@ -17,6 +17,10 @@ try {
         $hostDoc = $word.Documents.Open($package, $false, $true, $false)
     } else {
         $hostDoc = $word.Documents.Add()
+        [void]$hostDoc.VBProject.VBComponents.Import((Join-Path $repoRoot 'modules/Core_Window.bas'))
+        [void]$hostDoc.VBProject.VBComponents.Import((Join-Path $repoRoot 'modules/UI_Theme.bas'))
+        [void]$hostDoc.VBProject.VBComponents.Import((Join-Path $repoRoot 'class_modules/clsHoverButton.cls'))
+        [void]$hostDoc.VBProject.VBComponents.Import((Join-Path $repoRoot 'class_modules/clsFlatButton.cls'))
         [void]$hostDoc.VBProject.VBComponents.Import($modulePath)
         [void]$hostDoc.VBProject.VBComponents.Import($formPath)
         [void]$hostDoc.VBProject.VBComponents.Import((Join-Path $repoRoot 'modules/Macro_PasteRelinkCrossReference.bas'))

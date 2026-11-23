@@ -1,4 +1,4 @@
-$ErrorActionPreference='Stop'
+﻿$ErrorActionPreference='Stop'
 $repo=Split-Path -Parent $PSScriptRoot
 Import-Module (Join-Path $repo 'scripts\RATools.Build.psm1') -Force
 $word=$null;$doc=$null
@@ -7,6 +7,10 @@ try {
     $word.AddIns.Unload($false)
     foreach($case in @('Header','Footer','Empty')) {
         $doc=$word.Documents.Add()
+        [void]$doc.VBProject.VBComponents.Import((Join-Path $repo 'modules\Core_Window.bas'))
+        [void]$doc.VBProject.VBComponents.Import((Join-Path $repo 'modules\UI_Theme.bas'))
+        [void]$doc.VBProject.VBComponents.Import((Join-Path $repo 'class_modules\clsHoverButton.cls'))
+        [void]$doc.VBProject.VBComponents.Import((Join-Path $repo 'class_modules\clsFlatButton.cls'))
         [void]$doc.VBProject.VBComponents.Import((Join-Path $repo 'class_modules\clsReviewerItem.cls'))
         [void]$doc.VBProject.VBComponents.Import((Join-Path $repo 'userforms\frmReviewerFilter.frm'))
         $module=$doc.VBProject.VBComponents.Import((Join-Path $repo 'modules\Macro_ReviewerFilter.bas'))

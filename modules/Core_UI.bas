@@ -11,8 +11,27 @@ Public Const BATCH_MODE_FILES As String = "2"
 Public Const BATCH_MODE_FOLDER As String = "3"
 
 ' 统一的三模式选择对话框；返回 "1"/"2"/"3"，用户取消返回空串。
-' 使用 StrPtr 区分「点了取消」与「清空后确定」，两者都视为取消。
+' 优先弹出卡片选择窗体 frmBatchMode；在仅导入 Core_UI 的孤立测试环境回退至 InputBox。
 Public Function ChooseBatchMode(ByVal dialogTitle As String) As String
+    Dim dlg As Object
+
+    On Error GoTo FallbackInputBox
+    Set dlg = VBA.UserForms.Add("frmBatchMode")
+    dlg.InitDialog dialogTitle, BATCH_MODE_CURRENT
+    dlg.Show vbModal
+    ChooseBatchMode = dlg.SelectedMode
+    Unload dlg
+    Exit Function
+
+FallbackInputBox:
+    On Error Resume Next
+    If Not dlg Is Nothing Then Unload dlg
+    On Error GoTo 0
+    ChooseBatchMode = ChooseBatchModeLegacy(dialogTitle)
+End Function
+
+' 使用 StrPtr 区分「点了取消」与「清空后确定」，两者都视为取消。
+Private Function ChooseBatchModeLegacy(ByVal dialogTitle As String) As String
     Dim answer As String
 
     answer = InputBox("请输入处理模式序号：" & vbCrLf & vbCrLf & _
@@ -22,9 +41,9 @@ Public Function ChooseBatchMode(ByVal dialogTitle As String) As String
                       dialogTitle, BATCH_MODE_CURRENT)
 
     If StrPtr(answer) = 0 Then
-        ChooseBatchMode = ""
+        ChooseBatchModeLegacy = ""
     Else
-        ChooseBatchMode = Trim$(answer)
+        ChooseBatchModeLegacy = Trim$(answer)
     End If
 End Function
 

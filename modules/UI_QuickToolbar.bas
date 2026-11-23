@@ -16,7 +16,6 @@ Private Const QUICK_TOOLBAR_WINDOW_CAPTION As String = "RATools"
 ' （tooltips_class32 窗口）默认不在置顶带，会被窗体压住。用系统定时器周期性
 ' 把可见的气泡钉回置顶带，窗体隐藏或 Word 退出时停止。
 
-
 Private Const QUICK_TOOLBAR_TITLE As String = "RATools 快捷工具栏"
 
 ' Ribbon 入口：显示或隐藏快捷悬浮窗（customUI14.xml onAction，不可改名）
@@ -43,6 +42,7 @@ Public Sub ShowQuickToolbar()
     ' Show 之后立刻脱离文档窗口，否则关闭该文档会连带销毁悬浮窗；
     ' 脱离 owner 的同时会把窗体钉进置顶层，避免被 Word 主窗口盖住（见 Mod_Core_Window）。
     DetachQuickToolbarFromDocumentWindow
+    frmQuickToolbar.ApplyTheme True
     ' 显示悬浮窗不应抢走编辑焦点，否则用户回到正文要多点一次。
     ReturnFocusToDocumentWindow
     Exit Sub
@@ -59,9 +59,6 @@ End Sub
 
 ' 悬浮窗可见期间，用系统定时器周期性把提示气泡钉回置顶带；
 ' 窗体隐藏或 Word 退出时停止。气泡窗口由 MSForms 按需创建，只有轮询能随时抓住它。
-
-
-
 
 Public Sub RefreshTooltipWatch()
     On Error Resume Next
@@ -165,9 +162,15 @@ End Sub
 ' ====== TEST SUPPORT（仅测试脚本使用，生产路径不调用） ======
 
 Public Function GetQuickToolbarButtonCount() As Long
+    Dim ctrl As Object
+    Dim count As Long
+
     On Error GoTo ErrH
     Load frmQuickToolbar
-    GetQuickToolbarButtonCount = frmQuickToolbar.Controls.Count
+    For Each ctrl In frmQuickToolbar.Controls
+        If Left$(ctrl.Name, 3) = "btn" Then count = count + 1
+    Next ctrl
+    GetQuickToolbarButtonCount = count
     Exit Function
 
 ErrH:
@@ -203,6 +206,7 @@ Public Sub RaiseQuickToolbarIfVisible()
     On Error Resume Next
     If Not IsUserFormWindowVisible(QUICK_TOOLBAR_WINDOW_CAPTION) Then Exit Sub
     KeepUserFormWindowOnTop QUICK_TOOLBAR_WINDOW_CAPTION
+    frmQuickToolbar.ApplyTheme False
 End Sub
 
 ' 把激活状态交还 Word 文档窗口，并确认悬浮窗仍在最前。
