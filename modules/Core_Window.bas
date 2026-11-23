@@ -63,6 +63,10 @@ Private Declare PtrSafe Function LoadCursor Lib "user32" Alias "LoadCursorA" ( _
     ByVal hInstance As LongPtr, ByVal lpCursorName As LongPtr) As LongPtr
 Private Declare PtrSafe Function SetCursor Lib "user32" ( _
     ByVal hCursor As LongPtr) As LongPtr
+Private Declare PtrSafe Function ReleaseCapture Lib "user32" () As Long
+Private Declare PtrSafe Function SendMessage Lib "user32" Alias "SendMessageA" ( _
+    ByVal hWnd As LongPtr, ByVal wMsg As Long, _
+    ByVal wParam As LongPtr, ByVal lParam As LongPtr) As LongPtr
 Private Const MAX_TOOLTIP_WIDTH As Long = 400
 Private Const MAX_TOOLTIP_HEIGHT As Long = 60
 
@@ -101,6 +105,14 @@ Private Const DWMWA_CAPTION_COLOR As Long = 35
 Private Const DWMWA_TEXT_COLOR As Long = 36
 Private Const DWMWCP_ROUND As Long = 2
 Private Const IDC_HAND As LongPtr = 32649
+Private Const GWL_STYLE As Long = -16
+Private Const WS_CAPTION As Long = &HC00000
+Private Const WS_BORDER As Long = &H800000
+Private Const WS_SYSMENU As Long = &H80000
+Private Const SWP_NOZORDER As Long = &H4
+Private Const SWP_FRAMECHANGED As Long = &H20
+Private Const WM_NCLBUTTONDOWN As Long = &HA1
+Private Const HTCAPTION As LongPtr = 2
 
 ' 按类名+标题定位已显示的 UserForm 窗口；未显示或未找到返回 0
 Public Function FindUserFormWindow(ByVal windowCaption As String) As LongPtr
@@ -342,6 +354,42 @@ Public Sub SetHandCursor()
     On Error Resume Next
     handCursor = LoadCursor(0, IDC_HAND)
     If handCursor <> 0 Then SetCursor handCursor
+    On Error GoTo 0
+End Sub
+
+' 去掉 UserForm 原生标题栏（保留 1px 边框以维持 Win11 DWM 圆角与边框色）
+Public Function MakeUserFormWindowFrameless(ByVal windowCaption As String) As Boolean
+    Dim windowHandle As LongPtr
+    Dim styleVal As LongPtr
+
+    On Error GoTo ErrH
+
+    windowHandle = FindUserFormWindow(windowCaption)
+    If windowHandle = 0 Then Exit Function
+
+    styleVal = GetWindowLongCompat(windowHandle, GWL_STYLE)
+    styleVal = (styleVal And Not CLngPtr(WS_CAPTION) And Not CLngPtr(WS_SYSMENU)) Or CLngPtr(WS_BORDER)
+    SetWindowLongCompat windowHandle, GWL_STYLE, styleVal
+
+    SetWindowPos windowHandle, 0, 0, 0, 0, 0, _
+                 SWP_NOMOVE Or SWP_NOSIZE Or SWP_NOZORDER Or SWP_NOACTIVATE Or SWP_FRAMECHANGED
+    MakeUserFormWindowFrameless = True
+    Exit Function
+
+ErrH:
+    MakeUserFormWindowFrameless = False
+End Function
+
+' 通过模拟标题栏命中实现无边框窗体平滑拖拽
+Public Sub DragUserFormWindow(ByVal windowCaption As String)
+    Dim windowHandle As LongPtr
+
+    On Error Resume Next
+    windowHandle = FindUserFormWindow(windowCaption)
+    If windowHandle = 0 Then Exit Sub
+
+    ReleaseCapture
+    SendMessage windowHandle, WM_NCLBUTTONDOWN, HTCAPTION, 0
     On Error GoTo 0
 End Sub
 

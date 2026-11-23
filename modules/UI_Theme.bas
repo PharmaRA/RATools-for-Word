@@ -30,6 +30,7 @@ Private Const REG_DWORD As Long = 4
 
 Private Const DEFAULT_FONT_NAME As String = "Microsoft YaHei"
 Private Const CODE_FONT_NAME As String = "Consolas"
+Private Const ICON_FONT_NAME As String = "Segoe MDL2 Assets"
 
 ' 测试/预览覆盖值："" 表示自动跟随 Word，"light" / "dark" 表示强制主题
 Private m_ThemeOverride As String
@@ -279,6 +280,10 @@ End Function
 
 Public Function ThemeCodeFontName() As String
     ThemeCodeFontName = CODE_FONT_NAME
+End Function
+
+Public Function ThemeIconFontName() As String
+    ThemeIconFontName = ICON_FONT_NAME
 End Function
 
 ' =============================================

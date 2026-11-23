@@ -8,17 +8,20 @@
     # Dispatch: 点击后的行为契约（测试断言分发结果）
     # =============================================
     Layout = @{
-        ToolbarWidth  = 134
-        ToolbarHeight = 196
-        ButtonWidth   = 26
-        ButtonHeight  = 24
-        RowStep       = 25
-        ColumnGap     = 3
-        ButtonTop     = 3
-        GroupGap      = 4
-        PictureSize   = 20
+        ToolbarWidth          = 134
+        ToolbarHeight         = 224
+        FramelessClientWidth  = 127
+        HeaderHeight          = 22
+        ExpandedClientHeight  = 192
+        ButtonWidth           = 26
+        ButtonHeight          = 24
+        RowStep               = 25
+        ColumnGap             = 3
+        ButtonTop             = 26
+        GroupGap              = 4
+        PictureSize           = 20
         # 从这些行号起各累加一次组间距
-        GroupGapRows  = @(2, 4, 5)
+        GroupGapRows          = @(2, 4, 5)
     }
     Buttons = @(
         @{ Name = "btnHeading1"; Caption = "编号标题 1"; Tip = "应用标题1-F样式"; Icon = "H1"; Kind = "custom"; Action = "style_heading1"; Row = 0; Column = 0; ColumnCount = 4; Dispatch = "style:标题1-F" }

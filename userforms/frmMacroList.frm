@@ -47,6 +47,7 @@ Private m_CurrentEngName As String
 
 ' 扁平化界面元素（隐藏原生 ListBox 与 3D 按钮，仅保留其接口与键盘语义）
 Private m_BgSearch As MSForms.Label
+Private WithEvents m_LblSearchIcon As MSForms.Label
 Private WithEvents m_LblPlaceholder As MSForms.Label
 Private m_FlatClear As clsFlatButton
 Private m_FlatRefresh As clsFlatButton
@@ -62,16 +63,23 @@ Private m_BgDetailCard As MSForms.Label
 Private m_BgCategory As MSForms.Label
 Private m_LblCategory As MSForms.Label
 Private m_LblDetailTitle As MSForms.Label
+Private m_LblMacroCaption As MSForms.Label
 Private m_BgMacroBadge As MSForms.Label
 Private m_LblMacroBadge As MSForms.Label
 Private m_DivDetail As MSForms.Label
 Private m_LblDescCaption As MSForms.Label
-Private m_LblShortcutHint As MSForms.Label
+Private m_LblHint1 As MSForms.Label
+Private m_BgKeyEnter As MSForms.Label
+Private m_LblKeyEnter As MSForms.Label
+Private m_LblHint2 As MSForms.Label
+Private m_BgKeyEsc As MSForms.Label
+Private m_LblKeyEsc As MSForms.Label
+Private m_LblHint3 As MSForms.Label
 
 Private Sub UserForm_Initialize()
     Me.Caption = "宏管理器"
-    Me.Width = 532
-    Me.Height = 368
+    Me.Width = 548
+    Me.Height = 380
 
     Set m_HoverButtons = New Collection
     Set m_MacroRows = New Collection
@@ -96,6 +104,7 @@ End Sub
 
 Private Sub EnsureExtraControls()
     Set m_BgSearch = EnsureLabel("bgSearch")
+    Set m_LblSearchIcon = EnsureLabel("lblSearchIcon")
     Set m_LblPlaceholder = EnsureLabel("lblSearchPlaceholder")
 
     Set m_BgListHeader = EnsureLabel("bgListHeader")
@@ -107,11 +116,18 @@ Private Sub EnsureExtraControls()
     Set m_BgCategory = EnsureLabel("bgCategory")
     Set m_LblCategory = EnsureLabel("lblCategory")
     Set m_LblDetailTitle = EnsureLabel("lblDetailTitle")
+    Set m_LblMacroCaption = EnsureLabel("lblMacroCaption")
     Set m_BgMacroBadge = EnsureLabel("bgMacroBadge")
     Set m_LblMacroBadge = EnsureLabel("lblMacroBadge")
     Set m_DivDetail = EnsureLabel("divDetail")
     Set m_LblDescCaption = EnsureLabel("lblDescCaption")
-    Set m_LblShortcutHint = EnsureLabel("lblShortcutHint")
+    Set m_LblHint1 = EnsureLabel("lblHint1")
+    Set m_BgKeyEnter = EnsureLabel("bgKeyEnter")
+    Set m_LblKeyEnter = EnsureLabel("lblKeyEnter")
+    Set m_LblHint2 = EnsureLabel("lblHint2")
+    Set m_BgKeyEsc = EnsureLabel("bgKeyEsc")
+    Set m_LblKeyEsc = EnsureLabel("lblKeyEsc")
+    Set m_LblHint3 = EnsureLabel("lblHint3")
 End Sub
 
 Private Function EnsureLabel(ByVal ctrlName As String) As MSForms.Label
@@ -135,11 +151,18 @@ End Function
 Private Sub ConfigureStaticControls()
     On Error Resume Next
     With Me.Label_1
-        .Caption = "搜索"
+        .Visible = False
+        .Move -500, -500, 10, 10
+    End With
+
+    With m_LblSearchIcon
+        .Caption = ChrW$(&HE721)
         .BackStyle = fmBackStyleTransparent
-        .TextAlign = fmTextAlignLeft
-        .Font.Name = ThemeDefaultFontName()
-        .Font.Size = 9.5
+        .BorderStyle = fmBorderStyleNone
+        .TextAlign = fmTextAlignCenter
+        .Font.Name = ThemeIconFontName()
+        .Font.Size = 9
+        .ControlTipText = "搜索功能"
     End With
 
     With Me.txtSearch
@@ -230,6 +253,13 @@ Private Sub ConfigureStaticControls()
         .SpecialEffect = fmSpecialEffectFlat
     End With
 
+    With m_LblMacroCaption
+        .Caption = "入口宏名称 (Application.Run)"
+        .BackStyle = fmBackStyleTransparent
+        .Font.Name = ThemeDefaultFontName()
+        .Font.Size = 8.5
+    End With
+
     With m_LblMacroBadge
         .BackStyle = fmBackStyleTransparent
         .BorderStyle = fmBorderStyleNone
@@ -247,8 +277,54 @@ Private Sub ConfigureStaticControls()
         .Font.Bold = True
     End With
 
-    With m_LblShortcutHint
-        .Caption = "双击列表或按 Enter 运行，Esc 关闭"
+    With m_LblHint1
+        .Caption = "提示：双击列表项或按"
+        .BackStyle = fmBackStyleTransparent
+        .Font.Name = ThemeDefaultFontName()
+        .Font.Size = 8.5
+    End With
+
+    With m_BgKeyEnter
+        .Caption = vbNullString
+        .BackStyle = fmBackStyleOpaque
+        .BorderStyle = fmBorderStyleSingle
+        .SpecialEffect = fmSpecialEffectFlat
+    End With
+
+    With m_LblKeyEnter
+        .Caption = "Enter"
+        .BackStyle = fmBackStyleTransparent
+        .BorderStyle = fmBorderStyleNone
+        .TextAlign = fmTextAlignCenter
+        .Font.Name = ThemeCodeFontName()
+        .Font.Size = 8
+    End With
+
+    With m_LblHint2
+        .Caption = "运行，"
+        .BackStyle = fmBackStyleTransparent
+        .Font.Name = ThemeDefaultFontName()
+        .Font.Size = 8.5
+    End With
+
+    With m_BgKeyEsc
+        .Caption = vbNullString
+        .BackStyle = fmBackStyleOpaque
+        .BorderStyle = fmBorderStyleSingle
+        .SpecialEffect = fmSpecialEffectFlat
+    End With
+
+    With m_LblKeyEsc
+        .Caption = "Esc"
+        .BackStyle = fmBackStyleTransparent
+        .BorderStyle = fmBorderStyleNone
+        .TextAlign = fmTextAlignCenter
+        .Font.Name = ThemeCodeFontName()
+        .Font.Size = 8
+    End With
+
+    With m_LblHint3
+        .Caption = "关闭"
         .BackStyle = fmBackStyleTransparent
         .Font.Name = ThemeDefaultFontName()
         .Font.Size = 8.5
@@ -257,15 +333,19 @@ Private Sub ConfigureStaticControls()
 End Sub
 
 Private Sub RegisterFlatControls()
-    Set m_FlatClear = CreateFlatButton(m_HoverButtons, Me, "flatClear", "×", "ghost", "clear", Me, 9.5)
+    Set m_FlatClear = CreateFlatButton(m_HoverButtons, Me, "flatClear", vbNullString, "ghost", "clear", Me, 8.5)
+    m_FlatClear.SetIcon ChrW$(&HE8BB), ThemeIconFontName(), 7
     m_FlatClear.SetToolTip "清空搜索框"
     m_FlatClear.SetVisible False
 
     Set m_FlatRefresh = CreateFlatButton(m_HoverButtons, Me, "flatRefresh", "刷新", "secondary", "refresh", Me, 9)
+    m_FlatRefresh.SetIcon ChrW$(&HE72C), ThemeIconFontName(), 8.5
     m_FlatRefresh.SetToolTip "重新载入宏列表并清空筛选"
 
     Set m_FlatClose = CreateFlatButton(m_HoverButtons, Me, "flatClose", "关闭", "secondary", "close", Me, 9)
-    Set m_FlatRun = CreateFlatButton(m_HoverButtons, Me, "flatRun", "运行", "primary", "run", Me, 9)
+
+    Set m_FlatRun = CreateFlatButton(m_HoverButtons, Me, "flatRun", "运行功能", "primary", "run", Me, 9)
+    m_FlatRun.SetIcon ChrW$(&HF5B0), ThemeIconFontName(), 7.5
 End Sub
 
 Public Sub ApplyTheme()
@@ -274,7 +354,7 @@ Public Sub ApplyTheme()
     On Error Resume Next
     ApplyFormBaseTheme Me
 
-    Me.Label_1.ForeColor = ThemeTextMutedColor()
+    m_LblSearchIcon.ForeColor = ThemeTextMutedColor()
     StyleFlatInputBackdrop m_BgSearch, m_SearchFocused
     StyleFlatTextBox Me.txtSearch, 9.5
     m_LblPlaceholder.ForeColor = ThemeTextMutedColor()
@@ -304,6 +384,7 @@ Public Sub ApplyTheme()
     End With
     m_LblCategory.ForeColor = ThemeAccentColor()
     m_LblDetailTitle.ForeColor = ThemeTextPrimaryColor()
+    m_LblMacroCaption.ForeColor = ThemeTextMutedColor()
     With m_BgMacroBadge
         .BackColor = ThemeCanvasColor()
         .BorderColor = ThemeBorderColor()
@@ -311,7 +392,20 @@ Public Sub ApplyTheme()
     m_LblMacroBadge.ForeColor = ThemeAccentColor()
     StyleDividerLine m_DivDetail
     m_LblDescCaption.ForeColor = ThemeTextMutedColor()
-    m_LblShortcutHint.ForeColor = ThemeTextMutedColor()
+
+    With m_BgKeyEnter
+        .BackColor = ThemeCardColor()
+        .BorderColor = ThemeBorderColor()
+    End With
+    With m_BgKeyEsc
+        .BackColor = ThemeCardColor()
+        .BorderColor = ThemeBorderColor()
+    End With
+    m_LblHint1.ForeColor = ThemeTextMutedColor()
+    m_LblKeyEnter.ForeColor = ThemeTextMutedColor()
+    m_LblHint2.ForeColor = ThemeTextMutedColor()
+    m_LblKeyEsc.ForeColor = ThemeTextMutedColor()
+    m_LblHint3.ForeColor = ThemeTextMutedColor()
 
     StyleFlatTextBox Me.lblDetail, 9.5
     With Me.lblDetail
@@ -419,6 +513,9 @@ Private Sub LayoutControls()
     Dim descH As Single
     Dim barTop As Single
     Dim hintW As Single
+    Dim runW As Single
+    Dim closeW As Single
+    Dim keyX As Single
 
     On Error Resume Next
     pad = 14
@@ -427,29 +524,29 @@ Private Sub LayoutControls()
     If w < 380 Then w = 380
     If h < 250 Then h = 250
 
-    ' 顶部搜索栏（垂直居中）
-    refreshW = 54
-    Me.Label_1.Move pad, pad + 5.5, 28, 14
+    ' 顶部搜索栏（框内左放大镜 + 占位符对齐列表左边线）
+    refreshW = 62
     m_FlatRefresh.MoveTo w - pad - refreshW, pad, refreshW, 24
 
-    searchLeft = pad + 34
+    searchLeft = pad
     searchW = w - pad - refreshW - 8 - searchLeft
-    If searchW < 100 Then searchW = 100
+    If searchW < 120 Then searchW = 120
     m_BgSearch.Move searchLeft, pad, searchW, 24
+    m_LblSearchIcon.Move searchLeft + 8, pad + 6, 12, 12
     m_FlatClear.MoveTo searchLeft + searchW - 22, pad + 3, 18, 18
-    Me.txtSearch.Move searchLeft + 8, pad + 5.5, searchW - 34, 14
-    m_LblPlaceholder.Move searchLeft + 8, pad + 5.5, searchW - 34, 14
+    Me.txtSearch.Move searchLeft + 25, pad + 5.5, searchW - 50, 14
+    m_LblPlaceholder.Move searchLeft + 25, pad + 5.5, searchW - 50, 14
 
     ' 双栏内容区（左列表与右卡片底边完全齐平）
     contentTop = pad + 34
     contentH = h - contentTop - 44
     If contentH < 130 Then contentH = 130
 
-    leftColW = Int((w - pad * 2 - 12) * 0.44)
+    leftColW = Int((w - pad * 2 - 12) * 0.43)
     If leftColW < 160 Then leftColW = 160
     rightColL = pad + leftColW + 12
     rightColW = w - rightColL - pad
-    If rightColW < 170 Then rightColW = 170
+    If rightColW < 180 Then rightColW = 180
 
     headerH = 24
     m_BgListHeader.Move pad, contentTop, leftColW, headerH
@@ -458,32 +555,66 @@ Private Sub LayoutControls()
     m_FrmList.Move pad, contentTop + headerH - 0.75, leftColW, contentH - headerH + 0.75
 
     m_BgDetailCard.Move rightColL, contentTop, rightColW, contentH
-    innerL = rightColL + 14
-    innerW = rightColW - 28
+    innerL = rightColL + 16
+    innerW = rightColW - 32
     If innerW < 80 Then innerW = 80
 
     m_BgCategory.Move innerL, contentTop + 12, 62, 18
     m_LblCategory.Move innerL, contentTop + 14.5, 62, 13
-    m_LblDetailTitle.Move innerL, contentTop + 36, innerW, 20
-    m_BgMacroBadge.Move innerL, contentTop + 60, innerW, 19
-    m_LblMacroBadge.Move innerL + 6, contentTop + 63, innerW - 12, 13
-    m_DivDetail.Move innerL, contentTop + 86, innerW, 0.75
-    m_LblDescCaption.Move innerL, contentTop + 94, innerW, 14
+    m_LblDetailTitle.Move innerL, contentTop + 35, innerW, 20
+    m_DivDetail.Move innerL, contentTop + 59, innerW, 0.75
+    m_LblMacroCaption.Move innerL, contentTop + 68, innerW, 13
+    m_BgMacroBadge.Move innerL, contentTop + 85, innerW, 19
+    m_LblMacroBadge.Move innerL + 7, contentTop + 88, innerW - 14, 13
+    m_LblDescCaption.Move innerL, contentTop + 112, innerW, 14
 
-    descH = contentH - 116
+    descH = contentH - 135
     If descH < 40 Then descH = 40
-    Me.lblDetail.Move innerL - 2, contentTop + 111, innerW + 2, descH
+    Me.lblDetail.Move innerL - 2, contentTop + 129, innerW + 2, descH
 
-    ' 底部操作栏
+    ' 底部操作栏（带 1px 键帽提示）
     barTop = h - 34
-    m_FlatRun.MoveTo w - pad - 74, barTop, 74, 24
-    m_FlatClose.MoveTo w - pad - 74 - 8 - 66, barTop, 66, 24
-    hintW = w - pad - 74 - 8 - 66 - pad - 8
+    runW = 86
+    closeW = 64
+    m_FlatRun.MoveTo w - pad - runW, barTop, runW, 24
+    m_FlatClose.MoveTo w - pad - runW - 8 - closeW, barTop, closeW, 24
+    hintW = w - pad - runW - 8 - closeW - pad - 10
     If hintW < 60 Then hintW = 60
-    m_LblShortcutHint.Move pad, barTop + 5.5, hintW, 14
+
+    If hintW >= 218 Then
+        m_LblHint1.Caption = "提示：双击列表项或按"
+        m_LblHint1.Move pad, barTop + 5.5, 96, 13
+        keyX = pad + 96
+        m_BgKeyEnter.Move keyX, barTop + 3.5, 34, 16
+        m_LblKeyEnter.Move keyX + 1, barTop + 5, 32, 12
+        keyX = keyX + 37
+        m_LblHint2.Move keyX, barTop + 5.5, 27, 13
+        keyX = keyX + 27
+        m_BgKeyEsc.Move keyX, barTop + 3.5, 26, 16
+        m_LblKeyEsc.Move keyX + 1, barTop + 5, 24, 12
+        keyX = keyX + 29
+        m_LblHint3.Move keyX, barTop + 5.5, 24, 13
+
+        m_BgKeyEnter.Visible = True
+        m_LblKeyEnter.Visible = True
+        m_LblHint2.Visible = True
+        m_BgKeyEsc.Visible = True
+        m_LblKeyEsc.Visible = True
+        m_LblHint3.Visible = True
+    Else
+        m_LblHint1.Caption = "双击运行，Esc 关闭"
+        m_LblHint1.Move pad, barTop + 5.5, hintW, 13
+        m_BgKeyEnter.Visible = False
+        m_LblKeyEnter.Visible = False
+        m_LblHint2.Visible = False
+        m_BgKeyEsc.Visible = False
+        m_LblKeyEsc.Visible = False
+        m_LblHint3.Visible = False
+    End If
 
     ' 确保层级顺序
     m_BgSearch.ZOrder 1
+    m_LblSearchIcon.ZOrder 0
     Me.txtSearch.ZOrder 0
     m_LblPlaceholder.ZOrder 0
     m_FlatClear.MoveTo searchLeft + searchW - 22, pad + 3, 18, 18
@@ -496,11 +627,17 @@ Private Sub LayoutControls()
     m_BgCategory.ZOrder 0
     m_LblCategory.ZOrder 0
     m_LblDetailTitle.ZOrder 0
+    m_DivDetail.ZOrder 0
+    m_LblMacroCaption.ZOrder 0
     m_BgMacroBadge.ZOrder 0
     m_LblMacroBadge.ZOrder 0
-    m_DivDetail.ZOrder 0
     m_LblDescCaption.ZOrder 0
     Me.lblDetail.ZOrder 0
+
+    m_BgKeyEnter.ZOrder 1
+    m_LblKeyEnter.ZOrder 0
+    m_BgKeyEsc.ZOrder 1
+    m_LblKeyEsc.ZOrder 0
 
     UpdateScrollAreaAndRowWidths
     UpdateDetailBadgeSize innerW
@@ -602,6 +739,12 @@ End Sub
 ' ==============================================================================
 ' 交互与筛选逻辑
 ' ==============================================================================
+Private Sub m_LblSearchIcon_Click()
+    On Error Resume Next
+    Me.txtSearch.SetFocus
+    On Error GoTo 0
+End Sub
+
 Private Sub m_LblPlaceholder_Click()
     On Error Resume Next
     Me.txtSearch.SetFocus
@@ -762,7 +905,7 @@ Private Sub RefreshList(ByVal keyword As String)
     Next i
 
     If keyword = vbNullString Then
-        m_LblListCount.Caption = "共 " & Me.lstMacros.ListCount & " 项"
+        m_LblListCount.Caption = "全部 " & Me.lstMacros.ListCount & " 项"
     Else
         m_LblListCount.Caption = Me.lstMacros.ListCount & " / " & totalCount & " 项"
     End If
@@ -888,4 +1031,11 @@ End Sub
 Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
     ClearMacroRows
     ClearHoverButtons m_HoverButtons
+    Set m_FlatClear = Nothing
+    Set m_FlatRefresh = Nothing
+    Set m_FlatClose = Nothing
+    Set m_FlatRun = Nothing
+    Set m_LblSearchIcon = Nothing
+    Set m_LblPlaceholder = Nothing
+    Set m_FrmList = Nothing
 End Sub

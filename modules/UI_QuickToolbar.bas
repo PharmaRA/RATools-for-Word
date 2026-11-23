@@ -42,6 +42,7 @@ Public Sub ShowQuickToolbar()
     ' Show 之后立刻脱离文档窗口，否则关闭该文档会连带销毁悬浮窗；
     ' 脱离 owner 的同时会把窗体钉进置顶层，避免被 Word 主窗口盖住（见 Mod_Core_Window）。
     DetachQuickToolbarFromDocumentWindow
+    frmQuickToolbar.ApplyFramelessMode
     frmQuickToolbar.ApplyTheme True
     ' 显示悬浮窗不应抢走编辑焦点，否则用户回到正文要多点一次。
     ReturnFocusToDocumentWindow

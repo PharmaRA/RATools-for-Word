@@ -26,6 +26,9 @@ $layoutSpec = $buttonData.Layout
 
 $toolbarWidth = [int]$layoutSpec.ToolbarWidth
 $toolbarHeight = [int]$layoutSpec.ToolbarHeight
+$framelessClientWidth = [int]$layoutSpec.FramelessClientWidth
+$headerHeight = [int]$layoutSpec.HeaderHeight
+$expandedClientHeight = [int]$layoutSpec.ExpandedClientHeight
 $buttonWidth = [int]$layoutSpec.ButtonWidth
 $buttonHeight = [int]$layoutSpec.ButtonHeight
 $buttonRowStep = [int]$layoutSpec.RowStep
@@ -42,7 +45,6 @@ function Release-ComObjectSafe {
     }
 }
 
-# 行/列/列数直接取自 psd1 按钮定义；Top/Left 由布局参数推导
 function Get-ButtonTop {
     param([int]$Row)
 
@@ -116,6 +118,9 @@ Private Const SETTINGS_APP As String = "RATools"
 Private Const SETTINGS_SECTION As String = "QuickToolbar"
 Private Const TOOLBAR_WIDTH As Single = __TOOLBAR_WIDTH__
 Private Const TOOLBAR_HEIGHT As Single = __TOOLBAR_HEIGHT__
+Private Const FRAMELESS_CLIENT_WIDTH As Single = __FRAMELESS_CLIENT_WIDTH__
+Private Const HEADER_HEIGHT As Single = __HEADER_HEIGHT__
+Private Const EXPANDED_CLIENT_HEIGHT As Single = __EXPANDED_CLIENT_HEIGHT__
 Private Const BUTTON_TOP As Single = __BUTTON_TOP__
 Private Const BUTTON_WIDTH As Single = __BUTTON_WIDTH__
 Private Const BUTTON_HEIGHT As Single = __BUTTON_HEIGHT__
@@ -127,22 +132,171 @@ Private m_HoverButtons As Collection
 Private m_Dividers As Collection
 Private m_ThemeApplied As Boolean
 Private m_LastDark As Boolean
+Private m_IsCollapsed As Boolean
+Private m_IsFrameless As Boolean
+
+Private WithEvents m_HdrBg As MSForms.Label
+Private WithEvents m_HdrGrip As MSForms.Label
+Private WithEvents m_HdrTitle As MSForms.Label
+Private m_HdrDivider As MSForms.Label
+Private m_BtnCollapse As clsFlatButton
+Private m_BtnClose As clsFlatButton
 
 Private Sub UserForm_Initialize()
     Me.Caption = "RATools"
     Me.Width = TOOLBAR_WIDTH
     Me.Height = TOOLBAR_HEIGHT
+    m_IsCollapsed = False
+    m_IsFrameless = False
     Set m_HoverButtons = New Collection
+
+    CreateHeaderControls
 
 __CONFIGURE_LINES__
 
     CreateGroupDividers
     ApplyTheme True
+    LayoutToolbarControls
     RestoreToolbarPosition
 End Sub
 
 Private Sub UserForm_Activate()
     ApplyTheme True
+End Sub
+
+Private Sub CreateHeaderControls()
+    Set m_HdrBg = Me.Controls.Add("Forms.Label.1", "hdrBg", True)
+    With m_HdrBg
+        .Caption = vbNullString
+        .BackStyle = fmBackStyleOpaque
+        .BorderStyle = fmBorderStyleNone
+    End With
+
+    Set m_HdrGrip = Me.Controls.Add("Forms.Label.1", "hdrGrip", True)
+    With m_HdrGrip
+        .Caption = ChrW$(&HE784)
+        .BackStyle = fmBackStyleTransparent
+        .BorderStyle = fmBorderStyleNone
+        .TextAlign = fmTextAlignCenter
+        .Font.Name = ThemeIconFontName()
+        .Font.Size = 8
+        .ControlTipText = "按住拖动悬浮工具栏"
+    End With
+
+    Set m_HdrTitle = Me.Controls.Add("Forms.Label.1", "hdrTitle", True)
+    With m_HdrTitle
+        .Caption = "RATools"
+        .BackStyle = fmBackStyleTransparent
+        .BorderStyle = fmBorderStyleNone
+        .TextAlign = fmTextAlignLeft
+        .WordWrap = False
+        .Font.Name = ThemeDefaultFontName()
+        .Font.Size = 8.5
+        .Font.Bold = True
+        .ControlTipText = "按住拖动（双击可折叠/展开）"
+    End With
+
+    Set m_HdrDivider = Me.Controls.Add("Forms.Label.1", "hdrDivider", True)
+    With m_HdrDivider
+        .Caption = vbNullString
+        .BackStyle = fmBackStyleOpaque
+        .BorderStyle = fmBorderStyleNone
+    End With
+
+    Set m_BtnCollapse = CreateFlatButton(m_HoverButtons, Me, "hdrCollapse", vbNullString, "header", "collapse", Me, 8)
+    m_BtnCollapse.SetIcon ChrW$(&HE70D), ThemeIconFontName(), 7.5
+    m_BtnCollapse.SetToolTip "折叠工具栏"
+
+    Set m_BtnClose = CreateFlatButton(m_HoverButtons, Me, "hdrClose", vbNullString, "close", "close", Me, 8)
+    m_BtnClose.SetIcon ChrW$(&HE8BB), ThemeIconFontName(), 7.5
+    m_BtnClose.SetToolTip "隐藏悬浮窗"
+End Sub
+
+Public Sub ApplyFramelessMode()
+    MakeUserFormWindowFrameless Me.Caption
+    m_IsFrameless = True
+    ResizeForCurrentState
+    LayoutToolbarControls
+End Sub
+
+Public Sub ToggleCollapsed()
+    m_IsCollapsed = Not m_IsCollapsed
+    If Not m_BtnCollapse Is Nothing Then
+        If m_IsCollapsed Then
+            m_BtnCollapse.SetIcon ChrW$(&HE70E), ThemeIconFontName(), 7.5
+            m_BtnCollapse.SetToolTip "展开工具栏"
+        Else
+            m_BtnCollapse.SetIcon ChrW$(&HE70D), ThemeIconFontName(), 7.5
+            m_BtnCollapse.SetToolTip "折叠工具栏"
+        End If
+    End If
+    ResizeForCurrentState
+    LayoutToolbarControls
+    ReturnFocusToDocumentWindow
+End Sub
+
+Private Sub ResizeForCurrentState()
+    Dim chromeW As Single
+    Dim chromeH As Single
+    Dim targetClientH As Single
+
+    If Not m_IsFrameless Then Exit Sub
+
+    On Error Resume Next
+    chromeW = Me.Width - Me.InsideWidth
+    chromeH = Me.Height - Me.InsideHeight
+    If chromeW < 0 Then chromeW = 0
+    If chromeH < 0 Then chromeH = 0
+
+    If m_IsCollapsed Then
+        targetClientH = HEADER_HEIGHT
+    Else
+        targetClientH = EXPANDED_CLIENT_HEIGHT
+    End If
+
+    Me.Width = FRAMELESS_CLIENT_WIDTH + chromeW
+    Me.Height = targetClientH + chromeH
+    On Error GoTo 0
+End Sub
+
+Private Sub LayoutToolbarControls()
+    Dim cw As Single
+    Dim ctrl As Object
+    Dim divCtrl As MSForms.Label
+
+    On Error Resume Next
+    cw = Me.InsideWidth
+    If cw <= 0 Then cw = FRAMELESS_CLIENT_WIDTH
+
+    If Not m_HdrBg Is Nothing Then m_HdrBg.Move 0, 0, cw, HEADER_HEIGHT - 0.75
+    If Not m_HdrGrip Is Nothing Then m_HdrGrip.Move 4, (HEADER_HEIGHT - 11) / 2, 10, 11
+    If Not m_HdrTitle Is Nothing Then m_HdrTitle.Move 15, (HEADER_HEIGHT - 12.5) / 2, cw - 54, 12.5
+    If Not m_BtnCollapse Is Nothing Then m_BtnCollapse.MoveTo cw - 38, 2, 17, HEADER_HEIGHT - 4
+    If Not m_BtnClose Is Nothing Then m_BtnClose.MoveTo cw - 19, 2, 17, HEADER_HEIGHT - 4
+    If Not m_HdrDivider Is Nothing Then
+        m_HdrDivider.Move 0, HEADER_HEIGHT - 0.75, cw, 0.75
+        m_HdrDivider.Visible = (Not m_IsCollapsed)
+    End If
+
+    If Not m_HdrBg Is Nothing Then m_HdrBg.ZOrder 1
+    If Not m_HdrGrip Is Nothing Then m_HdrGrip.ZOrder 0
+    If Not m_HdrTitle Is Nothing Then m_HdrTitle.ZOrder 0
+    If Not m_BtnCollapse Is Nothing Then m_BtnCollapse.MoveTo cw - 38, 2, 17, HEADER_HEIGHT - 4
+    If Not m_BtnClose Is Nothing Then m_BtnClose.MoveTo cw - 19, 2, 17, HEADER_HEIGHT - 4
+    If Not m_HdrDivider Is Nothing Then m_HdrDivider.ZOrder 0
+
+    For Each ctrl In Me.Controls
+        If Left$(ctrl.Name, 3) = "btn" Then
+            ctrl.Visible = (Not m_IsCollapsed)
+        End If
+    Next ctrl
+
+    If Not m_Dividers Is Nothing Then
+        For Each divCtrl In m_Dividers
+            divCtrl.Visible = (Not m_IsCollapsed)
+        Next divCtrl
+    End If
+    On Error GoTo 0
 End Sub
 
 Public Sub ApplyTheme(Optional ByVal force As Boolean = False)
@@ -153,6 +307,14 @@ Public Sub ApplyTheme(Optional ByVal force As Boolean = False)
     If m_ThemeApplied And Not force And (darkNow = m_LastDark) Then Exit Sub
 
     ApplyFormBaseTheme Me
+
+    On Error Resume Next
+    If Not m_HdrBg Is Nothing Then m_HdrBg.BackColor = ThemeCanvasColor()
+    If Not m_HdrGrip Is Nothing Then m_HdrGrip.ForeColor = ThemeTextMutedColor()
+    If Not m_HdrTitle Is Nothing Then m_HdrTitle.ForeColor = ThemeTextPrimaryColor()
+    If Not m_HdrDivider Is Nothing Then StyleDividerLine m_HdrDivider
+    On Error GoTo 0
+
     If Not m_Dividers Is Nothing Then
         For Each divCtrl In m_Dividers
             StyleDividerLine divCtrl
@@ -167,6 +329,57 @@ End Sub
 
 Public Sub OnHoverControlChanged(ByVal activeItem As Object)
     ResetHoverButtons m_HoverButtons, activeItem
+    RefreshTooltipWatch
+End Sub
+
+Public Sub OnFlatButtonClick(ByVal actionKey As String)
+    Select Case actionKey
+        Case "collapse"
+            ToggleCollapsed
+        Case "close"
+            SaveToolbarPosition
+            Me.Hide
+    End Select
+End Sub
+
+Private Sub m_HdrBg_MouseDown(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+    If Button <> 1 Then Exit Sub
+    DragUserFormWindow Me.Caption
+    SaveToolbarPosition
+End Sub
+
+Private Sub m_HdrGrip_MouseDown(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+    If Button <> 1 Then Exit Sub
+    DragUserFormWindow Me.Caption
+    SaveToolbarPosition
+End Sub
+
+Private Sub m_HdrTitle_MouseDown(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+    If Button <> 1 Then Exit Sub
+    DragUserFormWindow Me.Caption
+    SaveToolbarPosition
+End Sub
+
+Private Sub m_HdrBg_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
+    ToggleCollapsed
+End Sub
+
+Private Sub m_HdrTitle_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
+    ToggleCollapsed
+End Sub
+
+Private Sub m_HdrBg_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+    ResetHoverButtons m_HoverButtons
+    RefreshTooltipWatch
+End Sub
+
+Private Sub m_HdrGrip_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+    ResetHoverButtons m_HoverButtons
+    RefreshTooltipWatch
+End Sub
+
+Private Sub m_HdrTitle_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+    ResetHoverButtons m_HoverButtons
     RefreshTooltipWatch
 End Sub
 
@@ -295,6 +508,12 @@ Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
     SaveToolbarPosition
     ClearHoverButtons m_HoverButtons
     Set m_Dividers = Nothing
+    Set m_BtnCollapse = Nothing
+    Set m_BtnClose = Nothing
+    Set m_HdrDivider = Nothing
+    Set m_HdrTitle = Nothing
+    Set m_HdrGrip = Nothing
+    Set m_HdrBg = Nothing
 End Sub
 
 Private Sub UserForm_Terminate()
@@ -312,13 +531,17 @@ End Sub
         ($handlerLines -join "`r`n")
     ).Replace("__TOOLBAR_WIDTH__", [string]$toolbarWidth).Replace(
         "__TOOLBAR_HEIGHT__", [string]$toolbarHeight
-    ).Replace("__BUTTON_TOP__", [string]$buttonTop).Replace(
-        "__BUTTON_WIDTH__", [string]$buttonWidth
-    ).Replace("__BUTTON_HEIGHT__", [string]$buttonHeight).Replace(
-        "__BUTTON_ROW_STEP__", [string]$buttonRowStep
-    ).Replace("__BUTTON_COLUMN_GAP__", [string]$buttonColumnGap).Replace(
-        "__BUTTON_GROUP_GAP__", [string]$groupGap
-    ).Replace("__GROUP_GAP_LINES__", $groupGapLines).Replace("__GROUP_GAP_LIST__", $groupGapList)
+    ).Replace("__FRAMELESS_CLIENT_WIDTH__", [string]$framelessClientWidth).Replace(
+        "__HEADER_HEIGHT__", [string]$headerHeight
+    ).Replace("__EXPANDED_CLIENT_HEIGHT__", [string]$expandedClientHeight).Replace(
+        "__BUTTON_TOP__", [string]$buttonTop
+    ).Replace("__BUTTON_WIDTH__", [string]$buttonWidth).Replace(
+        "__BUTTON_HEIGHT__", [string]$buttonHeight
+    ).Replace("__BUTTON_ROW_STEP__", [string]$buttonRowStep).Replace(
+        "__BUTTON_COLUMN_GAP__", [string]$buttonColumnGap
+    ).Replace("__BUTTON_GROUP_GAP__", [string]$groupGap).Replace(
+        "__GROUP_GAP_LINES__", $groupGapLines
+    ).Replace("__GROUP_GAP_LIST__", $groupGapList)
 }
 
 Add-Type -AssemblyName System.Drawing
@@ -351,11 +574,21 @@ $document = $null
 $component = $null
 $designer = $null
 $helper = $null
+$themeHelper = $null
+$windowHelper = $null
+$hoverHelper = $null
+$flatBtnHelper = $null
 
 try {
     $word = Start-RAToolsWordSession
 
     $document = $word.Documents.Add()
+
+    # 导入依赖模块以便 VBE 编译导出
+    $themeHelper = $document.VBProject.VBComponents.Import((Join-Path $RepoRoot "modules\UI_Theme.bas"))
+    $windowHelper = $document.VBProject.VBComponents.Import((Join-Path $RepoRoot "modules\Core_Window.bas"))
+    $hoverHelper = $document.VBProject.VBComponents.Import((Join-Path $RepoRoot "class_modules\clsHoverButton.cls"))
+    $flatBtnHelper = $document.VBProject.VBComponents.Import((Join-Path $RepoRoot "class_modules\clsFlatButton.cls"))
 
     $component = $document.VBProject.VBComponents.Import($formPath)
     $designer = $component.Designer
@@ -366,6 +599,12 @@ try {
 Option Explicit
 
 Public Sub RunQuickToolbarAction(ByVal actionKey As String)
+End Sub
+
+Public Sub RefreshTooltipWatch()
+End Sub
+
+Public Sub ReturnFocusToDocumentWindow()
 End Sub
 
 Public Function SetQuickToolbarPictures() As String
@@ -433,6 +672,12 @@ End Function
 
     $vbaEncoding = [Text.Encoding]::GetEncoding(936)
     $exportText = [IO.File]::ReadAllText($exportPath, $vbaEncoding)
+    # 剥离 VBE 导出时为 WithEvents 私有变量自动插入的 Attribute 行，保持与模板严格一致
+    $exportText = [regex]::Replace(
+        $exportText,
+        "(?m)^Attribute\s+\w+\.VB_VarHelpID\s*=\s*-1\r?\n",
+        ""
+    )
     $exportText = [regex]::Replace(
         $exportText,
         "[ `t]+(?=`r?$)",
@@ -449,6 +694,10 @@ finally {
     if ($null -ne $document) { $document.Close($false) | Out-Null }
 
     Release-ComObjectSafe $helper
+    Release-ComObjectSafe $themeHelper
+    Release-ComObjectSafe $windowHelper
+    Release-ComObjectSafe $hoverHelper
+    Release-ComObjectSafe $flatBtnHelper
     Release-ComObjectSafe $designer
     Release-ComObjectSafe $component
     Release-ComObjectSafe $document

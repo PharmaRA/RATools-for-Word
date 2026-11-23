@@ -76,6 +76,8 @@ Assert-Contains $windowText "DWMWA_CAPTION_COLOR" "Core_Window should configure 
 Assert-Contains $windowText "Optional ByVal applyCaptionColor As Boolean = True" "Core_Window should allow skipping caption color for WS_EX_TOOLWINDOW."
 Assert-Contains $windowText "Public Function StyleUserFormWindowChrome(" "Core_Window should export StyleUserFormWindowChrome."
 Assert-Contains $windowText "Public Sub SetHandCursor()" "Core_Window should export SetHandCursor."
+Assert-Contains $windowText "Public Function MakeUserFormWindowFrameless(" "Core_Window should export MakeUserFormWindowFrameless."
+Assert-Contains $windowText "Public Sub DragUserFormWindow(" "Core_Window should export DragUserFormWindow."
 
 # --- UI_Theme 双主题探测与配色板 ---
 foreach ($required in @(
@@ -91,6 +93,7 @@ foreach ($required in @(
     "Public Function RegisterHoverButton(",
     "Public Sub RefreshHoverButtons(",
     "Public Sub ResetHoverButtons(",
+    "Public Function ThemeIconFontName() As String",
     "Public Sub ClearHoverButtons("
 )) {
     Assert-Contains $themeText $required "UI_Theme missing expected element: $required"
@@ -110,6 +113,7 @@ foreach ($required in @(
 foreach ($required in @(
     "Public WithEvents m_Hit As MSForms.Label",
     "Public Sub Init(",
+    "Public Sub SetIcon(",
     "Public Sub MoveTo(",
     "Public Sub ApplyVisualState()",
     "Public Sub Dispose()",
@@ -147,7 +151,14 @@ foreach ($entry in $forms.GetEnumerator()) {
 }
 
 Assert-Contains $frmQuickText "ApplyFormWindowChrome Me.Caption, False" "frmQuickToolbar should avoid DWM caption color on WS_EX_TOOLWINDOW."
+Assert-Contains $frmQuickText "ApplyFramelessMode" "frmQuickToolbar should support frameless drag bar."
+Assert-Contains $frmQuickText "ToggleCollapsed" "frmQuickToolbar should support collapse toggle."
+Assert-Contains $frmQuickText "hdrGrip" "frmQuickToolbar should create gripper handle."
 Assert-Contains $frmMacroText "clsMacroListRow" "frmMacroList should use clsMacroListRow custom padded rows."
+Assert-Contains $frmMacroText "lblSearchIcon" "frmMacroList should embed vector search glyph inside search box."
+Assert-Contains $frmMacroText "lblMacroCaption" "frmMacroList should render Application.Run macro sub-caption."
+Assert-Contains $frmMacroText "bgKeyEnter" "frmMacroList should style Enter keycap border."
+Assert-Contains $frmMacroText "bgKeyEsc" "frmMacroList should style Esc keycap border."
 Assert-Contains $frmBatchText "lblAccentBar" "frmBatchMode should render active left accent bars."
 
 # --- frmBatchMode 资源与 Core_UI 接入 ---
@@ -191,6 +202,9 @@ $gapLines = foreach ($gapRow in $layoutSpec.GroupGapRows) {
 $expectedQuickBody = $tplMatch.Groups[1].Value.
     Replace("__TOOLBAR_WIDTH__", [string]$layoutSpec.ToolbarWidth).
     Replace("__TOOLBAR_HEIGHT__", [string]$layoutSpec.ToolbarHeight).
+    Replace("__FRAMELESS_CLIENT_WIDTH__", [string]$layoutSpec.FramelessClientWidth).
+    Replace("__HEADER_HEIGHT__", [string]$layoutSpec.HeaderHeight).
+    Replace("__EXPANDED_CLIENT_HEIGHT__", [string]$layoutSpec.ExpandedClientHeight).
     Replace("__BUTTON_TOP__", [string]$layoutSpec.ButtonTop).
     Replace("__BUTTON_WIDTH__", [string]$layoutSpec.ButtonWidth).
     Replace("__BUTTON_HEIGHT__", [string]$layoutSpec.ButtonHeight).

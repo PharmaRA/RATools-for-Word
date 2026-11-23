@@ -148,6 +148,10 @@ Assert-Contains $formText "ShowModal       =   0" "Quick toolbar should be model
 Assert-Contains $formText 'Me.Caption = "RATools"' "Quick toolbar should use a short readable title."
 Assert-Contains $formText "Private Const TOOLBAR_WIDTH As Single = $($layoutSpec.ToolbarWidth)" "Toolbar width should match QuickToolbarButtons.psd1."
 Assert-Contains $formText "Private Const TOOLBAR_HEIGHT As Single = $($layoutSpec.ToolbarHeight)" "Toolbar height should match QuickToolbarButtons.psd1."
+Assert-Contains $formText "Private Const HEADER_HEIGHT As Single = $($layoutSpec.HeaderHeight)" "Header height should match QuickToolbarButtons.psd1."
+Assert-Contains $formText "Private Const EXPANDED_CLIENT_HEIGHT As Single = $($layoutSpec.ExpandedClientHeight)" "Expanded client height should match QuickToolbarButtons.psd1."
+Assert-Contains $formText "Public Sub ApplyFramelessMode()" "Quick toolbar should expose frameless mode setup."
+Assert-Contains $formText "Public Sub ToggleCollapsed()" "Quick toolbar should expose one-click collapse toggle."
 Assert-Contains $formText "Private Const BUTTON_WIDTH As Single = $($layoutSpec.ButtonWidth)" "Button width should match QuickToolbarButtons.psd1."
 Assert-Contains $formText "Private Const BUTTON_HEIGHT As Single = $($layoutSpec.ButtonHeight)" "Button height should match QuickToolbarButtons.psd1."
 Assert-Contains $formText "Private Const BUTTON_ROW_STEP As Single = $($layoutSpec.RowStep)" "Row step should match QuickToolbarButtons.psd1."
@@ -303,7 +307,7 @@ End Function
     $insideHeight = [double]$formSize[3]
     Assert-True ([Math]::Abs($formWidth - $layoutSpec.ToolbarWidth) -lt 0.5) "Toolbar runtime width should be $($layoutSpec.ToolbarWidth)pt; got $formWidth."
     Assert-True ([Math]::Abs($formHeight - $layoutSpec.ToolbarHeight) -lt 0.5) "Toolbar runtime height should be $($layoutSpec.ToolbarHeight)pt; got $formHeight."
-    Assert-True ($formHeight -lt 200) "Toolbar should remain a compact six-row grid."
+    Assert-True ($formHeight -lt 235) "Toolbar should remain a compact six-row grid."
 
     for ($i = 0; $i -lt $expectedItems.Count; $i++) {
         $item = $expectedItems[$i]
